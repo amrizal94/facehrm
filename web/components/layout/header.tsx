@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, LogOut, User } from 'lucide-react'
+import { Bell, LogOut, Menu, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -21,15 +21,27 @@ const ROLE_COLORS: Record<string, string> = {
   staff: 'bg-blue-100 text-blue-700',
 }
 
-export function Header({ title }: { title: string }) {
+export function Header({ title, onMenuClick }: { title: string; onMenuClick?: () => void }) {
   const user = useAuthStore((s) => s.user)
   const { mutate: logout, isPending } = useLogout()
 
   return (
-    <header className="h-16 border-b bg-white px-6 flex items-center justify-between shrink-0">
-      <h1 className="text-lg font-semibold text-slate-900">{title}</h1>
-
+    <header className="h-16 border-b bg-white px-4 md:px-6 flex items-center justify-between shrink-0">
       <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden text-slate-500"
+          onClick={onMenuClick}
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <h1 className="text-base md:text-lg font-semibold text-slate-900">{title}</h1>
+      </div>
+
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Notification bell */}
         <Button variant="ghost" size="icon" className="relative text-slate-500">
           <Bell className="h-5 w-5" />
