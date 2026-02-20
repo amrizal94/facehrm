@@ -9,12 +9,16 @@ set -e
 APP_DIR="/www/wwwroot/facehrm/backend"
 WEB_USER="www"    # user Nginx/PHP-FPM di aaPanel
 PHP_BIN="/www/server/php/83/bin/php"
-COMPOSER_BIN="/usr/bin/composer"
 
-# Cari composer
-if [ ! -f "$COMPOSER_BIN" ]; then
+# Cari Composer 2 (prioritas: composer2 > composer.phar > composer)
+if [ -f "/usr/local/bin/composer2" ]; then
+    COMPOSER_BIN="/usr/local/bin/composer2"
+elif [ -f "/www/server/composer/composer.phar" ]; then
     COMPOSER_BIN="/www/server/composer/composer.phar"
+else
+    COMPOSER_BIN="/usr/bin/composer"
 fi
+echo "    Using composer: $COMPOSER_BIN"
 
 cd "$APP_DIR" || { echo "ERROR: folder $APP_DIR tidak ditemukan"; exit 1; }
 
