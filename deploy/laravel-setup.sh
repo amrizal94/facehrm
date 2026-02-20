@@ -8,8 +8,18 @@ set -e
 
 APP_DIR="/www/wwwroot/facehrm/backend"
 WEB_USER="www"    # user Nginx/PHP-FPM di aaPanel
+PHP_BIN="/www/server/php/83/bin/php"
+COMPOSER_BIN="/usr/bin/composer"
+
+# Cari composer
+if [ ! -f "$COMPOSER_BIN" ]; then
+    COMPOSER_BIN="/www/server/composer/composer.phar"
+fi
 
 cd "$APP_DIR" || { echo "ERROR: folder $APP_DIR tidak ditemukan"; exit 1; }
+
+# Fix git safe directory
+git config --global --add safe.directory /www/wwwroot/facehrm 2>/dev/null || true
 
 echo ""
 echo "═══════════════════════════════════════════════"
@@ -29,14 +39,14 @@ echo "✅ .env ditemukan"
 # ── 2. Install Composer dependencies ─────────────────────────────
 echo ""
 echo "[1/7] Install Composer dependencies (no-dev)..."
-composer install --no-dev --optimize-autoloader --no-interaction
+$PHP_BIN $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction
 
 # ── 3. Generate APP_KEY jika belum ada ───────────────────────────
 echo ""
 echo "[2/7] Generate app key..."
 KEY_CHECK=$(grep "^APP_KEY=" .env | cut -d'=' -f2)
 if [ -z "$KEY_CHECK" ]; then
-    php artisan key:generate --force
+    $PHP_BIN artisan key:generate --force
     echo "    ✅ APP_KEY generated"
 else
     echo "    ✅ APP_KEY sudah ada, dilewati"
@@ -45,19 +55,19 @@ fi
 # ── 4. Storage link ───────────────────────────────────────────────
 echo ""
 echo "[3/7] Create storage symlink..."
-php artisan storage:link --force
+$PHP_BIN artisan storage:link --force
 
 # ── 5. Run Migrations ─────────────────────────────────────────────
 echo ""
 echo "[4/7] Run database migrations..."
-php artisan migrate --force
+$PHP_BIN artisan migrate --force
 
 # ── 6. Seed data awal (only jika tabel users masih kosong) ───────
 echo ""
 echo "[5/7] Seeding initial data..."
-USER_COUNT=$(php artisan tinker --execute="echo App\Models\User::count();" 2>/dev/null | tail -1)
+USER_COUNT=$($PHP_BIN artisan tinker --execute="echo App\Models\User::count();" 2>/dev/null | tail -1)
 if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
-    php artisan db:seed --force
+    $PHP_BIN artisan db:seed --force
     echo "    ✅ Data awal berhasil di-seed"
 else
     echo "    ✅ Data sudah ada ($USER_COUNT users), skip seed"
@@ -66,10 +76,10 @@ fi
 # ── 7. Cache config/route/view ───────────────────────────────────
 echo ""
 echo "[6/7] Caching config, routes, views..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
+$PHP_BIN artisan config:cache
+$PHP_BIN artisan route:cache
+$PHP_BIN artisan view:cache
+$PHP_BIN artisan event:cache
 
 # ── 8. Set permissions ────────────────────────────────────────────
 echo ""

@@ -20,7 +20,8 @@ git pull origin main
 # ── 2. Backend update ────────────────────────────────────────────
 echo "[2/4] Backend update..."
 cd "$APP_DIR/backend"
-composer install --no-dev --optimize-autoloader --no-interaction
+$PHP /usr/bin/composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null \
+    || $PHP /www/server/composer/composer.phar install --no-dev --optimize-autoloader --no-interaction
 $PHP artisan migrate --force
 $PHP artisan config:cache
 $PHP artisan route:cache
