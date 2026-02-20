@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "facehrm-web",
       script: "server.js",
-      cwd: "/www/wwwroot/facehrm/web",
+      cwd: "/www/wwwroot/facehrm/web/.next/standalone",
       instances: 1,
       autorestart: true,
       watch: false,

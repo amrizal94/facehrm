@@ -34,6 +34,9 @@ echo "[3/4] Frontend build..."
 cd "$APP_DIR/web"
 npm install --omit=dev
 npm run build
+# Copy static & public ke standalone dir (diperlukan untuk output: standalone)
+cp -r .next/static .next/standalone/.next/static
+cp -r public .next/standalone/public
 
 # ── 4. Restart PM2 ───────────────────────────────────────────────
 echo "[4/4] Restart PM2..."
