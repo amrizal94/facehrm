@@ -1,0 +1,176 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreEmployeeRequest;
+use App\Http\Requests\UpdateEmployeeRequest;
+use App\Http\Resources\EmployeeResource;
+use App\Models\Employee;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
+class EmployeeController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $query = Employee::query()->with(['user', 'department']);
+
+        if ($request->filled('search')) {
+            $search = $request->string('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('employee_number', 'ilike', "%{$search}%")
+                  ->orWhere('position', 'ilike', "%{$search}%")
+                  ->orWhereHas('user', fn($u) => $u->where('name', 'ilike', "%{$search}%")
+                      ->orWhere('email', 'ilike', "%{$search}%"));
+            });
+        }
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->integer('department_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('employment_type')) {
+            $query->where('employment_type', $request->string('employment_type'));
+        }
+
+        $employees = $query
+            ->orderByDesc('created_at')
+            ->paginate($request->integer('per_page', 15));
+
+        return response()->json([
+            'success' => true,
+            'data'    => EmployeeResource::collection($employees->items()),
+            'meta'    => [
+                'total'        => $employees->total(),
+                'per_page'     => $employees->perPage(),
+                'current_page' => $employees->currentPage(),
+                'last_page'    => $employees->lastPage(),
+            ],
+        ]);
+    }
+
+    public function store(StoreEmployeeRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        DB::beginTransaction();
+        try {
+            // Create user account
+            $user = User::create([
+                'name'      => $validated['name'],
+                'email'     => $validated['email'],
+                'phone'     => $validated['phone'] ?? null,
+                'password'  => Hash::make($validated['password'] ?? $validated['employee_number']),
+                'is_active' => true,
+            ]);
+
+            $user->assignRole('staff');
+
+            // Create employee record
+            $employee = Employee::create([
+                'user_id'                 => $user->id,
+                'employee_number'         => $validated['employee_number'],
+                'department_id'           => $validated['department_id'] ?? null,
+                'position'                => $validated['position'],
+                'employment_type'         => $validated['employment_type'],
+                'status'                  => $validated['status'],
+                'join_date'               => $validated['join_date'],
+                'end_date'                => $validated['end_date'] ?? null,
+                'basic_salary'            => $validated['basic_salary'],
+                'gender'                  => $validated['gender'] ?? null,
+                'birth_date'              => $validated['birth_date'] ?? null,
+                'address'                 => $validated['address'] ?? null,
+                'emergency_contact_name'  => $validated['emergency_contact_name'] ?? null,
+                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+                'bank_name'               => $validated['bank_name'] ?? null,
+                'bank_account_number'     => $validated['bank_account_number'] ?? null,
+                'tax_id'                  => $validated['tax_id'] ?? null,
+                'national_id'             => $validated['national_id'] ?? null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Employee created successfully.',
+                'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+            ], 201);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    public function show(Employee $employee): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+        ]);
+    }
+
+    public function update(UpdateEmployeeRequest $request, Employee $employee): JsonResponse
+    {
+        $validated = $request->validated();
+
+        DB::beginTransaction();
+        try {
+            // Update user account
+            $employee->user->update([
+                'name'  => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+            ]);
+
+            // Update employee record
+            $employee->update([
+                'employee_number'         => $validated['employee_number'],
+                'department_id'           => $validated['department_id'] ?? null,
+                'position'                => $validated['position'],
+                'employment_type'         => $validated['employment_type'],
+                'status'                  => $validated['status'],
+                'join_date'               => $validated['join_date'],
+                'end_date'                => $validated['end_date'] ?? null,
+                'basic_salary'            => $validated['basic_salary'],
+                'gender'                  => $validated['gender'] ?? null,
+                'birth_date'              => $validated['birth_date'] ?? null,
+                'address'                 => $validated['address'] ?? null,
+                'emergency_contact_name'  => $validated['emergency_contact_name'] ?? null,
+                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+                'bank_name'               => $validated['bank_name'] ?? null,
+                'bank_account_number'     => $validated['bank_account_number'] ?? null,
+                'tax_id'                  => $validated['tax_id'] ?? null,
+                'national_id'             => $validated['national_id'] ?? null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Employee updated successfully.',
+                'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    public function destroy(Employee $employee): JsonResponse
+    {
+        $employee->delete(); // soft delete
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Employee deleted successfully.',
+        ]);
+    }
+}

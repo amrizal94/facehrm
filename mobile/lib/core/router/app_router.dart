@@ -1,0 +1,165 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/attendance/presentation/screens/my_attendance_screen.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/dashboard/presentation/screens/admin_dashboard.dart';
+import '../../features/dashboard/presentation/screens/hr_dashboard.dart';
+import '../../features/dashboard/presentation/screens/staff_dashboard.dart';
+import '../../features/leave/presentation/screens/apply_leave_screen.dart';
+import '../../features/leave/presentation/screens/my_leaves_screen.dart';
+import '../../features/payslip/data/models/payslip_model.dart';
+import '../../features/payslip/presentation/screens/payslip_detail_screen.dart';
+import '../../features/payslip/presentation/screens/payslip_list_screen.dart';
+import '../constants/app_constants.dart';
+import 'app_routes.dart';
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authNotifierProvider);
+
+  return GoRouter(
+    initialLocation: AppRoutes.splash,
+    redirect: (context, state) {
+      final isAuthenticated = authState is AuthAuthenticated;
+      final isLoading = authState is AuthLoading || authState is AuthInitial;
+      final isLoginRoute  = state.matchedLocation == AppRoutes.login;
+      final isSplashRoute = state.matchedLocation == AppRoutes.splash;
+
+      if (isLoading) return isSplashRoute ? null : AppRoutes.splash;
+      if (!isAuthenticated) return isLoginRoute ? null : AppRoutes.login;
+      if (isLoginRoute || isSplashRoute) {
+        if (authState case AuthAuthenticated(:final user)) {
+          return _dashboardForRole(user.role);
+        }
+      }
+      return null;
+    },
+    routes: [
+      GoRoute(path: AppRoutes.splash, builder: (_, __) => const _SplashScreen()),
+      GoRoute(path: AppRoutes.login,  builder: (_, __) => const LoginScreen()),
+
+      // Admin
+      GoRoute(
+        path: AppRoutes.adminDashboard,
+        builder: (_, __) => const AdminDashboardScreen(),
+        redirect: (context, state) {
+          final as = ProviderScope.containerOf(context).read(authNotifierProvider);
+          if (as is AuthAuthenticated && as.user.role != AppConstants.roleAdmin) {
+            return AppRoutes.unauthorized;
+          }
+          return null;
+        },
+      ),
+
+      // HR
+      GoRoute(
+        path: AppRoutes.hrDashboard,
+        builder: (_, __) => const HRDashboardScreen(),
+        redirect: (context, state) {
+          final as = ProviderScope.containerOf(context).read(authNotifierProvider);
+          if (as is AuthAuthenticated) {
+            final r = as.user.role;
+            if (r != AppConstants.roleHR && r != AppConstants.roleAdmin) {
+              return AppRoutes.unauthorized;
+            }
+          }
+          return null;
+        },
+      ),
+
+      // Staff
+      GoRoute(path: AppRoutes.staffDashboard, builder: (_, __) => const StaffDashboardScreen()),
+
+      // Staff features
+      GoRoute(path: AppRoutes.myAttendance, builder: (_, __) => const MyAttendanceScreen()),
+      GoRoute(path: AppRoutes.myLeaves,     builder: (_, __) => const MyLeavesScreen()),
+      GoRoute(path: AppRoutes.applyLeave,   builder: (_, __) => const ApplyLeaveScreen()),
+      GoRoute(path: AppRoutes.myPayslips,   builder: (_, __) => const PayslipListScreen()),
+      GoRoute(
+        path: AppRoutes.payslipDetail,
+        builder: (_, state) => PayslipDetailScreen(slip: state.extra as PayslipModel),
+      ),
+
+      GoRoute(path: AppRoutes.unauthorized, builder: (_, __) => const _UnauthorizedScreen()),
+    ],
+  );
+});
+
+String _dashboardForRole(String role) => switch (role) {
+      AppConstants.roleAdmin => AppRoutes.adminDashboard,
+      AppConstants.roleHR    => AppRoutes.hrDashboard,
+      _                      => AppRoutes.staffDashboard,
+    };
+
+// ── Splash ────────────────────────────────────────────────────────────────────
+class _SplashScreen extends ConsumerStatefulWidget {
+  const _SplashScreen();
+
+  @override
+  ConsumerState<_SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends ConsumerState<_SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authNotifierProvider.notifier).checkAuthStatus();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.face_retouching_natural, size: 80,
+                color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 16),
+            Text(AppConstants.appName,
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 32),
+            const CircularProgressIndicator(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Unauthorized ──────────────────────────────────────────────────────────────
+class _UnauthorizedScreen extends StatelessWidget {
+  const _UnauthorizedScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Unauthorized')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_outline, size: 80, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text('Access Denied',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('You do not have permission to access this page.'),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => context.go(AppRoutes.login),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

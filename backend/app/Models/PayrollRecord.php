@@ -1,0 +1,160 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Setting;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class PayrollRecord extends Model
+{
+    protected $fillable = [
+        'employee_id',
+        'period_year',
+        'period_month',
+        'basic_salary',
+        'allowances',
+        'overtime_pay',
+        'gross_salary',
+        'absent_deduction',
+        'other_deductions',
+        'tax_deduction',
+        'bpjs_deduction',
+        'net_salary',
+        'working_days',
+        'present_days',
+        'absent_days',
+        'leave_days',
+        'status',
+        'paid_at',
+        'notes',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'paid_at' => 'datetime',
+        ];
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    // -----------------------------------------------------------
+    // Count Mon–Fri working days in a given month
+    // -----------------------------------------------------------
+    public static function countWorkingDays(int $year, int $month): int
+    {
+        $days  = 0;
+        $total = Carbon::create($year, $month, 1)->daysInMonth;
+
+        for ($d = 1; $d <= $total; $d++) {
+            if (!Carbon::create($year, $month, $d)->isWeekend()) {
+                $days++;
+            }
+        }
+
+        return $days;
+    }
+
+    // -----------------------------------------------------------
+    // Build payroll data for one employee + period from DB
+    // -----------------------------------------------------------
+    public static function buildPayrollData(Employee $employee, int $year, int $month): array
+    {
+        $workingDays = self::countWorkingDays($year, $month);
+        $startDate   = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate     = $startDate->copy()->endOfMonth();
+
+        // Attendance for the period
+        $attendanceRecords = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->get();
+
+        $presentDays = $attendanceRecords
+            ->whereIn('status', ['present', 'late', 'half_day'])
+            ->count();
+
+        // Approved leave days overlapping the period
+        $leaveDays = LeaveRequest::where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->where(fn($q) => $q
+                ->whereBetween('start_date', [$startDate, $endDate])
+                ->orWhereBetween('end_date', [$startDate, $endDate])
+                ->orWhere(fn($q2) => $q2->where('start_date', '<=', $startDate)->where('end_date', '>=', $endDate))
+            )
+            ->sum('total_days');
+
+        // Clamp to working days
+        $leaveDays   = min((int) $leaveDays, $workingDays);
+        $presentDays = min($presentDays, $workingDays);
+        $absentDays  = max(0, $workingDays - $presentDays - $leaveDays);
+
+        $basicSalary = (float) $employee->basic_salary;
+
+        // Absent deduction: proportional
+        $absentDeduction = $workingDays > 0
+            ? round(($absentDays / $workingDays) * $basicSalary, 2)
+            : 0;
+
+        $grossSalary   = $basicSalary; // allowances & overtime added manually
+        $taxRate       = (float) Setting::get('payroll.tax_rate', '5') / 100;
+        $bpjsRate      = (float) Setting::get('payroll.bpjs_rate', '3') / 100;
+        $taxDeduction  = round($grossSalary * $taxRate, 2);
+        $bpjsDeduction = round($basicSalary * $bpjsRate, 2);
+        $netSalary     = max(0, $grossSalary - $absentDeduction - $taxDeduction - $bpjsDeduction);
+
+        return [
+            'basic_salary'     => $basicSalary,
+            'allowances'       => 0,
+            'overtime_pay'     => 0,
+            'gross_salary'     => $grossSalary,
+            'absent_deduction' => $absentDeduction,
+            'other_deductions' => 0,
+            'tax_deduction'    => $taxDeduction,
+            'bpjs_deduction'   => $bpjsDeduction,
+            'net_salary'       => $netSalary,
+            'working_days'     => $workingDays,
+            'present_days'     => $presentDays,
+            'absent_days'      => $absentDays,
+            'leave_days'       => $leaveDays,
+        ];
+    }
+
+    // -----------------------------------------------------------
+    // Recalculate derived fields after edits
+    // -----------------------------------------------------------
+    public function recalculate(): void
+    {
+        $gross = (float) $this->basic_salary
+                + (float) $this->allowances
+                + (float) $this->overtime_pay;
+
+        $taxRate  = (float) Setting::get('payroll.tax_rate', '5') / 100;
+        $bpjsRate = (float) Setting::get('payroll.bpjs_rate', '3') / 100;
+
+        $this->gross_salary   = $gross;
+        $this->tax_deduction  = round($gross * $taxRate, 2);
+        $this->bpjs_deduction = round((float) $this->basic_salary * $bpjsRate, 2);
+        $this->net_salary    = max(0,
+            $gross
+            - (float) $this->absent_deduction
+            - (float) $this->other_deductions
+            - $this->tax_deduction
+            - $this->bpjs_deduction
+        );
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    public function periodLabel(): string
+    {
+        return Carbon::create($this->period_year, $this->period_month, 1)->format('F Y');
+    }
+}
