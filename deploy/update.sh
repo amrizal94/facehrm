@@ -45,6 +45,23 @@ cp -r public .next/standalone/public
 echo "[4/4] Restart PM2..."
 pm2 restart facehrm-web
 
+# ── 5. Purge Nginx proxy cache ────────────────────────────────────
+# Nginx mungkin cache halaman dari build lama — harus dibersihkan setiap deploy
+# agar user tidak menerima HTML yang merujuk ke CSS/JS chunk yang sudah tidak ada.
+echo "[5/5] Purging Nginx proxy cache..."
+PURGED=0
+for cache_dir in \
+  /www/server/nginx/proxy_cache_dir \
+  /tmp/nginx_proxy_cache \
+  /var/cache/nginx \
+  /dev/shm/nginx_cache; do
+  if [ -d "$cache_dir" ]; then
+    find "$cache_dir" -type f -delete 2>/dev/null && \
+      echo "  ✓ Cleared cache at: $cache_dir" && PURGED=1 || true
+  fi
+done
+[ "$PURGED" -eq 0 ] && echo "  (no Nginx proxy cache directory found — skipped)"
+
 echo ""
 echo "✅ Update selesai!"
 pm2 status facehrm-web
