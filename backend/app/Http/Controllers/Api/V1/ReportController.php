@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\FaceData;
 use App\Models\LeaveRequest;
+use App\Models\OvertimeRequest;
 use App\Models\PayrollRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -407,6 +408,79 @@ class ReportController extends Controller
                 'date'          => $today,
                 'face_enrolled' => $enrolled,
                 'face_total'    => $totalEmps,
+            ],
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // Overtime report: per-employee overtime summary for a period
+    // GET /reports/overtime?year=&month=&department_id=
+    // ---------------------------------------------------------------
+    public function overtime(Request $request): JsonResponse
+    {
+        $year  = $request->integer('year',  Carbon::now()->year);
+        $month = $request->integer('month', Carbon::now()->month);
+
+        $start = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+        $end   = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+        $query = Employee::query()
+            ->with(['user', 'department'])
+            ->where('status', 'active');
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->integer('department_id'));
+        }
+
+        $employees = $query->orderBy('employee_number')->get();
+
+        $rows = $employees->map(function (Employee $emp) use ($start, $end) {
+            $records = OvertimeRequest::where('employee_id', $emp->id)
+                ->whereBetween('date', [$start, $end])
+                ->selectRaw("status, overtime_type, sum(overtime_hours) as total_hours, count(*) as cnt")
+                ->groupBy('status', 'overtime_type')
+                ->get();
+
+            $approvedHours = $records->where('status', 'approved')->sum('total_hours');
+            $pendingHours  = $records->where('status', 'pending')->sum('total_hours');
+            $totalRequests = OvertimeRequest::where('employee_id', $emp->id)
+                ->whereBetween('date', [$start, $end])
+                ->count();
+
+            $byType = $records->where('status', 'approved')
+                ->groupBy('overtime_type')
+                ->map(fn($grp, $type) => [
+                    'type'         => $type,
+                    'total_hours'  => round((float) $grp->sum('total_hours'), 2),
+                    'count'        => (int) $grp->sum('cnt'),
+                ])->values();
+
+            return [
+                'employee_id'     => $emp->id,
+                'employee_number' => $emp->employee_number,
+                'name'            => $emp->user->name,
+                'department'      => $emp->department?->name,
+                'total_requests'  => $totalRequests,
+                'approved_hours'  => round((float) $approvedHours, 2),
+                'pending_hours'   => round((float) $pendingHours, 2),
+                'by_type'         => $byType,
+            ];
+        })->filter(fn($row) => $row['total_requests'] > 0)->values();
+
+        // Totals
+        $allRecords = OvertimeRequest::whereBetween('date', [$start, $end]);
+        $totalApprovedHours = (clone $allRecords)->where('status', 'approved')->sum('overtime_hours');
+        $totalPendingCount  = (clone $allRecords)->where('status', 'pending')->count();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $rows,
+            'meta'    => [
+                'year'                => $year,
+                'month'               => $month,
+                'total_employees'     => $rows->count(),
+                'total_approved_hours'=> round((float) $totalApprovedHours, 2),
+                'total_pending'       => $totalPendingCount,
             ],
         ]);
     }
