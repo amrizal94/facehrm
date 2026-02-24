@@ -14,7 +14,6 @@ import { PendingLeavePanel } from '@/components/dashboard/pending-leave-panel'
 import { PendingOvertimePanel } from '@/components/dashboard/pending-overtime-panel'
 import { TodayAttendancePanel } from '@/components/dashboard/today-attendance-panel'
 import { useOverview, useDailyTrend, useDepartmentToday } from '@/hooks/use-reports'
-import { useMemo } from 'react'
 
 const QUICK_ACTIONS = [
   { label: 'Employees',   href: '/admin/employees', icon: Users,         color: 'text-blue-600',   bg: 'bg-blue-50' },
@@ -27,6 +26,9 @@ const QUICK_ACTIONS = [
   { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,    color: 'text-cyan-600',   bg: 'bg-cyan-50' },
 ]
 
+// Pre-computed once at module load — avoids Math.random() during render
+const SKELETON_BAR_HEIGHTS = Array.from({ length: 22 }, () => 30 + Math.random() * 50)
+
 // ─── Daily Trend Chart ───────────────────────────────────────────────────────
 function DailyTrendChart() {
   const now = new Date()
@@ -34,7 +36,6 @@ function DailyTrendChart() {
 
   const days = data?.data ?? []
   const maxTotal = data?.meta.total_employees ?? 1
-
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between mb-4">
@@ -56,8 +57,8 @@ function DailyTrendChart() {
 
       {isLoading ? (
         <div className="h-32 flex items-end gap-1 animate-pulse">
-          {Array.from({ length: 22 }).map((_, i) => (
-            <div key={i} className="flex-1 bg-muted rounded-t" style={{ height: `${30 + Math.random() * 50}%` }} />
+          {SKELETON_BAR_HEIGHTS.map((h, i) => (
+            <div key={i} className="flex-1 bg-muted rounded-t" style={{ height: `${h}%` }} />
           ))}
         </div>
       ) : days.length === 0 ? (

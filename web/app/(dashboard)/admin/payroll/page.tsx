@@ -297,7 +297,7 @@ export default function AdminPayrollPage() {
               ) : records.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    No payroll records. Click "Generate Payroll" to create records for this period.
+                    No payroll records. Click &quot;Generate Payroll&quot; to create records for this period.
                   </TableCell>
                 </TableRow>
               ) : (

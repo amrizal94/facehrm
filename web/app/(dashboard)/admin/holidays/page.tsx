@@ -242,7 +242,7 @@ export default function AdminHolidaysPage() {
               ) : holidays.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No holidays defined for {year}. Click "Add Holiday" to get started.
+                    No holidays defined for {year}. Click &quot;Add Holiday&quot; to get started.
                   </TableCell>
                 </TableRow>
               ) : (
