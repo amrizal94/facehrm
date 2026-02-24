@@ -8,6 +8,8 @@
 set -e
 APP_DIR="/www/wwwroot/facehrm"
 PHP="/www/server/php/83/bin/php"
+NODE="/www/server/nodejs/v20.12.2/bin/node"
+NPM="/www/server/nodejs/v20.12.2/bin/npm"
 
 cd "$APP_DIR"
 
@@ -26,14 +28,14 @@ $PHP $COMPOSER2 install --no-dev --optimize-autoloader --no-interaction
 $PHP artisan migrate --force
 $PHP artisan config:cache
 $PHP artisan route:cache
-$PHP artisan view:cache
+# view:cache dilewati — backend ini API-only, tidak ada Blade views
 /etc/init.d/php-fpm-83 reload
 
 # ── 3. Frontend update ───────────────────────────────────────────
 echo "[3/4] Frontend build..."
 cd "$APP_DIR/web"
-npm install --omit=dev
-npm run build
+$NPM install --omit=dev
+$NPM run build
 # Copy static & public ke standalone dir (diperlukan untuk output: standalone)
 cp -r .next/static .next/standalone/.next/static
 cp -r public .next/standalone/public
