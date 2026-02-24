@@ -33,6 +33,7 @@ $PHP artisan route:cache
 
 # ── 3. Frontend update ───────────────────────────────────────────
 echo "[3/4] Frontend build..."
+export PATH="/www/server/nodejs/v20.12.2/bin:$PATH"
 cd "$APP_DIR/web"
 $NPM install --omit=dev
 $NPM run build
