@@ -35,7 +35,7 @@ $PHP artisan route:cache
 echo "[3/4] Frontend build..."
 export PATH="/www/server/nodejs/v20.12.2/bin:$PATH"
 cd "$APP_DIR/web"
-$NPM install --omit=dev
+$NPM install
 $NPM run build
 # Copy static & public ke standalone dir (diperlukan untuk output: standalone)
 cp -r .next/static .next/standalone/.next/static
