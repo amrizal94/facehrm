@@ -49,8 +49,13 @@ pm2 restart facehrm-web
 # Nginx mungkin cache halaman dari build lama — harus dibersihkan setiap deploy
 # agar user tidak menerima HTML yang merujuk ke CSS/JS chunk yang sudah tidak ada.
 echo "[5/5] Purging Nginx proxy cache..."
+
+# Cari proxy_cache_path dari semua config Nginx (aaPanel menyimpannya di berbagai tempat)
+CONFIG_DIRS="/etc/nginx /www/server/nginx /www/server/panel/vhost/nginx"
+FOUND_DIRS=$(grep -rh "proxy_cache_path" $CONFIG_DIRS 2>/dev/null | awk '{print $2}' | sort -u)
+
 PURGED=0
-for cache_dir in \
+for cache_dir in $FOUND_DIRS \
   /www/server/nginx/proxy_cache_dir \
   /tmp/nginx_proxy_cache \
   /var/cache/nginx \
@@ -60,7 +65,11 @@ for cache_dir in \
       echo "  ✓ Cleared cache at: $cache_dir" && PURGED=1 || true
   fi
 done
-[ "$PURGED" -eq 0 ] && echo "  (no Nginx proxy cache directory found — skipped)"
+
+if [ "$PURGED" -eq 0 ]; then
+  echo "  (no Nginx proxy cache directory found — listing proxy_cache_path in configs:)"
+  grep -rh "proxy_cache_path" $CONFIG_DIRS 2>/dev/null | head -5 || echo "  (none found)"
+fi
 
 echo ""
 echo "✅ Update selesai!"
