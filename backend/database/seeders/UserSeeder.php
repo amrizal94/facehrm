@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Department;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -53,6 +55,27 @@ class UserSeeder extends Seeder
             $user->syncRoles([$role]);
 
             $this->command->info("User created: {$user->email} → role: {$role}");
+
+            // Create employee record for the demo staff account
+            if ($role === 'staff') {
+                $dept = Department::first();
+                Employee::updateOrCreate(
+                    ['employee_number' => 'EMP000'],
+                    [
+                        'user_id'         => $user->id,
+                        'department_id'   => $dept?->id,
+                        'employee_number' => 'EMP000',
+                        'position'        => 'Staff Employee (Demo)',
+                        'employment_type' => 'full_time',
+                        'status'          => 'active',
+                        'join_date'       => '2024-01-01',
+                        'basic_salary'    => 6000000,
+                        'gender'          => 'male',
+                        'birth_date'      => '1995-01-01',
+                    ]
+                );
+                $this->command->info("  → employee record EMP000 created for {$user->email}");
+            }
         }
     }
 }
