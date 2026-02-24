@@ -13,6 +13,10 @@ class AppRoutes {
   static const String myAttendance = '/staff/attendance';
   static const String myLeaves     = '/staff/leaves';
   static const String applyLeave   = '/staff/leaves/apply';
-  static const String myPayslips   = '/staff/payslips';
+  static const String myPayslips    = '/staff/payslips';
   static const String payslipDetail = '/staff/payslips/:id';
+  static const String myOvertime     = '/staff/overtime';
+  static const String submitOvertime = '/staff/overtime/submit';
+  static const String holidays       = '/staff/holidays';
+  static const String notifications  = '/staff/notifications';
 }

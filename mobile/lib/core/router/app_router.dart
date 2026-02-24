@@ -8,8 +8,12 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/dashboard/presentation/screens/admin_dashboard.dart';
 import '../../features/dashboard/presentation/screens/hr_dashboard.dart';
 import '../../features/dashboard/presentation/screens/staff_dashboard.dart';
+import '../../features/holiday/presentation/screens/holidays_screen.dart';
 import '../../features/leave/presentation/screens/apply_leave_screen.dart';
 import '../../features/leave/presentation/screens/my_leaves_screen.dart';
+import '../../features/notifications/presentation/screens/notifications_screen.dart';
+import '../../features/overtime/presentation/screens/my_overtime_screen.dart';
+import '../../features/overtime/presentation/screens/submit_overtime_screen.dart';
 import '../../features/payslip/data/models/payslip_model.dart';
 import '../../features/payslip/presentation/screens/payslip_detail_screen.dart';
 import '../../features/payslip/presentation/screens/payslip_list_screen.dart';
@@ -73,14 +77,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.staffDashboard, builder: (_, __) => const StaffDashboardScreen()),
 
       // Staff features
-      GoRoute(path: AppRoutes.myAttendance, builder: (_, __) => const MyAttendanceScreen()),
-      GoRoute(path: AppRoutes.myLeaves,     builder: (_, __) => const MyLeavesScreen()),
-      GoRoute(path: AppRoutes.applyLeave,   builder: (_, __) => const ApplyLeaveScreen()),
-      GoRoute(path: AppRoutes.myPayslips,   builder: (_, __) => const PayslipListScreen()),
+      GoRoute(path: AppRoutes.myAttendance,  builder: (_, __) => const MyAttendanceScreen()),
+      GoRoute(path: AppRoutes.myLeaves,      builder: (_, __) => const MyLeavesScreen()),
+      GoRoute(path: AppRoutes.applyLeave,    builder: (_, __) => const ApplyLeaveScreen()),
+      GoRoute(path: AppRoutes.myPayslips,    builder: (_, __) => const PayslipListScreen()),
       GoRoute(
         path: AppRoutes.payslipDetail,
         builder: (_, state) => PayslipDetailScreen(slip: state.extra as PayslipModel),
       ),
+      GoRoute(path: AppRoutes.myOvertime,    builder: (_, __) => const MyOvertimeScreen()),
+      GoRoute(path: AppRoutes.submitOvertime, builder: (_, __) => const SubmitOvertimeScreen()),
+      GoRoute(path: AppRoutes.holidays,      builder: (_, __) => const HolidaysScreen()),
+      GoRoute(path: AppRoutes.notifications, builder: (_, __) => const NotificationsScreen()),
 
       GoRoute(path: AppRoutes.unauthorized, builder: (_, __) => const _UnauthorizedScreen()),
     ],

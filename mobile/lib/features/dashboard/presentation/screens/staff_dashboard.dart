@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../../core/router/app_routes.dart';
 import '../../../attendance/presentation/providers/attendance_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
 
 class StaffDashboardScreen extends ConsumerStatefulWidget {
   const StaffDashboardScreen({super.key});
@@ -60,6 +61,7 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
         backgroundColor: Colors.indigo.shade700,
         foregroundColor: Colors.white,
         actions: [
+          const _NotificationBadge(),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
@@ -191,6 +193,27 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                 subtitle: 'View your salary details',
                 color: Colors.purple,
                 onTap: () => context.push(AppRoutes.myPayslips),
+              ),
+              _MenuTile(
+                icon: Icons.more_time,
+                title: 'Overtime',
+                subtitle: 'Submit & track overtime requests',
+                color: Colors.amber.shade700,
+                onTap: () => context.push(AppRoutes.myOvertime),
+              ),
+              _MenuTile(
+                icon: Icons.event_outlined,
+                title: 'Holidays',
+                subtitle: 'View public & company holidays',
+                color: Colors.teal,
+                onTap: () => context.push(AppRoutes.holidays),
+              ),
+              _MenuTile(
+                icon: Icons.notifications_outlined,
+                title: 'Notifications',
+                subtitle: 'View your notifications',
+                color: Colors.blue.shade700,
+                onTap: () => context.push(AppRoutes.notifications),
               ),
             ],
           ),
@@ -340,6 +363,47 @@ class _TimeChip extends StatelessWidget {
           time,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
         ),
+      ],
+    );
+  }
+}
+
+// ── Notification badge ────────────────────────────────────────────────────────
+class _NotificationBadge extends ConsumerWidget {
+  const _NotificationBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadCountProvider);
+    return Stack(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          tooltip: 'Notifications',
+          onPressed: () => context.push(AppRoutes.notifications),
+        ),
+        if (unread > 0)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                unread > 99 ? '99+' : '$unread',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
       ],
     );
   }

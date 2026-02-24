@@ -25,6 +25,17 @@ class ApiConstants {
   static const String leaveQuota = '/leave/quota';
   static const String leave      = '/leave';
 
+  // Overtime
+  static const String overtimeMy = '/overtime/my';
+  static const String overtime    = '/overtime';
+
+  // Holiday
+  static const String holidays = '/holidays';
+
+  // Notifications
+  static const String notifications       = '/notifications';
+  static const String notificationsReadAll = '/notifications/read-all';
+
   // Payroll (staff)
   static const String payrollMy = '/payroll/my';
 
