@@ -1,3 +1,6 @@
+# Claude
+.claude
+
 # ── OS ────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
@@ -16,3 +19,10 @@ desktop.ini
 # ── Deployment artifacts ──────────────────────────────────────────
 *.zip
 /deploy-package/
+
+# ── Staging secrets ───────────────────────────────────────────────
+docker/.env.staging
+
+# ── JVM crash logs ────────────────────────────────────────────────
+hs_err_pid*.log
+replay_pid*.log

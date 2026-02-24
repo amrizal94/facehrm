@@ -8,6 +8,7 @@ use App\Http\Requests\StoreLeaveRequestRequest;
 use App\Http\Resources\LeaveRequestResource;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Notifications\LeaveStatusChanged;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -172,6 +173,9 @@ class LeaveRequestController extends Controller
             'approved_at' => now(),
         ]);
 
+        $leaveRequest->load(['employee.user', 'leaveType']);
+        optional($leaveRequest->employee?->user)->notify(new LeaveStatusChanged($leaveRequest));
+
         return response()->json([
             'success' => true,
             'message' => 'Leave request approved.',
@@ -199,6 +203,9 @@ class LeaveRequestController extends Controller
             'approved_at'      => now(),
             'rejection_reason' => $request->validated()['rejection_reason'],
         ]);
+
+        $leaveRequest->load(['employee.user', 'leaveType']);
+        optional($leaveRequest->employee?->user)->notify(new LeaveStatusChanged($leaveRequest));
 
         return response()->json([
             'success' => true,

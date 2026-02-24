@@ -86,10 +86,10 @@ class FaceDataController extends Controller
     public function enroll(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'employee_id' => ['required', 'exists:employees,id'],
-            'descriptor'  => ['required', 'array', 'size:128'],
-            'descriptor.*' => ['required', 'numeric'],
-            'snapshot'    => ['nullable', 'string'], // base64 PNG
+            'employee_id'  => ['required', 'exists:employees,id'],
+            'descriptor'   => ['required', 'array', 'size:128'],
+            'descriptor.*' => ['required', 'numeric', 'between:-2,2'],
+            'snapshot'     => ['nullable', 'string'], // base64 PNG
         ]);
 
         $imagePath = null;
@@ -144,8 +144,8 @@ class FaceDataController extends Controller
     public function identify(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'descriptor'  => ['required', 'array', 'size:128'],
-            'descriptor.*' => ['required', 'numeric'],
+            'descriptor'   => ['required', 'array', 'size:128'],
+            'descriptor.*' => ['required', 'numeric', 'between:-2,2'],
         ]);
 
         $queryDescriptor = $validated['descriptor'];
@@ -209,9 +209,9 @@ class FaceDataController extends Controller
     public function faceAttendance(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'descriptor'  => ['required', 'array', 'size:128'],
-            'descriptor.*' => ['required', 'numeric'],
-            'action'      => ['required', 'in:check_in,check_out'],
+            'descriptor'   => ['required', 'array', 'size:128'],
+            'descriptor.*' => ['required', 'numeric', 'between:-2,2'],
+            'action'       => ['required', 'in:check_in,check_out'],
         ]);
 
         // Identify face

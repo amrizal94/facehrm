@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Holiday;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -44,15 +45,19 @@ class PayrollRecord extends Model
     }
 
     // -----------------------------------------------------------
-    // Count Mon–Fri working days in a given month
+    // Count Mon–Fri working days in a given month, excluding
+    // public holidays stored in the holidays table.
+    // $holidayDates: pre-fetched array of 'Y-m-d' strings (avoids
+    // duplicate DB query when called from buildPayrollData).
     // -----------------------------------------------------------
-    public static function countWorkingDays(int $year, int $month): int
+    public static function countWorkingDays(int $year, int $month, array $holidayDates = []): int
     {
         $days  = 0;
         $total = Carbon::create($year, $month, 1)->daysInMonth;
 
         for ($d = 1; $d <= $total; $d++) {
-            if (!Carbon::create($year, $month, $d)->isWeekend()) {
+            $date = Carbon::create($year, $month, $d);
+            if (!$date->isWeekend() && !in_array($date->toDateString(), $holidayDates)) {
                 $days++;
             }
         }
@@ -65,9 +70,16 @@ class PayrollRecord extends Model
     // -----------------------------------------------------------
     public static function buildPayrollData(Employee $employee, int $year, int $month): array
     {
-        $workingDays = self::countWorkingDays($year, $month);
         $startDate   = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate     = $startDate->copy()->endOfMonth();
+
+        // Fetch public holidays once — reused for both countWorkingDays and holiday_days metric
+        $holidayDates = Holiday::whereBetween('date', [$startDate, $endDate])
+            ->pluck('date')
+            ->map(fn($d) => $d->toDateString())
+            ->all();
+
+        $workingDays = self::countWorkingDays($year, $month, $holidayDates);
 
         // Attendance for the period
         $attendanceRecords = AttendanceRecord::where('employee_id', $employee->id)
@@ -100,7 +112,23 @@ class PayrollRecord extends Model
             ? round(($absentDays / $workingDays) * $basicSalary, 2)
             : 0;
 
-        $grossSalary   = $basicSalary; // allowances & overtime added manually
+        // Overtime pay from approved requests in this period
+        // Hourly rate = basic_salary / (working_days * 8)
+        $hourlyRate = $workingDays > 0 ? $basicSalary / ($workingDays * 8) : 0;
+        $overtimeMultipliers = ['regular' => 1.5, 'weekend' => 2.0, 'holiday' => 3.0];
+
+        $overtimeRecords = OvertimeRequest::where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->get();
+
+        $overtimePay = $overtimeRecords->sum(function ($rec) use ($hourlyRate, $overtimeMultipliers) {
+            $multiplier = $overtimeMultipliers[$rec->overtime_type] ?? 1.5;
+            return (float) $rec->overtime_hours * $hourlyRate * $multiplier;
+        });
+        $overtimePay = round($overtimePay, 2);
+
+        $grossSalary   = $basicSalary + $overtimePay; // allowances added manually
         $taxRate       = (float) Setting::get('payroll.tax_rate', '5') / 100;
         $bpjsRate      = (float) Setting::get('payroll.bpjs_rate', '3') / 100;
         $taxDeduction  = round($grossSalary * $taxRate, 2);
@@ -110,7 +138,7 @@ class PayrollRecord extends Model
         return [
             'basic_salary'     => $basicSalary,
             'allowances'       => 0,
-            'overtime_pay'     => 0,
+            'overtime_pay'     => $overtimePay,
             'gross_salary'     => $grossSalary,
             'absent_deduction' => $absentDeduction,
             'other_deductions' => 0,
@@ -121,6 +149,7 @@ class PayrollRecord extends Model
             'present_days'     => $presentDays,
             'absent_days'      => $absentDays,
             'leave_days'       => $leaveDays,
+            'holiday_days'     => count($holidayDates),
         ];
     }
 

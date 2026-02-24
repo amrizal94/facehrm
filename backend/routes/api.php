@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\LeaveRequestController;
 use App\Http\Controllers\Api\V1\LeaveTypeController;
 use App\Http\Controllers\Api\V1\FaceDataController;
+use App\Http\Controllers\Api\V1\HolidayController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OvertimeController;
 use App\Http\Controllers\Api\V1\PayrollController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SettingController;
@@ -16,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // Public
-    Route::post('auth/login', [AuthController::class, 'login']);
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
     Route::middleware('auth:sanctum')->group(function () {
 
@@ -42,12 +45,28 @@ Route::prefix('v1')->group(function () {
         Route::post('leave',             [LeaveRequestController::class, 'store']);
         Route::delete('leave/{leaveRequest}', [LeaveRequestController::class, 'destroy']);
 
+        // Notifications — all authenticated
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/{id}/read', [NotificationController::class, 'markRead']);
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+        // Holidays — all authenticated (read-only)
+        Route::get('holidays', [HolidayController::class, 'index']);
+        Route::get('holidays/dates', [HolidayController::class, 'dates']);
+
+        // Overtime — staff
+        Route::post('overtime', [OvertimeController::class, 'store']);
+        Route::get('overtime/my', [OvertimeController::class, 'myOvertime']);
+        Route::delete('overtime/{overtime}', [OvertimeController::class, 'destroy']);
+
         // Payroll — staff
         Route::get('payroll/my', [PayrollController::class, 'myPayslips']);
 
-        // Face — all authenticated (check-in/out via face)
-        Route::post('face/identify',       [FaceDataController::class, 'identify']);
-        Route::post('face/attendance',     [FaceDataController::class, 'faceAttendance']);
+        // Face — all authenticated (check-in/out via face), rate-limited
+        Route::middleware('throttle:face')->group(function () {
+            Route::post('face/identify',   [FaceDataController::class, 'identify']);
+            Route::post('face/attendance', [FaceDataController::class, 'faceAttendance']);
+        });
 
         // Admin & HR
         Route::middleware('role:admin|hr')->group(function () {
@@ -67,16 +86,30 @@ Route::prefix('v1')->group(function () {
             Route::put('leave-types/{leaveType}',       [LeaveTypeController::class, 'update']);
             Route::delete('leave-types/{leaveType}',    [LeaveTypeController::class, 'destroy']);
 
+            // Holiday management (admin/hr)
+            Route::post('holidays', [HolidayController::class, 'store']);
+            Route::put('holidays/{holiday}', [HolidayController::class, 'update']);
+            Route::delete('holidays/{holiday}', [HolidayController::class, 'destroy']);
+
+            // Overtime management
+            Route::get('overtime/summary', [OvertimeController::class, 'summary']);
+            Route::get('overtime', [OvertimeController::class, 'index']);
+            Route::get('overtime/{overtime}', [OvertimeController::class, 'show']);
+            Route::put('overtime/{overtime}', [OvertimeController::class, 'update']);
+            Route::post('overtime/{overtime}/approve', [OvertimeController::class, 'approve']);
+            Route::post('overtime/{overtime}/reject', [OvertimeController::class, 'reject']);
+
             // Settings
             Route::get('settings',  [SettingController::class, 'index']);
             Route::put('settings',  [SettingController::class, 'update']);
 
-            // Reports (admin only)
+            // Reports (admin + hr)
             Route::prefix('reports')->group(function () {
                 Route::get('overview',          [ReportController::class, 'overview']);
                 Route::get('attendance',        [ReportController::class, 'attendance']);
                 Route::get('leave',             [ReportController::class, 'leave']);
                 Route::get('payroll',           [ReportController::class, 'payroll']);
+                Route::get('overtime',          [ReportController::class, 'overtime']);
                 Route::get('daily-trend',       [ReportController::class, 'dailyTrend']);
                 Route::get('department-today',  [ReportController::class, 'departmentToday']);
             });
