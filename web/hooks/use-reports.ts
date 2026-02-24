@@ -5,6 +5,7 @@ import {
   fetchDepartmentToday,
   fetchLeaveReport,
   fetchOverview,
+  fetchOvertimeReport,
   fetchPayrollReport,
 } from '@/lib/report-api'
 
@@ -34,6 +35,13 @@ export function usePayrollReport(params: { year: number; month: number; departme
   return useQuery({
     queryKey: ['report-payroll', params],
     queryFn: () => fetchPayrollReport(params),
+  })
+}
+
+export function useOvertimeReport(params: { year: number; month: number; department_id?: number }) {
+  return useQuery({
+    queryKey: ['report-overtime', params],
+    queryFn: () => fetchOvertimeReport(params),
   })
 }
 

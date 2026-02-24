@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   Wallet, TrendingDown, Banknote, FileText,
   Zap, CheckCheck, CreditCard, Search,
-  ChevronLeft, ChevronRight, Pencil, Eye, Trash2,
+  ChevronLeft, ChevronRight, Pencil, Eye, Trash2, Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
+import { api } from '@/lib/api'
 import {
   useDeletePayroll, useFinalizeAll, useFinalizePayroll,
   useGeneratePayroll, useMarkAllPaid, useMarkPayrollPaid, usePayrolls, usePayrollSummary,
@@ -64,15 +65,53 @@ function SummaryCard({ label, value, icon: Icon, color, sub }: {
 
 const now = new Date()
 
+function escapeCsv(v: unknown): string {
+  const s = String(v ?? '')
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+function downloadPayrollCsv(records: PayrollRecord[], year: number, month: number) {
+  const headers = [
+    'No. Karyawan', 'Nama', 'Departemen', 'Jabatan',
+    'Hari Kerja', 'Hadir', 'Cuti', 'Alpha',
+    'Gaji Pokok', 'Tunjangan', 'Lembur', 'Gaji Bruto',
+    'Potongan Alpha', 'Potongan Lain', 'PPh21', 'BPJS',
+    'Total Potongan', 'Gaji Bersih', 'Status', 'Tanggal Bayar', 'Catatan',
+  ]
+  const rows = records.map((r) => [
+    r.employee?.employee_number ?? '',
+    r.employee?.user.name ?? '',
+    r.employee?.department?.name ?? '',
+    r.employee?.position ?? '',
+    r.working_days, r.present_days, r.leave_days, r.absent_days,
+    r.basic_salary, r.allowances, r.overtime_pay, r.gross_salary,
+    r.absent_deduction, r.other_deductions, r.tax_deduction, r.bpjs_deduction,
+    r.total_deductions, r.net_salary,
+    r.status,
+    r.paid_at ? new Date(r.paid_at).toLocaleDateString('id-ID') : '',
+    r.notes ?? '',
+  ].map(escapeCsv).join(','))
+
+  const csv = [headers.map(escapeCsv).join(','), ...rows].join('\n')
+  const blob = new Blob([`\uFEFF${csv}`, /* BOM agar Excel baca UTF-8 */], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `payroll-${year}-${String(month).padStart(2, '0')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function AdminPayrollPage() {
   const [year, setYear]   = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
 
   const [filters, setFilters]       = useState<PayrollFilters>({ year, month, page: 1, per_page: 20 })
   const [search, setSearch]         = useState('')
-  const [viewRecord, setViewRecord] = useState<PayrollRecord | null>(null)
-  const [editRecord, setEditRecord] = useState<PayrollRecord | null>(null)
+  const [viewRecord, setViewRecord]     = useState<PayrollRecord | null>(null)
+  const [editRecord, setEditRecord]     = useState<PayrollRecord | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PayrollRecord | null>(null)
+  const [isExporting, setIsExporting]   = useState(false)
 
   const { data, isLoading }    = usePayrolls(filters)
   const { data: summary }      = usePayrollSummary(year, month)
@@ -88,6 +127,20 @@ export default function AdminPayrollPage() {
   const records     = data?.data ?? []
   const meta        = data?.meta
   const departments = deptData?.data ?? []
+
+  async function handleExportCsv() {
+    setIsExporting(true)
+    try {
+      const res = await api.get('/payroll', { params: { year, month, per_page: 9999 } })
+      const all: PayrollRecord[] = res.data?.data ?? []
+      if (all.length === 0) { alert('Tidak ada data payroll untuk periode ini.'); return }
+      downloadPayrollCsv(all, year, month)
+    } catch {
+      alert('Gagal mengambil data. Coba lagi.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   function setPeriod(y: number, m: number) {
     setYear(y); setMonth(m)
@@ -110,6 +163,14 @@ export default function AdminPayrollPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {isExporting ? 'Exporting…' : 'Export CSV'}
+            </Button>
             <Button
               variant="outline"
               onClick={() => generateMutation.mutate({ year, month })}

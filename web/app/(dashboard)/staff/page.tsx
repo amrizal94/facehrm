@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  Clock, CalendarDays, Receipt, ScanFace,
-  LogIn, LogOut, ChevronRight, CheckCircle2, XCircle,
+  Clock, CalendarDays, Receipt, ScanFace, Timer,
+  LogIn, LogOut, ChevronRight, CheckCircle2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,15 +16,17 @@ import { FaceCheckinDialog } from './attendance/face-checkin-dialog'
 import { useAuthStore } from '@/store/auth-store'
 import { useTodayAttendance, useCheckIn, useCheckOut, useMyAttendance } from '@/hooks/use-attendance'
 import { useLeaveQuota, useMyLeaves } from '@/hooks/use-leave'
+import { useMyOvertimes } from '@/hooks/use-overtime'
 import { useMyPayslips } from '@/hooks/use-payroll'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-const NOW  = new Date()
-const Y    = NOW.getFullYear()
-const M    = String(NOW.getMonth() + 1).padStart(2, '0')
-const TODAY      = NOW.toISOString().slice(0, 10)
-const MONTH_START = `${Y}-${M}-01`
+// Date helpers — computed as functions so they stay fresh if tab is open overnight
+function getToday()      { return new Date().toISOString().slice(0, 10) }
+function getMonthStart() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
 
 const IDR = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
@@ -248,6 +250,42 @@ function MyPendingLeaves() {
   )
 }
 
+// ─── My Pending Overtimes ─────────────────────────────────────────────────────
+
+function MyPendingOvertimes() {
+  const { data } = useMyOvertimes({ status: 'pending', per_page: 5 })
+  const pending = data?.data ?? []
+
+  if (pending.length === 0) return null
+
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-sm flex items-center gap-2">
+          Pending Overtime
+          <Badge className="bg-amber-100 text-amber-700 border-amber-200">{pending.length}</Badge>
+        </h3>
+        <Link href="/staff/overtime" className="text-xs text-primary hover:underline">View all</Link>
+      </div>
+      <div className="space-y-2">
+        {pending.map(req => (
+          <div key={req.id} className="flex items-center justify-between text-sm py-1.5 border-b last:border-0">
+            <div>
+              <p className="font-medium">
+                {new Date(req.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {req.overtime_hours}h · {req.overtime_type.charAt(0).toUpperCase() + req.overtime_type.slice(1)}
+              </p>
+            </div>
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Recent Attendance ────────────────────────────────────────────────────────
 
 function RecentAttendance() {
@@ -294,8 +332,14 @@ function RecentAttendance() {
 export default function StaffDashboardPage() {
   const user = useAuthStore(s => s.user)
 
+  // Computed fresh on each render — stays correct if tab is open overnight
+  const today      = getToday()
+  const monthStart = getMonthStart()
+  const year       = new Date().getFullYear()
+  const monthName  = new Date().toLocaleString('id-ID', { month: 'long' })
+
   // Month attendance count
-  const { data: monthData } = useMyAttendance({ date_from: MONTH_START, date_to: TODAY, per_page: 31 })
+  const { data: monthData } = useMyAttendance({ date_from: monthStart, date_to: today, per_page: 31 })
   const presentDays = monthData?.data.filter(r => ['present', 'late'].includes(r.status)).length ?? 0
 
   // Leave quota — annual balance
@@ -322,7 +366,7 @@ export default function StaffDashboardPage() {
           <StatCard
             title="Days Present"
             value={presentDays}
-            subtitle={`${new Date().toLocaleString('id-ID', { month: 'long' })} ${Y}`}
+            subtitle={`${monthName} ${year}`}
             icon={CheckCircle2}
             iconColor="text-green-600"
             iconBg="bg-green-50"
@@ -352,6 +396,7 @@ export default function StaffDashboardPage() {
           <div className="lg:col-span-2 space-y-5">
             <RecentAttendance />
             <MyPendingLeaves />
+            <MyPendingOvertimes />
           </div>
 
           {/* Right sidebar */}
@@ -365,6 +410,7 @@ export default function StaffDashboardPage() {
                 {[
                   { href: '/staff/attendance', icon: Clock,       label: 'Attendance History', color: 'text-green-600' },
                   { href: '/staff/leave',      icon: CalendarDays, label: 'My Leave',          color: 'text-orange-600' },
+                  { href: '/staff/overtime',   icon: Timer,        label: 'My Overtime',       color: 'text-blue-600' },
                   { href: '/staff/payslip',    icon: Receipt,      label: 'My Payslips',       color: 'text-purple-600' },
                 ].map(item => (
                   <Link

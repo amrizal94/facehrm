@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  Users, Clock, CalendarDays, Receipt,
+  Users, Clock, CalendarDays, Receipt, Timer,
   TrendingUp, AlertCircle, Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,9 +12,9 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { useOverview, useAttendanceReport, useLeaveReport, usePayrollReport } from '@/hooks/use-reports'
+import { useOverview, useAttendanceReport, useLeaveReport, useOvertimeReport, usePayrollReport } from '@/hooks/use-reports'
 import { useDepartments } from '@/hooks/use-employees'
-import type { AttendanceReportRow, LeaveReportRow, PayrollReportRow } from '@/types/report'
+import type { AttendanceReportRow, LeaveReportRow, OvertimeReportRow, PayrollReportRow } from '@/types/report'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -354,6 +354,108 @@ function PayrollTab({ year, month, deptId }: { year: number; month: number; dept
   )
 }
 
+// ─── Overtime Tab ────────────────────────────────────────────────────────────
+
+const TYPE_LABELS: Record<string, string> = { regular: 'Regular', weekend: 'Weekend', holiday: 'Holiday' }
+const TYPE_COLORS: Record<string, string> = {
+  regular: 'bg-blue-100 text-blue-700',
+  weekend: 'bg-amber-100 text-amber-700',
+  holiday: 'bg-red-100 text-red-700',
+}
+
+function OvertimeTab({ year, month, deptId }: { year: number; month: number; deptId?: number }) {
+  const { data, isLoading } = useOvertimeReport({ year, month, department_id: deptId })
+  const rows = data?.data ?? []
+  const meta = data?.meta
+
+  function handleExport() {
+    exportCsv(
+      ['Employee No', 'Name', 'Department', 'Total Requests', 'Approved Hours', 'Pending Hours'],
+      rows.map(r => [r.employee_number, r.name, r.department ?? '', r.total_requests, r.approved_hours, r.pending_hours]),
+      `overtime_${year}_${String(month).padStart(2, '0')}.csv`
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Summary bar */}
+      {meta && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="rounded-lg border p-3 bg-card text-center">
+            <p className="text-xs text-muted-foreground">Employees with OT</p>
+            <p className="font-bold text-lg">{meta.total_employees}</p>
+          </div>
+          <div className="rounded-lg border p-3 bg-card text-center">
+            <p className="text-xs text-muted-foreground">Total Approved Hours</p>
+            <p className="font-bold text-lg text-emerald-600">{meta.total_approved_hours}h</p>
+          </div>
+          <div className="rounded-lg border p-3 bg-card text-center col-span-2 sm:col-span-1">
+            <p className="text-xs text-muted-foreground">Pending Requests</p>
+            <p className="font-bold text-lg text-amber-600">{meta.total_pending}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{rows.length} employee(s) with overtime this period</p>
+        <Button size="sm" variant="outline" onClick={handleExport} disabled={rows.length === 0}>
+          <Download className="w-4 h-4 mr-1" /> Export CSV
+        </Button>
+      </div>
+
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Employee</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead className="text-center">Total Requests</TableHead>
+              <TableHead className="text-center">Approved Hours</TableHead>
+              <TableHead className="text-center">Pending Hours</TableHead>
+              <TableHead>Breakdown</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+            )}
+            {!isLoading && rows.length === 0 && (
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No overtime data for this period.</TableCell></TableRow>
+            )}
+            {rows.map((row: OvertimeReportRow) => (
+              <TableRow key={row.employee_id}>
+                <TableCell>
+                  <p className="font-medium text-sm">{row.name}</p>
+                  <p className="text-xs text-muted-foreground">{row.employee_number}</p>
+                </TableCell>
+                <TableCell className="text-sm">{row.department ?? '—'}</TableCell>
+                <TableCell className="text-center text-sm">{row.total_requests}</TableCell>
+                <TableCell className="text-center">
+                  <span className="text-sm font-semibold text-emerald-600">{row.approved_hours}h</span>
+                </TableCell>
+                <TableCell className="text-center">
+                  <span className="text-sm font-semibold text-amber-600">{row.pending_hours}h</span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {row.by_type.length === 0
+                      ? <span className="text-xs text-muted-foreground">—</span>
+                      : row.by_type.map(t => (
+                        <Badge key={t.type} className={`text-xs border-0 ${TYPE_COLORS[t.type] ?? 'bg-slate-100 text-slate-600'}`}>
+                          {TYPE_LABELS[t.type] ?? t.type}: {t.total_hours}h
+                        </Badge>
+                      ))}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminReportsPage() {
@@ -418,6 +520,9 @@ export default function AdminReportsPage() {
             <TabsTrigger value="payroll" className="gap-2">
               <Receipt className="w-4 h-4" /> Payroll
             </TabsTrigger>
+            <TabsTrigger value="overtime" className="gap-2">
+              <Timer className="w-4 h-4" /> Overtime
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="attendance" className="mt-4">
@@ -430,6 +535,10 @@ export default function AdminReportsPage() {
 
           <TabsContent value="payroll" className="mt-4">
             <PayrollTab year={year} month={month} deptId={deptId} />
+          </TabsContent>
+
+          <TabsContent value="overtime" className="mt-4">
+            <OvertimeTab year={year} month={month} deptId={deptId} />
           </TabsContent>
         </Tabs>
       </div>

@@ -2,6 +2,8 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
+import { Printer } from 'lucide-react'
 import type { PayrollRecord } from '@/types/payroll'
 
 interface Props {
@@ -11,6 +13,85 @@ interface Props {
 
 const IDR = (v: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
+
+function printPayslip(record: PayrollRecord) {
+  const emp = record.employee
+  const f = IDR
+  const row = (label: string, value: string, bold = false, sep = false) =>
+    `${sep ? '<tr><td colspan="2"><hr style="margin:4px 0;border-color:#e2e8f0"></td></tr>' : ''}
+    <tr style="${bold ? 'font-weight:600' : ''}">
+      <td style="padding:4px 16px 4px 0;color:#64748b;width:180px;font-size:13px">${label}</td>
+      <td style="padding:4px 0;text-align:right;font-size:13px">${value}</td>
+    </tr>`
+
+  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
+<title>Payslip — ${record.period_label}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;padding:32px;color:#1e293b}
+.company{font-size:18px;font-weight:700;color:#0f172a;border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:12px}
+h1{font-size:18px;font-weight:700;margin-bottom:2px}
+.sub{color:#64748b;font-size:12px;margin-bottom:16px}
+.emp-name{font-weight:600;font-size:14px;margin-bottom:2px}
+.emp-detail{font-size:12px;color:#475569;margin-bottom:1px}
+.emp-mono{font-family:monospace;font-size:11px;color:#94a3b8}
+.sect{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin:16px 0 8px}
+.att{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.att-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;padding:8px}
+.att-num{font-size:18px;font-weight:700}
+.att-lbl{font-size:10px;color:#64748b;margin-top:2px}
+table{width:100%;border-collapse:collapse}
+.net{margin-top:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.net-lbl{font-size:13px;font-weight:600}
+.net-amt{font-size:20px;font-weight:700;color:#2563eb}
+.foot{margin-top:24px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:12px}
+.sign{text-align:center;width:120px}
+.sign-line{border-top:1px solid #1e293b;margin-top:44px;padding-top:4px;font-size:11px}
+@media print{body{padding:16px}}
+</style></head><body>
+<div class="company">FaceHRM</div>
+<h1>Payslip — ${record.period_label}</h1>
+<p class="sub">Dibuat ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</p>
+${emp ? `<p class="emp-name">${emp.user.name}</p>
+<p class="emp-detail">${emp.position}${emp.department ? ' · ' + emp.department.name : ''}</p>
+<p class="emp-mono">${emp.employee_number}</p>` : ''}
+<p class="sect">Attendance</p>
+<div class="att">
+  <div class="att-box"><div class="att-num">${record.working_days}</div><div class="att-lbl">Working</div></div>
+  <div class="att-box"><div class="att-num">${record.present_days}</div><div class="att-lbl">Present</div></div>
+  <div class="att-box"><div class="att-num">${record.leave_days}</div><div class="att-lbl">Leave</div></div>
+  <div class="att-box"><div class="att-num">${record.absent_days}</div><div class="att-lbl">Absent</div></div>
+</div>
+<p class="sect">Salary Breakdown</p>
+<table><tbody>
+  ${row('Basic Salary', f(record.basic_salary))}
+  ${row('Allowances', f(record.allowances))}
+  ${row('Overtime', f(record.overtime_pay))}
+  ${row('Gross Salary', f(record.gross_salary), true, true)}
+  ${row('Absent Deduction', '– ' + f(record.absent_deduction))}
+  ${row('Other Deductions', '– ' + f(record.other_deductions))}
+  ${row('PPh21 (Tax 5%)', '– ' + f(record.tax_deduction))}
+  ${row('BPJS (3%)', '– ' + f(record.bpjs_deduction))}
+  ${row('Total Deductions', '– ' + f(record.total_deductions), true, true)}
+</tbody></table>
+<div class="net"><span class="net-lbl">Net Salary</span><span class="net-amt">${f(record.net_salary)}</span></div>
+<div class="foot">
+  <div>
+    <p>Status: <strong style="text-transform:capitalize">${record.status}</strong></p>
+    ${record.paid_at ? `<p>Dibayar: ${new Date(record.paid_at).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</p>` : ''}
+    ${record.notes ? `<p>Catatan: ${record.notes}</p>` : ''}
+  </div>
+  <div class="sign"><div class="sign-line">HRD / Authorized</div></div>
+</div>
+</body></html>`
+
+  const win = window.open('', '_blank', 'width=720,height=920')
+  if (!win) { alert('Popup diblokir browser. Izinkan popup untuk mencetak payslip.'); return }
+  win.document.write(html)
+  win.document.close()
+  // Tunggu load sebelum print agar stylesheet diterapkan
+  win.addEventListener('load', () => win.print())
+}
 
 function Row({ label, value, bold, separator }: { label: string; value: string; bold?: boolean; separator?: boolean }) {
   return (
@@ -42,6 +123,13 @@ export function PayslipDetailDialog({ record, onOpenChange }: Props) {
             </div>
           )}
         </DialogHeader>
+
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => printPayslip(record)}>
+            <Printer className="w-4 h-4 mr-2" />
+            Print / PDF
+          </Button>
+        </div>
 
         <ScrollArea className="max-h-[65vh]">
           <div className="pr-2">

@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, LogOut, Menu, User } from 'lucide-react'
+import { LogOut, Menu, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/store/auth-store'
 import { useLogout } from '@/hooks/use-auth'
+import { NotificationBell } from './notification-bell'
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-red-100 text-red-700',
@@ -43,10 +44,7 @@ export function Header({ title, onMenuClick }: { title: string; onMenuClick?: ()
 
       <div className="flex items-center gap-2 md:gap-3">
         {/* Notification bell */}
-        <Button variant="ghost" size="icon" className="relative text-slate-500">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </Button>
+        <NotificationBell />
 
         {/* User dropdown */}
         <DropdownMenu>

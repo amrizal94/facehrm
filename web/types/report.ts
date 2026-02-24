@@ -99,3 +99,28 @@ export interface DepartmentTodayMeta {
   face_enrolled: number
   face_total: number
 }
+
+export interface OvertimeByType {
+  type: string
+  total_hours: number
+  count: number
+}
+
+export interface OvertimeReportRow {
+  employee_id: number
+  employee_number: string
+  name: string
+  department: string | null
+  total_requests: number
+  approved_hours: number
+  pending_hours: number
+  by_type: OvertimeByType[]
+}
+
+export interface OvertimeReportMeta {
+  year: number
+  month: number
+  total_employees: number
+  total_approved_hours: number
+  total_pending: number
+}

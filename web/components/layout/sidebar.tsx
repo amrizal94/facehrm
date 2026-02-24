@@ -15,6 +15,7 @@ import {
   Settings,
   ScanFace,
   BarChart3,
+  Timer,
 } from 'lucide-react'
 
 interface NavItem {
@@ -25,19 +26,22 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['admin'] },
-  { label: 'Dashboard', href: '/hr', icon: LayoutDashboard, roles: ['hr'] },
-  { label: 'Dashboard', href: '/staff', icon: LayoutDashboard, roles: ['staff'] },
-  { label: 'Employees', href: '/admin/employees', icon: Users, roles: ['admin', 'hr'] },
-  { label: 'Attendance', href: '/admin/attendance', icon: Clock, roles: ['admin', 'hr'] },
-  { label: 'My Attendance', href: '/staff/attendance', icon: Clock, roles: ['staff'] },
-  { label: 'Leave', href: '/admin/leave', icon: CalendarDays, roles: ['admin', 'hr'] },
-  { label: 'My Leave', href: '/staff/leave', icon: CalendarDays, roles: ['staff'] },
-  { label: 'Payroll', href: '/admin/payroll', icon: Receipt, roles: ['admin', 'hr'] },
-  { label: 'My Payslip', href: '/staff/payslip', icon: Receipt, roles: ['staff'] },
-  { label: 'Face Data', href: '/admin/face', icon: ScanFace, roles: ['admin', 'hr'] },
-  { label: 'Reports', href: '/admin/reports', icon: BarChart3, roles: ['admin'] },
-  { label: 'Settings', href: '/admin/settings', icon: Settings, roles: ['admin'] },
+  { label: 'Dashboard',   href: '/admin',            icon: LayoutDashboard, roles: ['admin'] },
+  { label: 'Dashboard',   href: '/hr',               icon: LayoutDashboard, roles: ['hr'] },
+  { label: 'Dashboard',   href: '/staff',             icon: LayoutDashboard, roles: ['staff'] },
+  { label: 'Employees',   href: '/admin/employees',  icon: Users,           roles: ['admin', 'hr'] },
+  { label: 'Attendance',  href: '/admin/attendance', icon: Clock,           roles: ['admin', 'hr'] },
+  { label: 'My Attendance', href: '/staff/attendance', icon: Clock,         roles: ['staff'] },
+  { label: 'Leave',       href: '/admin/leave',      icon: CalendarDays,    roles: ['admin', 'hr'] },
+  { label: 'My Leave',    href: '/staff/leave',      icon: CalendarDays,    roles: ['staff'] },
+  { label: 'Overtime',    href: '/admin/overtime',   icon: Timer,           roles: ['admin', 'hr'] },
+  { label: 'My Overtime', href: '/staff/overtime',   icon: Timer,           roles: ['staff'] },
+  { label: 'Holidays',    href: '/admin/holidays',   icon: CalendarDays,    roles: ['admin', 'hr'] },
+  { label: 'Payroll',     href: '/admin/payroll',    icon: Receipt,         roles: ['admin', 'hr'] },
+  { label: 'My Payslip',  href: '/staff/payslip',    icon: Receipt,         roles: ['staff'] },
+  { label: 'Face Data',   href: '/admin/face',       icon: ScanFace,        roles: ['admin', 'hr'] },
+  { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,       roles: ['admin', 'hr'] },
+  { label: 'Settings',    href: '/admin/settings',   icon: Settings,        roles: ['admin'] },
 ]
 
 interface SidebarProps {
@@ -88,7 +92,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {filteredItems.map((item) => {
-            const isActive = pathname === item.href
+            // Dashboard items: exact match. Others: startsWith so sub-pages stay highlighted.
+          const isActive = item.href === '/admin' || item.href === '/hr' || item.href === '/staff'
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(item.href + '/')
             return (
               <Link
                 key={item.href}

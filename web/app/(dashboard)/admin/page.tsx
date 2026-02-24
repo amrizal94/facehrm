@@ -4,24 +4,27 @@ import Link from 'next/link'
 import {
   Users, Clock, CalendarDays, Receipt,
   AlertTriangle, CheckCircle, ScanFace, BarChart3,
-  TrendingUp, Wallet,
+  TrendingUp, Wallet, Timer, CalendarRange,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { StatCard } from '@/components/layout/stat-card'
 import { PendingLeavePanel } from '@/components/dashboard/pending-leave-panel'
+import { PendingOvertimePanel } from '@/components/dashboard/pending-overtime-panel'
 import { TodayAttendancePanel } from '@/components/dashboard/today-attendance-panel'
 import { useOverview, useDailyTrend, useDepartmentToday } from '@/hooks/use-reports'
 import { useMemo } from 'react'
 
 const QUICK_ACTIONS = [
-  { label: 'Employees',   href: '/admin/employees', icon: Users,       color: 'text-blue-600',   bg: 'bg-blue-50' },
-  { label: 'Attendance',  href: '/admin/attendance', icon: Clock,      color: 'text-green-600',  bg: 'bg-green-50' },
+  { label: 'Employees',   href: '/admin/employees', icon: Users,         color: 'text-blue-600',   bg: 'bg-blue-50' },
+  { label: 'Attendance',  href: '/admin/attendance', icon: Clock,        color: 'text-green-600',  bg: 'bg-green-50' },
   { label: 'Leave',       href: '/admin/leave',      icon: CalendarDays, color: 'text-orange-600', bg: 'bg-orange-50' },
-  { label: 'Payroll',     href: '/admin/payroll',    icon: Receipt,    color: 'text-purple-600', bg: 'bg-purple-50' },
-  { label: 'Face Enroll', href: '/admin/face',       icon: ScanFace,   color: 'text-rose-600',   bg: 'bg-rose-50' },
-  { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,  color: 'text-cyan-600',   bg: 'bg-cyan-50' },
+  { label: 'Overtime',    href: '/admin/overtime',   icon: Timer,        color: 'text-amber-600',  bg: 'bg-amber-50' },
+  { label: 'Holidays',    href: '/admin/holidays',   icon: CalendarRange, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+  { label: 'Payroll',     href: '/admin/payroll',    icon: Receipt,      color: 'text-purple-600', bg: 'bg-purple-50' },
+  { label: 'Face Enroll', href: '/admin/face',       icon: ScanFace,     color: 'text-rose-600',   bg: 'bg-rose-50' },
+  { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,    color: 'text-cyan-600',   bg: 'bg-cyan-50' },
 ]
 
 // ─── Daily Trend Chart ───────────────────────────────────────────────────────
@@ -267,8 +270,11 @@ export default function AdminDashboardPage() {
           </Card>
         </div>
 
-        {/* ── Pending leave requests ── */}
-        <PendingLeavePanel limit={6} />
+        {/* ── Pending requests ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PendingLeavePanel limit={6} />
+          <PendingOvertimePanel limit={6} />
+        </div>
 
       </div>
     </DashboardLayout>

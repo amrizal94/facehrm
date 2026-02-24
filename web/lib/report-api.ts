@@ -7,6 +7,8 @@ import type {
   DepartmentTodayRow,
   LeaveReportRow,
   OverviewData,
+  OvertimeReportMeta,
+  OvertimeReportRow,
   PayrollReportRow,
   PayrollReportTotals,
 } from '@/types/report'
@@ -47,6 +49,17 @@ export async function fetchPayrollReport(params: {
   if (params.department_id) q.set('department_id', String(params.department_id))
   if (params.status) q.set('status', params.status)
   const res = await api.get(`/reports/payroll?${q}`)
+  return res.data
+}
+
+export async function fetchOvertimeReport(params: {
+  year: number
+  month: number
+  department_id?: number
+}): Promise<{ success: boolean; data: OvertimeReportRow[]; meta: OvertimeReportMeta }> {
+  const q = new URLSearchParams({ year: String(params.year), month: String(params.month) })
+  if (params.department_id) q.set('department_id', String(params.department_id))
+  const res = await api.get(`/reports/overtime?${q}`)
   return res.data
 }
 
