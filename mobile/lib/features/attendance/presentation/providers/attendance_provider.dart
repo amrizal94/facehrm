@@ -72,3 +72,15 @@ final myAttendanceListProvider = FutureProvider.family<
         dateTo: params.dateTo,
       );
 });
+
+// All employees attendance (HR/Admin)
+typedef AllAttendanceParams = ({String? date, String? status});
+
+final allAttendanceProvider = FutureProvider.family<
+    List<AttendanceRecordModel>,
+    AllAttendanceParams>((ref, params) {
+  return ref.watch(attendanceRepositoryProvider).getAllAttendance(
+        date: params.date,
+        status: params.status,
+      );
+});

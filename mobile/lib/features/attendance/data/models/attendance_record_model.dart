@@ -6,6 +6,9 @@ class AttendanceRecordModel {
   final String status;
   final double? workHours;
   final String? notes;
+  // Admin/HR view
+  final String? employeeName;
+  final String? employeeNumber;
 
   const AttendanceRecordModel({
     required this.id,
@@ -15,18 +18,24 @@ class AttendanceRecordModel {
     required this.status,
     this.workHours,
     this.notes,
+    this.employeeName,
+    this.employeeNumber,
   });
 
-  factory AttendanceRecordModel.fromJson(Map<String, dynamic> json) =>
-      AttendanceRecordModel(
-        id: _toInt(json['id']),
-        date: (json['date'] ?? '').toString(),
-        checkIn: json['check_in']?.toString(),
-        checkOut: json['check_out']?.toString(),
-        status: (json['status'] ?? '').toString(),
-        workHours: _toDoubleNullable(json['work_hours']),
-        notes: json['notes']?.toString(),
-      );
+  factory AttendanceRecordModel.fromJson(Map<String, dynamic> json) {
+    final employeeObj = json['employee'] as Map<String, dynamic>?;
+    return AttendanceRecordModel(
+      id: _toInt(json['id']),
+      date: (json['date'] ?? '').toString(),
+      checkIn: json['check_in']?.toString(),
+      checkOut: json['check_out']?.toString(),
+      status: (json['status'] ?? '').toString(),
+      workHours: _toDoubleNullable(json['work_hours']),
+      notes: json['notes']?.toString(),
+      employeeName: employeeObj?['name'] as String? ?? json['employee_name'] as String?,
+      employeeNumber: employeeObj?['employee_number'] as String? ?? json['employee_number'] as String?,
+    );
+  }
 
   static int _toInt(dynamic value) {
     if (value is int) return value;

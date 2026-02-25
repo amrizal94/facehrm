@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/attendance/presentation/screens/attendance_records_screen.dart';
 import '../../features/attendance/presentation/screens/my_attendance_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -102,6 +103,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // HR / Admin
       GoRoute(path: AppRoutes.leaveApprovals,    builder: (_, __) => const LeaveApprovalsScreen()),
       GoRoute(path: AppRoutes.overtimeApprovals, builder: (_, __) => const OvertimeApprovalsScreen()),
+      GoRoute(path: AppRoutes.attendanceRecords, builder: (_, __) => const AttendanceRecordsScreen()),
 
       GoRoute(path: AppRoutes.unauthorized, builder: (_, __) => const _UnauthorizedScreen()),
     ],

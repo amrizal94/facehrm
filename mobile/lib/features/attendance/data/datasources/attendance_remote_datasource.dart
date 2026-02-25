@@ -59,4 +59,27 @@ class AttendanceRemoteDataSource {
       throw ApiException.fromDioError(e);
     }
   }
+
+  Future<List<AttendanceRecordModel>> getAllAttendance({
+    String? date,
+    String? dateFrom,
+    String? dateTo,
+    String? status,
+    int perPage = 50,
+  }) async {
+    try {
+      final q = <String, dynamic>{'per_page': perPage};
+      if (date != null) q['date'] = date;
+      if (dateFrom != null) q['date_from'] = dateFrom;
+      if (dateTo != null) q['date_to'] = dateTo;
+      if (status != null) q['status'] = status;
+      final res = await _dio.get(ApiConstants.attendance, queryParameters: q);
+      final list = res.data['data'] as List;
+      return list
+          .map((e) => AttendanceRecordModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }

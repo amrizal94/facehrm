@@ -21,4 +21,19 @@ class AttendanceRepository {
 
   Future<AttendanceRecordModel> checkIn() => _ds.checkIn();
   Future<AttendanceRecordModel> checkOut() => _ds.checkOut();
+
+  Future<List<AttendanceRecordModel>> getAllAttendance({
+    String? date,
+    String? dateFrom,
+    String? dateTo,
+    String? status,
+    int perPage = 50,
+  }) =>
+      _ds.getAllAttendance(
+        date: date,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+        status: status,
+        perPage: perPage,
+      );
 }

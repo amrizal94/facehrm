@@ -18,6 +18,7 @@ class ApiConstants {
   static const String attendanceCheckOut = '/attendance/check-out';
   static const String attendanceToday    = '/attendance/today';
   static const String attendanceMy       = '/attendance/my';
+  static const String attendance         = '/attendance';
 
   // Leave
   static const String leaveTypes = '/leave-types';

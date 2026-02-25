@@ -189,7 +189,7 @@ class HRDashboardScreen extends ConsumerWidget {
                   subtitle: 'Monitor employee attendance',
                   badge: 0,
                   color: Colors.teal,
-                  onTap: () {},
+                  onTap: () => context.push(AppRoutes.attendanceRecords),
                 ),
               ],
             ),
