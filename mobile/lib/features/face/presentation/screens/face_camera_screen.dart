@@ -13,6 +13,9 @@ import '../../data/datasources/face_remote_datasource.dart';
 /// Screen type passed when navigating to [FaceCameraScreen].
 enum FaceAction { checkIn, checkOut }
 
+/// Visual state of face detection shown in the oval guide.
+enum _FaceStatus { none, detected, multiple }
+
 class FaceCameraScreen extends ConsumerStatefulWidget {
   final FaceAction action;
   const FaceCameraScreen({super.key, required this.action});
@@ -40,7 +43,15 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   bool _isInitializing   = true;
   bool _isCapturing      = false;
   String? _initError;
-  bool _faceDetected = false;
+
+  // Face detection state
+  int _faceCount = 0;
+  _FaceStatus get _faceStatus => switch (_faceCount) {
+    1 => _FaceStatus.detected,
+    0 => _FaceStatus.none,
+    _ => _FaceStatus.multiple,
+  };
+  bool get _faceDetected => _faceCount == 1;
 
   @override
   void initState() {
@@ -76,17 +87,16 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     setState(() {
       _isInitializing = true;
       _initError      = null;
-      _faceDetected   = false;
+      _faceCount      = 0;
     });
 
-    // Request camera permission
     final status = await Permission.camera.request();
     if (!status.isGranted) {
       if (mounted) {
         setState(() {
           _permissionGranted = false;
           _isInitializing    = false;
-          _initError         = 'Camera permission denied.';
+          _initError         = 'Izin kamera ditolak.';
         });
       }
       return;
@@ -96,9 +106,8 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
 
     try {
       _cameras = await availableCameras();
-      if (_cameras.isEmpty) throw Exception('No cameras found on this device.');
+      if (_cameras.isEmpty) throw Exception('Tidak ada kamera ditemukan.');
 
-      // Prefer front camera
       final desc = _cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
         orElse: () => _cameras.first,
@@ -108,7 +117,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         desc,
         ResolutionPreset.high,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.nv21, // NV21 required for MLKit on Android
+        imageFormatGroup: ImageFormatGroup.nv21,
       );
 
       await controller.initialize();
@@ -124,7 +133,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       if (mounted) {
         setState(() {
           _isInitializing = false;
-          _initError      = 'Camera error: $e';
+          _initError      = 'Kamera error: $e';
         });
       }
     }
@@ -144,15 +153,14 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         final faces = await _faceDetector.processImage(inputImage);
 
         if (mounted) {
-          final detected = faces.length == 1;
-          if (detected != _faceDetected) {
-            setState(() => _faceDetected = detected);
+          final count = faces.length;
+          if (count != _faceCount) {
+            setState(() => _faceCount = count);
           }
         }
       } catch (_) {
-        // ignore per-frame detection errors silently
+        // ignore per-frame errors silently
       } finally {
-        // ~10 fps — give the device time to breathe between frames
         await Future.delayed(const Duration(milliseconds: 100));
         _isDetecting = false;
       }
@@ -168,7 +176,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
     if (format == null) return null;
 
-    // Concatenate all planes into a single byte buffer (works for NV21)
     final WriteBuffer allBytes = WriteBuffer();
     for (final plane in image.planes) {
       allBytes.putUint8List(plane.bytes);
@@ -193,14 +200,13 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     setState(() => _isCapturing = true);
 
     try {
-      // Stop detection stream — required before takePicture() on Android
+      // Stop detection stream (required before takePicture on Android)
       await _controller!.stopImageStream();
 
-      // Take photo
       final xfile    = await _controller!.takePicture();
       final rawBytes = await xfile.readAsBytes();
 
-      // Compress: resize to max 800 width, JPEG quality 85
+      // Compress: max 800px wide, JPEG quality 85
       final original = img.decodeImage(rawBytes);
       if (original == null) throw Exception('Gagal memproses gambar.');
       final toEncode = original.width > 800
@@ -208,7 +214,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           : original;
       final compressed = img.encodeJpg(toEncode, quality: 85);
 
-      // POST to backend
       final action = widget.action == FaceAction.checkIn ? 'check_in' : 'check_out';
       await ref.read(faceRemoteDatasourceProvider).faceAttendance(
         imageBytes: compressed,
@@ -216,7 +221,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         filename: 'face_${action}_${DateTime.now().millisecondsSinceEpoch}.jpg',
       );
 
-      // Refresh attendance data and navigate back
       if (!mounted) return;
       ref.invalidate(todayAttendanceProvider);
       final label = widget.action == FaceAction.checkIn ? 'Check-in' : 'Check-out';
@@ -231,24 +235,95 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     } catch (e) {
       if (!mounted) return;
 
-      final msg = e.toString().replaceFirst('ApiException: ', '');
+      final msg    = _humanizeCaptureError(e);
+      final isAlreadyDone = _isAlreadyDoneError(e);
+
+      // "Already done" — attendance was already recorded; refresh + go back
+      if (isAlreadyDone) {
+        ref.invalidate(todayAttendanceProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+        context.pop();
+        return;
+      }
+
+      // Face mismatch → longer snackbar with "Coba Lagi" label
+      final isMismatch = _isFaceMismatchError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.red.shade700,
+          duration: Duration(seconds: isMismatch ? 5 : 4),
+          action: isMismatch
+              ? SnackBarAction(
+                  label: 'Coba Lagi',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                )
+              : null,
         ),
       );
 
-      // Reset and restart stream so user can retry
+      // Reset + restart stream so user can retry
       setState(() {
-        _isCapturing  = false;
-        _faceDetected = false;
+        _isCapturing = false;
+        _faceCount   = 0;
       });
       if (_controller != null && _controller!.value.isInitialized) {
         _startDetection(_controller!);
       }
     }
+  }
+
+  // ── Error helpers ─────────────────────────────────────────────────────────
+
+  String _humanizeCaptureError(Object e) {
+    final raw   = e.toString().replaceFirst('ApiException: ', '');
+    final lower = raw.toLowerCase();
+
+    if (lower.contains('already checked in')) {
+      return 'Kamu sudah check-in hari ini.';
+    }
+    if (lower.contains('already checked out')) {
+      return 'Kamu sudah check-out hari ini.';
+    }
+    if (lower.contains('no check-in found')) {
+      return 'Belum ada check-in hari ini untuk di-check-out.';
+    }
+    if (lower.contains('not recognized') || lower.contains('no matching face')) {
+      return 'Wajah tidak dikenali. Pastikan pencahayaan cukup lalu coba lagi.';
+    }
+    if (lower.contains('no enrolled faces')) {
+      return 'Wajah belum terdaftar dalam sistem. Hubungi HR.';
+    }
+    if (lower.contains('no face') ||
+        lower.contains('no faces') ||
+        lower.contains('extraction failed') ||
+        lower.contains('invalid descriptor') ||
+        lower.contains('face extraction')) {
+      return 'Tidak ada wajah terdeteksi dalam foto. Pastikan pencahayaan cukup lalu coba lagi.';
+    }
+    if (lower.contains('terlalu lama') || lower.contains('timeout')) {
+      return 'Proses terlalu lama. Coba lagi.';
+    }
+    if (lower.contains('koneksi gagal') ||
+        lower.contains('network error') ||
+        lower.contains('connection')) {
+      return 'Koneksi gagal. Periksa jaringan dan coba lagi.';
+    }
+    // Fallback: return backend message as-is (already human-readable from server)
+    return raw;
+  }
+
+  bool _isAlreadyDoneError(Object e) {
+    final lower = e.toString().toLowerCase();
+    return lower.contains('already checked in') || lower.contains('already checked out');
+  }
+
+  bool _isFaceMismatchError(Object e) {
+    final lower = e.toString().toLowerCase();
+    return lower.contains('not recognized') || lower.contains('no matching face');
   }
 
   // ── UI ────────────────────────────────────────────────────────────────────
@@ -270,7 +345,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   }
 
   Widget _buildBody(String actionLabel, Color actionColor) {
-    // Error / permission denied state
     if (_initError != null) {
       return Center(
         child: Padding(
@@ -289,12 +363,12 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
               if (!_permissionGranted)
                 ElevatedButton(
                   onPressed: () => openAppSettings(),
-                  child: const Text('Open Settings'),
+                  child: const Text('Buka Pengaturan'),
                 )
               else
                 ElevatedButton(
                   onPressed: _initCamera,
-                  child: const Text('Retry'),
+                  child: const Text('Coba Lagi'),
                 ),
             ],
           ),
@@ -302,7 +376,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       );
     }
 
-    // Loading state
     if (_isInitializing || _controller == null) {
       return const Center(
         child: CircularProgressIndicator(color: Colors.white),
@@ -320,23 +393,21 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           child: CameraPreview(_controller!),
         ),
 
-        // Oval face guide overlay
+        // Oval guide overlay — color reflects detection state
         CustomPaint(
-          painter: _FaceGuidePainter(detected: _faceDetected),
+          painter: _FaceGuidePainter(status: _faceStatus),
         ),
 
-        // Instruction text
+        // Contextual instruction text
         Positioned(
           top: 24,
           left: 0,
           right: 0,
           child: Text(
-            _faceDetected
-                ? 'Face detected — hold still'
-                : 'Position your face in the oval',
+            _instructionText,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: _faceDetected ? Colors.greenAccent : Colors.white,
+              color: _instructionColor,
               fontSize: 15,
               fontWeight: FontWeight.w600,
               shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
@@ -344,7 +415,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           ),
         ),
 
-        // Capture button (enabled only when face detected and not capturing)
+        // Capture button
         Positioned(
           bottom: 48,
           left: 0,
@@ -359,7 +430,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           ),
         ),
 
-        // Processing overlay — shown while uploading to backend
+        // Processing overlay
         if (_isCapturing)
           Container(
             color: Colors.black54,
@@ -384,16 +455,27 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       ],
     );
   }
+
+  String get _instructionText => switch (_faceStatus) {
+    _FaceStatus.none     => 'Posisikan wajah Anda dalam oval',
+    _FaceStatus.detected => 'Wajah terdeteksi — tahan posisi',
+    _FaceStatus.multiple => 'Lebih dari 1 wajah — pastikan hanya Anda',
+  };
+
+  Color get _instructionColor => switch (_faceStatus) {
+    _FaceStatus.none     => Colors.white,
+    _FaceStatus.detected => Colors.greenAccent,
+    _FaceStatus.multiple => Colors.orangeAccent,
+  };
 }
 
 // ── Oval face guide painter ──────────────────────────────────────────────────
 class _FaceGuidePainter extends CustomPainter {
-  final bool detected;
-  const _FaceGuidePainter({required this.detected});
+  final _FaceStatus status;
+  const _FaceGuidePainter({required this.status});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Dark overlay outside the oval
     final overlayPaint = Paint()..color = Colors.black.withValues(alpha: 0.5);
     final ovalRect = Rect.fromCenter(
       center: Offset(size.width / 2, size.height * 0.42),
@@ -401,22 +483,28 @@ class _FaceGuidePainter extends CustomPainter {
       height: size.width * 0.85,
     );
 
-    // Cut oval out of overlay using BlendMode
     canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), overlayPaint);
     canvas.drawOval(ovalRect, Paint()..blendMode = BlendMode.clear);
     canvas.restore();
 
-    // Oval border
-    final borderPaint = Paint()
-      ..color  = detected ? Colors.greenAccent : Colors.white70
-      ..style  = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-    canvas.drawOval(ovalRect, borderPaint);
+    final borderColor = switch (status) {
+      _FaceStatus.none     => Colors.white70,
+      _FaceStatus.detected => Colors.greenAccent,
+      _FaceStatus.multiple => Colors.orangeAccent,
+    };
+
+    canvas.drawOval(
+      ovalRect,
+      Paint()
+        ..color       = borderColor
+        ..style       = PaintingStyle.stroke
+        ..strokeWidth = 2.5,
+    );
   }
 
   @override
-  bool shouldRepaint(_FaceGuidePainter old) => old.detected != detected;
+  bool shouldRepaint(_FaceGuidePainter old) => old.status != status;
 }
 
 // ── Capture button ───────────────────────────────────────────────────────────
@@ -450,15 +538,10 @@ class _CaptureButton extends StatelessWidget {
                 ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 12, spreadRadius: 2)]
                 : [],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                enabled ? Icons.camera_alt : Icons.face_retouching_off,
-                color: Colors.white,
-                size: 28,
-              ),
-            ],
+          child: Icon(
+            enabled ? Icons.camera_alt : Icons.face_retouching_off,
+            color: Colors.white,
+            size: 28,
           ),
         ),
       ),

@@ -37,6 +37,19 @@ class FaceRemoteDatasource {
         );
       }
     } on DioException catch (e) {
+      // Give timeout a clearer message before the generic handler
+      if (e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionTimeout) {
+        throw const ApiException(
+          message: 'Proses terlalu lama. Coba lagi.',
+        );
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        throw const ApiException(
+          message: 'Koneksi gagal. Periksa jaringan dan coba lagi.',
+        );
+      }
       throw ApiException.fromDioError(e);
     }
   }
