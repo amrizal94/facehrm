@@ -222,6 +222,9 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
 
     try {
       await _controller!.stopImageStream();
+      // Brief pause — some Android devices need stream to fully settle
+      // before takePicture() to avoid CameraException: preparationFailed
+      await Future.delayed(const Duration(milliseconds: 200));
       final xfile    = await _controller!.takePicture();
       final rawBytes = await xfile.readAsBytes();
 
@@ -323,12 +326,19 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         lower.contains('invalid descriptor') || lower.contains('face extraction')) {
       return 'Tidak ada wajah terdeteksi dalam foto. Pastikan pencahayaan cukup lalu coba lagi.';
     }
+    if (lower.contains('models not ready')) {
+      return 'Server sedang memuat. Tunggu beberapa detik lalu coba lagi.';
+    }
     if (lower.contains('terlalu lama') || lower.contains('timeout')) {
       return 'Proses terlalu lama. Coba lagi.';
     }
     if (lower.contains('koneksi gagal') || lower.contains('network error') ||
         lower.contains('connection')) {
       return 'Koneksi gagal. Periksa jaringan dan coba lagi.';
+    }
+    // Guzzle/HTTP server error from face-service 5xx
+    if (lower.contains('server error') || lower.contains('internal server error')) {
+      return 'Terjadi kesalahan pada server. Coba lagi.';
     }
     return raw;
   }
