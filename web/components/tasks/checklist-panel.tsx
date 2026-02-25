@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,14 +14,45 @@ interface ChecklistPanelProps {
 }
 
 export function ChecklistPanel({ taskId, items, isAdmin = false }: ChecklistPanelProps) {
-  const [newTitle, setNewTitle] = useState('')
+  const [newTitle, setNewTitle]       = useState('')
+  const [localItems, setLocalItems]   = useState<ChecklistItem[]>(items)
+  const pendingCount                  = useRef(0)
+
+  // Sync with server data only when no toggle is in-flight (avoid overwriting optimistic state)
+  useEffect(() => {
+    if (pendingCount.current === 0) {
+      setLocalItems(items)
+    }
+  }, [items])
+
   const addItem    = useAddChecklistItem(taskId)
   const toggleItem = useToggleChecklistItem()
   const deleteItem = useDeleteChecklistItem(taskId)
 
-  const done  = items.filter((i) => i.is_done).length
-  const total = items.length
+  const done  = localItems.filter((i) => i.is_done).length
+  const total = localItems.length
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0
+
+  function handleToggle(item: ChecklistItem) {
+    // Flip immediately — no waiting for network
+    setLocalItems((prev) =>
+      prev.map((i) => i.id === item.id ? { ...i, is_done: !i.is_done } : i)
+    )
+    pendingCount.current++
+    toggleItem.mutate(
+      { taskId, itemId: item.id },
+      {
+        onSuccess: () => { pendingCount.current-- },
+        onError: () => {
+          pendingCount.current--
+          // Revert this item back on failure
+          setLocalItems((prev) =>
+            prev.map((i) => i.id === item.id ? { ...i, is_done: item.is_done } : i)
+          )
+        },
+      }
+    )
+  }
 
   function handleAdd() {
     const title = newTitle.trim()
@@ -35,7 +66,7 @@ export function ChecklistPanel({ taskId, items, isAdmin = false }: ChecklistPane
         <div className="flex items-center gap-2">
           <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-200"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -44,18 +75,20 @@ export function ChecklistPanel({ taskId, items, isAdmin = false }: ChecklistPane
       )}
 
       <ul className="space-y-1">
-        {items.map((item) => (
+        {localItems.map((item) => (
           <li key={item.id} className="flex items-center gap-2 group">
             <input
               type="checkbox"
               id={`item-${item.id}`}
               checked={item.is_done}
-              onChange={() => toggleItem.mutate({ taskId, itemId: item.id })}
+              onChange={() => handleToggle(item)}
               className="h-4 w-4 rounded border-gray-300 text-primary cursor-pointer"
             />
             <label
               htmlFor={`item-${item.id}`}
-              className={`flex-1 text-sm cursor-pointer ${item.is_done ? 'line-through text-muted-foreground' : ''}`}
+              className={`flex-1 text-sm cursor-pointer select-none transition-colors ${
+                item.is_done ? 'line-through text-muted-foreground' : ''
+              }`}
             >
               {item.title}
             </label>
