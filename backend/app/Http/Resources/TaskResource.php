@@ -42,9 +42,9 @@ class TaskResource extends JsonResource
             'checklist_items' => $this->whenLoaded('checklistItems', fn() =>
                 TaskChecklistItemResource::collection($this->checklistItems)
             ),
-            // List-view only counters (when checklist is NOT loaded)
-            'checklist_total' => $checklistLoaded ? $this->undefined() : $this->checklistItems()->count(),
-            'checklist_done'  => $checklistLoaded ? $this->undefined() : $this->checklistItems()->where('is_done', true)->count(),
+            // List-view only counters — omitted when checklist relation is already loaded
+            'checklist_total' => $this->when(!$checklistLoaded, fn() => $this->checklistItems()->count()),
+            'checklist_done'  => $this->when(!$checklistLoaded, fn() => $this->checklistItems()->where('is_done', true)->count()),
             'created_at'      => $this->created_at?->toISOString(),
         ];
     }
