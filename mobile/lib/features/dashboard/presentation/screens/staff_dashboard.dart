@@ -174,6 +174,14 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                           record: record,
                           onCheckIn: () => _doCheckIn(context),
                           onCheckOut: () => _doCheckOut(context),
+                          onFaceCheckIn: () => context.push(
+                            AppRoutes.faceCheckin,
+                            extra: 'check_in',
+                          ),
+                          onFaceCheckOut: () => context.push(
+                            AppRoutes.faceCheckin,
+                            extra: 'check_out',
+                          ),
                         ),
                       ),
                     ],
@@ -275,11 +283,15 @@ class _AttendanceStatusWidget extends StatelessWidget {
   final dynamic record; // AttendanceRecordModel?
   final VoidCallback onCheckIn;
   final VoidCallback onCheckOut;
+  final VoidCallback onFaceCheckIn;
+  final VoidCallback onFaceCheckOut;
 
   const _AttendanceStatusWidget({
     required this.record,
     required this.onCheckIn,
     required this.onCheckOut,
+    required this.onFaceCheckIn,
+    required this.onFaceCheckOut,
   });
 
   @override
@@ -297,6 +309,17 @@ class _AttendanceStatusWidget extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 44),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onFaceCheckIn,
+            icon: const Icon(Icons.face_retouching_natural),
+            label: const Text('Face Check-In'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.green,
+              side: const BorderSide(color: Colors.green),
               minimumSize: const Size(double.infinity, 44),
             ),
           ),
@@ -343,6 +366,17 @@ class _AttendanceStatusWidget extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 44),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onFaceCheckOut,
+            icon: const Icon(Icons.face_retouching_natural),
+            label: const Text('Face Check-Out'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.blue,
+              side: const BorderSide(color: Colors.blue),
               minimumSize: const Size(double.infinity, 44),
             ),
           ),

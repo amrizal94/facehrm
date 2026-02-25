@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/attendance/presentation/screens/attendance_records_screen.dart';
 import '../../features/attendance/presentation/screens/my_attendance_screen.dart';
+import '../../features/face/presentation/screens/face_camera_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/dashboard/presentation/screens/admin_dashboard.dart';
@@ -87,6 +88,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.staffDashboard, builder: (_, __) => const StaffDashboardScreen()),
 
       // Staff features
+      GoRoute(
+        path: AppRoutes.faceCheckin,
+        builder: (_, state) {
+          final action = state.extra == 'check_out'
+              ? FaceAction.checkOut
+              : FaceAction.checkIn;
+          return FaceCameraScreen(action: action);
+        },
+      ),
       GoRoute(path: AppRoutes.myAttendance,  builder: (_, __) => const MyAttendanceScreen()),
       GoRoute(path: AppRoutes.myLeaves,      builder: (_, __) => const MyLeavesScreen()),
       GoRoute(path: AppRoutes.applyLeave,    builder: (_, __) => const ApplyLeaveScreen()),

@@ -10,6 +10,7 @@ class AppRoutes {
   static const String unauthorized   = '/unauthorized';
 
   // Staff features
+  static const String faceCheckin  = '/staff/face-checkin';
   static const String myAttendance = '/staff/attendance';
   static const String myLeaves     = '/staff/leaves';
   static const String applyLeave   = '/staff/leaves/apply';
