@@ -1,6 +1,8 @@
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart' show WriteBuffer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Screen type passed when navigating to [FaceCameraScreen].
@@ -19,13 +21,19 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
 
+  // MLKit face detector — fast mode, minimum face size 15% of frame
+  final FaceDetector _faceDetector = FaceDetector(
+    options: FaceDetectorOptions(
+      performanceMode: FaceDetectorMode.fast,
+      minFaceSize: 0.15,
+    ),
+  );
+  bool _isDetecting = false;
+
   // State flags
   bool _permissionGranted = false;
   bool _isInitializing   = true;
   String? _initError;
-
-  // Face detection state (will become non-final in Day 4 when MLKit sets it)
-  // ignore: prefer_final_fields
   bool _faceDetected = false;
 
   @override
@@ -38,7 +46,10 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _controller?.dispose();
+    _faceDetector.close();
+    final ctrl = _controller;
+    _controller = null;
+    ctrl?.dispose();
     super.dispose();
   }
 
@@ -48,6 +59,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     if (controller == null || !controller.value.isInitialized) return;
 
     if (state == AppLifecycleState.inactive) {
+      _controller = null;
       controller.dispose();
     } else if (state == AppLifecycleState.resumed) {
       _initCamera();
@@ -58,6 +70,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     setState(() {
       _isInitializing = true;
       _initError      = null;
+      _faceDetected   = false;
     });
 
     // Request camera permission
@@ -89,7 +102,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         desc,
         ResolutionPreset.high,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
+        imageFormatGroup: ImageFormatGroup.nv21, // NV21 required for MLKit on Android
       );
 
       await controller.initialize();
@@ -99,6 +112,8 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         _controller     = controller;
         _isInitializing = false;
       });
+
+      _startDetection(controller);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -108,6 +123,64 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       }
     }
   }
+
+  // ── Face detection loop ───────────────────────────────────────────────────
+
+  void _startDetection(CameraController controller) {
+    controller.startImageStream((CameraImage image) async {
+      if (_isDetecting) return;
+      _isDetecting = true;
+
+      try {
+        final inputImage = _toInputImage(image);
+        if (inputImage == null) return;
+
+        final faces = await _faceDetector.processImage(inputImage);
+
+        if (mounted) {
+          final detected = faces.length == 1;
+          if (detected != _faceDetected) {
+            setState(() => _faceDetected = detected);
+          }
+        }
+      } catch (_) {
+        // ignore per-frame detection errors silently
+      } finally {
+        // ~10 fps — give the device time to breathe between frames
+        await Future.delayed(const Duration(milliseconds: 100));
+        _isDetecting = false;
+      }
+    });
+  }
+
+  InputImage? _toInputImage(CameraImage image) {
+    final rotation = InputImageRotationValue.fromRawValue(
+      _controller!.description.sensorOrientation,
+    );
+    if (rotation == null) return null;
+
+    final format = InputImageFormatValue.fromRawValue(image.format.raw);
+    if (format == null) return null;
+
+    // Concatenate all planes into a single byte buffer (works for NV21)
+    final WriteBuffer allBytes = WriteBuffer();
+    for (final plane in image.planes) {
+      allBytes.putUint8List(plane.bytes);
+    }
+    final bytes = allBytes.done().buffer.asUint8List();
+
+    return InputImage.fromBytes(
+      bytes: bytes,
+      metadata: InputImageMetadata(
+        size: Size(image.width.toDouble(), image.height.toDouble()),
+        rotation: rotation,
+        format: format,
+        bytesPerRow: image.planes[0].bytesPerRow,
+      ),
+    );
+  }
+
+  // ── UI ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
