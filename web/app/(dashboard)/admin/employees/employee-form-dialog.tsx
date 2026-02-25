@@ -196,12 +196,12 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
                 <div className="space-y-1.5">
                   <Label>Gender</Label>
                   <Select
-                    value={watch('gender') ?? ''}
-                    onValueChange={(v) => setValue('gender', v as 'male' | 'female' | '')}
+                    value={watch('gender') || 'unspecified'}
+                    onValueChange={(v) => setValue('gender', (v === 'unspecified' ? '' : v) as 'male' | 'female' | '')}
                   >
-                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">— Not specified —</SelectItem>
+                      <SelectItem value="unspecified">— Not specified —</SelectItem>
                       <SelectItem value="male">Male</SelectItem>
                       <SelectItem value="female">Female</SelectItem>
                     </SelectContent>
@@ -232,12 +232,12 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
                 <div className="space-y-1.5">
                   <Label>Department</Label>
                   <Select
-                    value={watch('department_id') ?? ''}
-                    onValueChange={(v) => setValue('department_id', v)}
+                    value={watch('department_id') || 'none'}
+                    onValueChange={(v) => setValue('department_id', v === 'none' ? '' : v)}
                   >
-                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">— No Department —</SelectItem>
+                      <SelectItem value="none">— No Department —</SelectItem>
                       {departments.map((d) => (
                         <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>
                       ))}

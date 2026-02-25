@@ -44,14 +44,14 @@ export default function StaffTasksPage() {
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
           <Select
-            value={filters.status ?? ''}
-            onValueChange={(v) => setFilters((f) => ({ ...f, status: v || undefined }))}
+            value={filters.status ?? 'all'}
+            onValueChange={(v) => setFilters((f) => ({ ...f, status: v === 'all' ? undefined : v }))}
           >
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="todo">To Do</SelectItem>
               <SelectItem value="in_progress">In Progress</SelectItem>
               <SelectItem value="done">Done</SelectItem>
@@ -60,14 +60,14 @@ export default function StaffTasksPage() {
           </Select>
 
           <Select
-            value={filters.priority ?? ''}
-            onValueChange={(v) => setFilters((f) => ({ ...f, priority: v || undefined }))}
+            value={filters.priority ?? 'all'}
+            onValueChange={(v) => setFilters((f) => ({ ...f, priority: v === 'all' ? undefined : v }))}
           >
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="All priorities" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Priorities</SelectItem>
+              <SelectItem value="all">All Priorities</SelectItem>
               <SelectItem value="low">Low</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="high">High</SelectItem>

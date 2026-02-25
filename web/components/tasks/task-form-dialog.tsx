@@ -48,7 +48,7 @@ function TaskFormInner({
   const [status, setStatus]                 = useState<string>(task?.status ?? 'todo')
   const [priority, setPriority]             = useState<string>(task?.priority ?? 'medium')
   const [deadline, setDeadline]             = useState(task?.deadline ?? '')
-  const [assignedTo, setAssignedTo]         = useState<string>(task?.assignee?.id?.toString() ?? '')
+  const [assignedTo, setAssignedTo]         = useState<string>(task?.assignee?.id?.toString() ?? 'none')
   const [selectedLabels, setSelectedLabels] = useState<number[]>(task?.labels?.map((l) => l.id) ?? [])
   const [checklistItems, setChecklistItems] = useState<string[]>([])
   const [newChecklistItem, setNewChecklistItem] = useState('')
@@ -87,7 +87,7 @@ function TaskFormInner({
       status:    status    as 'todo' | 'in_progress' | 'done' | 'cancelled',
       priority:  priority  as 'low' | 'medium' | 'high' | 'urgent',
       deadline:  deadline  || undefined,
-      assigned_to: assignedTo ? parseInt(assignedTo) : null,
+      assigned_to: (assignedTo && assignedTo !== 'none') ? parseInt(assignedTo) : null,
       label_ids:   selectedLabels,
       checklist_items: checklistItems.map((t) => ({ title: t })),
     }
@@ -171,7 +171,7 @@ function TaskFormInner({
           <Select value={assignedTo} onValueChange={setAssignedTo}>
             <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Unassigned</SelectItem>
+              <SelectItem value="none">Unassigned</SelectItem>
               {employees.map((emp) => (
                 <SelectItem key={emp.id} value={emp.id.toString()}>
                   {emp.user.name}

@@ -89,14 +89,14 @@ export default function AdminProjectsPage() {
               </Button>
             </form>
             <Select
-              value={filters.status ?? ''}
-              onValueChange={(v) => setFilters((f) => ({ ...f, status: v || undefined, page: 1 }))}
+              value={filters.status ?? 'all'}
+              onValueChange={(v) => setFilters((f) => ({ ...f, status: v === 'all' ? undefined : v, page: 1 }))}
             >
               <SelectTrigger className="w-36">
-                <SelectValue placeholder="All statuses" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="archived">Archived</SelectItem>
