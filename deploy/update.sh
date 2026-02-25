@@ -16,8 +16,12 @@ cd "$APP_DIR"
 echo "=== FaceHRM Update ==="
 
 # ── 1. Pull latest code ───────────────────────────────────────────
-echo "[1/4] Git pull..."
-git pull origin main
+# git reset --hard dipakai agar server selalu match repo:
+# mengatasi (1) tracked files yang diedit langsung di server,
+# (2) untracked files yang akan di-overwrite oleh commit baru.
+echo "[1/4] Git fetch + reset..."
+git fetch origin main
+git reset --hard origin/main
 
 # ── 2. Backend update ────────────────────────────────────────────
 echo "[2/4] Backend update..."
