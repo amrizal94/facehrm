@@ -39,6 +39,8 @@ class ApiConstants {
 
   // Face recognition
   static const String faceAttendanceImage = '/face/attendance-image';
+  static const String faceMe              = '/face/me';
+  static const String faceSelfEnroll      = '/face/self-enroll-image';
 
   // Payroll (staff)
   static const String payrollMy = '/payroll/my';

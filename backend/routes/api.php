@@ -76,10 +76,13 @@ Route::prefix('v1')->group(function () {
 
         // Face — all authenticated (check-in/out via face), rate-limited
         Route::middleware('throttle:face')->group(function () {
-            Route::post('face/identify',   [FaceDataController::class, 'identify']);
+            Route::post('face/identify',         [FaceDataController::class, 'identify']);
             Route::post('face/attendance',       [FaceDataController::class, 'faceAttendance']);
             Route::post('face/attendance-image', [FaceDataController::class, 'faceAttendanceImage']);
+            Route::post('face/self-enroll-image',[FaceDataController::class, 'selfEnrollImage']);
         });
+        // Face — enrollment status for current user
+        Route::get('face/me', [FaceDataController::class, 'myStatus']);
 
         // Admin & HR
         Route::middleware('role:admin|hr')->group(function () {

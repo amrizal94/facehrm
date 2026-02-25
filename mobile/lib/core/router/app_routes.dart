@@ -11,6 +11,7 @@ class AppRoutes {
 
   // Staff features
   static const String faceCheckin  = '/staff/face-checkin';
+  static const String faceEnroll   = '/staff/face-enroll';
   static const String myAttendance = '/staff/attendance';
   static const String myLeaves     = '/staff/leaves';
   static const String applyLeave   = '/staff/leaves/apply';

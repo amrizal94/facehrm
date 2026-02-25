@@ -418,6 +418,73 @@ class FaceDataController extends Controller
     }
 
     // ---------------------------------------------------------------
+    // All authenticated: check own enrollment status
+    // GET /face/me
+    // ---------------------------------------------------------------
+    public function myStatus(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee profile not found.', 'data' => null], 404);
+        }
+
+        $face = FaceData::where('employee_id', $employee->id)->where('is_active', true)->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OK',
+            'data'    => [
+                'enrolled'    => $face !== null,
+                'enrolled_at' => $face?->enrolled_at?->toISOString(),
+            ],
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // All authenticated: self-enroll own face via image
+    // POST /face/self-enroll-image  { image: file }
+    // ---------------------------------------------------------------
+    public function selfEnrollImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+        ]);
+
+        $employee = $request->user()->employee;
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee profile not found.', 'data' => null], 404);
+        }
+
+        try {
+            $extracted = $this->extractDescriptorFromImage($request->file('image'));
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $filename = 'faces/employee_' . $employee->id . '_' . time() . '.jpg';
+        Storage::disk('public')->put($filename, file_get_contents($request->file('image')->getRealPath()));
+
+        FaceData::updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'descriptor'  => json_encode($extracted['descriptor']),
+                'image_path'  => $filename,
+                'is_active'   => true,
+                'enrolled_by' => $request->user()->id,
+                'enrolled_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Wajah berhasil didaftarkan!',
+            'data'    => ['enrolled' => true],
+        ], 201);
+    }
+
+    // ---------------------------------------------------------------
     // Admin/HR: enroll face via raw image (mobile enrollment)
     // POST /face/enroll-image  { employee_id: int, image: file }
     // ---------------------------------------------------------------

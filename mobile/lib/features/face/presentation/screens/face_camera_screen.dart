@@ -7,6 +7,7 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../features/attendance/presentation/providers/attendance_provider.dart';
 import '../../data/datasources/face_remote_datasource.dart';
 
@@ -66,6 +67,34 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Check enrollment status before opening camera.
+    // Deferred to post-frame so context.push is safe.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkEnrollmentThenInit());
+  }
+
+  /// Check if the current user has enrolled their face.
+  /// If not, navigate to the self-enroll screen first.
+  Future<void> _checkEnrollmentThenInit() async {
+    if (!mounted) return;
+    try {
+      final enrolled = await ref.read(faceRemoteDatasourceProvider).getMyFaceStatus();
+      if (!mounted) return;
+
+      if (!enrolled) {
+        // Navigate to self-enroll and await result
+        final result = await context.push<bool>(AppRoutes.faceEnroll);
+        if (!mounted) return;
+        if (result != true) {
+          // User cancelled enrollment — go back
+          context.pop();
+          return;
+        }
+        // Enrolled successfully — proceed to camera
+      }
+    } catch (_) {
+      // If status check fails (network error, no employee profile, etc.)
+      // proceed anyway and let the attendance API report the real error
+    }
     _initCamera();
   }
 

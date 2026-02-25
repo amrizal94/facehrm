@@ -49,6 +49,58 @@ class FaceRemoteDatasource {
       throw ApiException.fromDioError(e);
     }
   }
+
+  /// GET /face/me
+  /// Returns whether the current user's face is enrolled.
+  Future<bool> getMyFaceStatus() async {
+    try {
+      final response = await _dio.get(ApiConstants.faceMe);
+      final body = response.data as Map<String, dynamic>;
+      return (body['data'] as Map<String, dynamic>?)?['enrolled'] as bool? ?? false;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError) {
+        throw const ApiException(message: 'Koneksi gagal. Periksa jaringan dan coba lagi.');
+      }
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// POST /face/self-enroll-image
+  /// Enrolls the current user's own face. Returns the backend success message.
+  Future<String> selfEnrollFace({
+    required List<int> imageBytes,
+    required String filename,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'image': MultipartFile.fromBytes(imageBytes, filename: filename),
+      });
+
+      final response = await _dio.post(
+        ApiConstants.faceSelfEnroll,
+        data: formData,
+        options: Options(receiveTimeout: const Duration(seconds: 30)),
+      );
+
+      final body = response.data as Map<String, dynamic>;
+      if (body['success'] != true) {
+        throw ApiException(
+          message: body['message']?.toString() ?? 'Pendaftaran wajah gagal',
+        );
+      }
+      return body['message']?.toString() ?? 'Wajah berhasil didaftarkan!';
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionTimeout) {
+        throw const ApiException(message: 'Proses terlalu lama. Coba lagi.');
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        throw const ApiException(message: 'Koneksi gagal. Periksa jaringan dan coba lagi.');
+      }
+      throw ApiException.fromDioError(e);
+    }
+  }
 }
 
 final faceRemoteDatasourceProvider = Provider<FaceRemoteDatasource>(

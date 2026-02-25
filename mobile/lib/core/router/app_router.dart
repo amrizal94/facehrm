@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/attendance/presentation/screens/attendance_records_screen.dart';
 import '../../features/attendance/presentation/screens/my_attendance_screen.dart';
 import '../../features/face/presentation/screens/face_camera_screen.dart';
+import '../../features/face/presentation/screens/face_self_enroll_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/dashboard/presentation/screens/admin_dashboard.dart';
@@ -98,6 +99,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : FaceAction.checkIn;
           return FaceCameraScreen(action: action);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.faceEnroll,
+        builder: (_, __) => const FaceSelfEnrollScreen(),
       ),
       GoRoute(path: AppRoutes.myAttendance,  builder: (_, __) => const MyAttendanceScreen()),
       GoRoute(path: AppRoutes.myLeaves,      builder: (_, __) => const MyLeavesScreen()),
