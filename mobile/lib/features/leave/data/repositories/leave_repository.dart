@@ -27,4 +27,10 @@ class LeaveRepository {
           leaveTypeId: leaveTypeId, startDate: startDate, endDate: endDate, reason: reason);
 
   Future<void> cancelLeave(int id) => _ds.cancelLeave(id);
+
+  // Admin / HR
+  Future<List<LeaveRequestModel>> getLeaveRequests({String? status}) =>
+      _ds.getLeaveRequests(status: status);
+  Future<void> approveLeave(int id) => _ds.approveLeave(id);
+  Future<void> rejectLeave(int id, String reason) => _ds.rejectLeave(id, reason);
 }

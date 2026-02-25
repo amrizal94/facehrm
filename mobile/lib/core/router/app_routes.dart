@@ -19,4 +19,7 @@ class AppRoutes {
   static const String submitOvertime = '/staff/overtime/submit';
   static const String holidays       = '/staff/holidays';
   static const String notifications  = '/staff/notifications';
+
+  // HR / Admin
+  static const String leaveApprovals = '/hr/leave-approvals';
 }

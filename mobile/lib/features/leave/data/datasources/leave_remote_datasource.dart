@@ -75,4 +75,42 @@ class LeaveRemoteDataSource {
       throw ApiException.fromDioError(e);
     }
   }
+
+  // ── Admin / HR ──────────────────────────────────────────────────────────────
+
+  Future<List<LeaveRequestModel>> getLeaveRequests({String? status}) async {
+    try {
+      final res = await _dio.get(
+        ApiConstants.leave,
+        queryParameters: {
+          if (status != null) 'status': status,
+          'per_page': 50,
+        },
+      );
+      return (res.data['data'] as List)
+          .map((e) => LeaveRequestModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> approveLeave(int id) async {
+    try {
+      await _dio.post('${ApiConstants.leave}/$id/approve');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> rejectLeave(int id, String reason) async {
+    try {
+      await _dio.post(
+        '${ApiConstants.leave}/$id/reject',
+        data: {'rejection_reason': reason},
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }

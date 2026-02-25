@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../reports/data/models/reports_overview_model.dart';
+import '../../../reports/presentation/providers/reports_provider.dart';
 
 class HRDashboardScreen extends ConsumerWidget {
   const HRDashboardScreen({super.key});
@@ -11,9 +13,9 @@ class HRDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
-    final user =
-        authState is AuthAuthenticated ? authState.user : null;
+    final user = authState is AuthAuthenticated ? authState.user : null;
     final isLoggingOut = authState is AuthLoggingOut;
+    final overviewAsync = ref.watch(reportsOverviewProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,199 +45,246 @@ class HRDashboardScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            16 + MediaQuery.of(context).padding.bottom + 24,
-          ),
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome card
-            Card(
-              color: Colors.green.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.green.shade700,
-                      child: Text(
-                        user?.name.substring(0, 1).toUpperCase() ?? 'H',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome back,',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          Text(
-                            user?.name ?? 'HR Manager',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade700,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'HR',
-                              style: TextStyle(
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(reportsOverviewProvider),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              16, 16, 16,
+              16 + MediaQuery.of(context).padding.bottom + 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome card
+                Card(
+                  color: Colors.green.shade50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.green.shade700,
+                          child: Text(
+                            user?.name.substring(0, 1).toUpperCase() ?? 'H',
+                            style: const TextStyle(
+                                fontSize: 24,
                                 color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                                fontWeight: FontWeight.bold),
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Welcome back,',
+                                  style: Theme.of(context).textTheme.bodySmall),
+                              Text(
+                                user?.name ?? 'HR Manager',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade700,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text('HR',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Live stats
+                Text('HR Overview',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+
+                overviewAsync.when(
+                  loading: () => const Center(
+                      child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  )),
+                  error: (e, _) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.error_outline, color: Colors.red),
+                      title: const Text('Failed to load overview'),
+                      subtitle: Text(e.toString()),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: () => ref.invalidate(reportsOverviewProvider),
                       ),
                     ),
-                  ],
+                  ),
+                  data: (stats) => _HRStatsGrid(stats: stats),
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 24),
-            Text(
-              'HR Overview',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
+                const SizedBox(height: 20),
 
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              children: const [
-                _HRStatCard(
-                  icon: Icons.people,
-                  title: 'Total Employees',
-                  value: '—',
-                  color: Colors.green,
-                ),
-                _HRStatCard(
-                  icon: Icons.check_circle_outline,
-                  title: 'Present Today',
-                  value: '—',
-                  color: Colors.teal,
-                ),
-                _HRStatCard(
-                  icon: Icons.event_busy,
-                  title: 'On Leave',
-                  value: '—',
+                // HR actions menu
+                Text('HR Functions',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+
+                _MenuTile(
+                  icon: Icons.beach_access_outlined,
+                  title: 'Leave Approvals',
+                  subtitle: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingLeaves > 0
+                        ? '${s.pendingLeaves} pending request${s.pendingLeaves > 1 ? 's' : ''}'
+                        : 'No pending requests',
+                    orElse: () => 'Review & approve leave requests',
+                  ),
+                  badge: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingLeaves,
+                    orElse: () => 0,
+                  ),
                   color: Colors.orange,
+                  onTap: () => context.push(AppRoutes.leaveApprovals),
                 ),
-                _HRStatCard(
-                  icon: Icons.pending_actions,
-                  title: 'Leave Requests',
-                  value: '—',
-                  color: Colors.blue,
+                _MenuTile(
+                  icon: Icons.more_time,
+                  title: 'Overtime Requests',
+                  subtitle: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingOvertimes > 0
+                        ? '${s.pendingOvertimes} pending'
+                        : 'No pending requests',
+                    orElse: () => 'Review overtime submissions',
+                  ),
+                  badge: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingOvertimes,
+                    orElse: () => 0,
+                  ),
+                  color: Colors.amber.shade700,
+                  onTap: () {},
+                ),
+                _MenuTile(
+                  icon: Icons.people_outline,
+                  title: 'Attendance Records',
+                  subtitle: 'Monitor employee attendance',
+                  badge: 0,
+                  color: Colors.teal,
+                  onTap: () {},
                 ),
               ],
             ),
-
-            const SizedBox(height: 24),
-            Text(
-              'HR Functions',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            _HRMenuTile(
-              icon: Icons.person_add_outlined,
-              title: 'Employee Registration',
-              subtitle: 'Add new employees & face data',
-              onTap: () {},
-            ),
-            _HRMenuTile(
-              icon: Icons.access_time,
-              title: 'Attendance Management',
-              subtitle: 'View & manage attendance records',
-              onTap: () {},
-            ),
-            _HRMenuTile(
-              icon: Icons.beach_access_outlined,
-              title: 'Leave Management',
-              subtitle: 'Process leave requests',
-              onTap: () {},
-            ),
-            _HRMenuTile(
-              icon: Icons.receipt_long_outlined,
-              title: 'Payroll',
-              subtitle: 'Manage employee payroll',
-              onTap: () {},
-            ),
-          ],
+          ),
         ),
-      ),
       ),
     );
   }
 }
 
-class _HRStatCard extends StatelessWidget {
+// ── HR Stats grid ─────────────────────────────────────────────────────────
+class _HRStatsGrid extends StatelessWidget {
+  final ReportsOverviewModel stats;
+  const _HRStatsGrid({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 1.6,
+      children: [
+        _StatCard(
+            icon: Icons.people,
+            title: 'Total Employees',
+            value: '${stats.totalEmployees}',
+            color: Colors.green),
+        _StatCard(
+            icon: Icons.check_circle_outline,
+            title: 'Present Today',
+            value: '${stats.presentToday}',
+            color: Colors.teal),
+        _StatCard(
+            icon: Icons.event_busy,
+            title: 'On Leave Today',
+            value: '${stats.onLeaveToday}',
+            color: Colors.purple),
+        _StatCard(
+            icon: Icons.pending_actions,
+            title: 'Pending Leaves',
+            value: '${stats.pendingLeaves}',
+            color: Colors.orange),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
   final Color color;
-
-  const _HRStatCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-  });
+  const _StatCard(
+      {required this.icon,
+      required this.title,
+      required this.value,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
           children: [
-            Icon(icon, size: 36, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 22),
             ),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: color)),
+                  Text(title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey.shade600),
+                      maxLines: 2),
+                ],
+              ),
             ),
           ],
         ),
@@ -244,16 +293,20 @@ class _HRStatCard extends StatelessWidget {
   }
 }
 
-class _HRMenuTile extends StatelessWidget {
+// ── Menu tile ───────────────────────────────────────────────────────────────
+class _MenuTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final int badge;
+  final Color color;
   final VoidCallback onTap;
-
-  const _HRMenuTile({
+  const _MenuTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.badge,
+    required this.color,
     required this.onTap,
   });
 
@@ -262,9 +315,40 @@ class _HRMenuTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: Colors.green.shade700),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            if (badge > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                      color: Colors.red, shape: BoxShape.circle),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text('$badge',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center),
+                ),
+              ),
+          ],
+        ),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),

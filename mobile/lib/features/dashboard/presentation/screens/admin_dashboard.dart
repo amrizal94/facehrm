@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../reports/data/models/reports_overview_model.dart';
+import '../../../reports/presentation/providers/reports_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -11,9 +13,9 @@ class AdminDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
-    final user =
-        authState is AuthAuthenticated ? authState.user : null;
+    final user = authState is AuthAuthenticated ? authState.user : null;
     final isLoggingOut = authState is AuthLoggingOut;
+    final overviewAsync = ref.watch(reportsOverviewProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,157 +45,199 @@ class AdminDashboardScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            16 + MediaQuery.of(context).padding.bottom + 24,
-          ),
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome card
-            Card(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        user?.name.substring(0, 1).toUpperCase() ?? 'A',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(reportsOverviewProvider),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              16, 16, 16,
+              16 + MediaQuery.of(context).padding.bottom + 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome card
+                Card(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          child: Text(
+                            user?.name.substring(0, 1).toUpperCase() ?? 'A',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome back,',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          Text(
-                            user?.name ?? 'Admin',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade700,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'ADMIN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Welcome back,',
+                                  style: Theme.of(context).textTheme.bodySmall),
+                              Text(
+                                user?.name ?? 'Admin',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
-                            ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade700,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text('ADMIN',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Live stats
+                Text('Today\'s Overview',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+
+                overviewAsync.when(
+                  loading: () => const Center(
+                      child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  )),
+                  error: (e, _) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.error_outline, color: Colors.red),
+                      title: const Text('Failed to load overview'),
+                      subtitle: Text(e.toString()),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: () => ref.invalidate(reportsOverviewProvider),
                       ),
                     ),
-                  ],
+                  ),
+                  data: (stats) => _StatsGrid(stats: stats),
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 24),
-            Text(
-              'Quick Actions',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
+                const SizedBox(height: 20),
 
-            // Stats grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              children: const [
-                _StatCard(
-                  icon: Icons.people,
-                  title: 'Employees',
-                  value: '—',
-                  color: Colors.blue,
-                ),
-                _StatCard(
-                  icon: Icons.admin_panel_settings,
-                  title: 'Roles',
-                  value: '3',
-                  color: Colors.purple,
-                ),
-                _StatCard(
-                  icon: Icons.face_retouching_natural,
-                  title: 'Face Data',
-                  value: '—',
-                  color: Colors.teal,
-                ),
-                _StatCard(
-                  icon: Icons.access_time,
-                  title: 'Attendance',
-                  value: '—',
+                // Management menu
+                Text('Management',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+
+                _MenuTile(
+                  icon: Icons.beach_access_outlined,
+                  title: 'Leave Approvals',
+                  subtitle: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingLeaves > 0
+                        ? '${s.pendingLeaves} pending request${s.pendingLeaves > 1 ? 's' : ''}'
+                        : 'No pending requests',
+                    orElse: () => 'Review & approve leave requests',
+                  ),
+                  badge: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingLeaves,
+                    orElse: () => 0,
+                  ),
                   color: Colors.orange,
+                  onTap: () => context.push(AppRoutes.leaveApprovals),
+                ),
+                _MenuTile(
+                  icon: Icons.more_time,
+                  title: 'Overtime Requests',
+                  subtitle: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingOvertimes > 0
+                        ? '${s.pendingOvertimes} pending'
+                        : 'No pending requests',
+                    orElse: () => 'Review overtime submissions',
+                  ),
+                  badge: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingOvertimes,
+                    orElse: () => 0,
+                  ),
+                  color: Colors.amber.shade700,
+                  onTap: () {},
+                ),
+                _MenuTile(
+                  icon: Icons.bar_chart_outlined,
+                  title: 'Reports',
+                  subtitle: 'Attendance, leave & payroll reports',
+                  badge: 0,
+                  color: Colors.blue,
+                  onTap: () {},
                 ),
               ],
             ),
-
-            const SizedBox(height: 24),
-            Text(
-              'Management',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            _MenuTile(
-              icon: Icons.people_outline,
-              title: 'User Management',
-              subtitle: 'Manage employees & roles',
-              onTap: () {},
-            ),
-            _MenuTile(
-              icon: Icons.settings_outlined,
-              title: 'System Settings',
-              subtitle: 'Configure application settings',
-              onTap: () {},
-            ),
-            _MenuTile(
-              icon: Icons.bar_chart_outlined,
-              title: 'Reports',
-              subtitle: 'View attendance & HR reports',
-              onTap: () {},
-            ),
-          ],
+          ),
         ),
       ),
-      ),
+    );
+  }
+}
+
+// ── Stats grid ─────────────────────────────────────────────────────────────
+class _StatsGrid extends StatelessWidget {
+  final ReportsOverviewModel stats;
+  const _StatsGrid({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 1.6,
+      children: [
+        _StatCard(
+            icon: Icons.people,
+            title: 'Total Employees',
+            value: '${stats.totalEmployees}',
+            color: Colors.blue),
+        _StatCard(
+            icon: Icons.check_circle_outline,
+            title: 'Present Today',
+            value: '${stats.presentToday}',
+            color: Colors.green),
+        _StatCard(
+            icon: Icons.schedule,
+            title: 'Late Today',
+            value: '${stats.lateToday}',
+            color: Colors.orange),
+        _StatCard(
+            icon: Icons.pending_actions,
+            title: 'Pending Leaves',
+            value: '${stats.pendingLeaves}',
+            color: Colors.red),
+      ],
     );
   }
 }
@@ -203,35 +247,46 @@ class _StatCard extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-  });
+  const _StatCard(
+      {required this.icon,
+      required this.title,
+      required this.value,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
           children: [
-            Icon(icon, size: 36, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 22),
             ),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: color)),
+                  Text(title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey.shade600),
+                      maxLines: 2),
+                ],
+              ),
             ),
           ],
         ),
@@ -240,16 +295,20 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+// ── Menu tile ───────────────────────────────────────────────────────────────
 class _MenuTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final int badge;
+  final Color color;
   final VoidCallback onTap;
-
   const _MenuTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.badge,
+    required this.color,
     required this.onTap,
   });
 
@@ -258,9 +317,41 @@ class _MenuTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            if (badge > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                      color: Colors.red, shape: BoxShape.circle),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text('$badge',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center),
+                ),
+              ),
+          ],
+        ),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle,
+            style: const TextStyle(fontSize: 12)),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
