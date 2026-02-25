@@ -27,11 +27,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
       final isAuthenticated = authState is AuthAuthenticated;
-      final isLoading = authState is AuthLoading || authState is AuthInitial;
+      final isCheckingSession =
+          authState is AuthInitial || authState is AuthCheckingSession;
+      final isSubmittingAuth = authState is AuthSubmittingLogin;
       final isLoginRoute  = state.matchedLocation == AppRoutes.login;
       final isSplashRoute = state.matchedLocation == AppRoutes.splash;
 
-      if (isLoading) return isSplashRoute ? null : AppRoutes.splash;
+      // Only show splash while checking stored auth/token on app startup.
+      if (isCheckingSession) return isSplashRoute ? null : AppRoutes.splash;
+
+      // While login submit is in progress, stay on login (avoid flicker to splash).
+      if (isSubmittingAuth && isLoginRoute) return null;
+
       if (!isAuthenticated) return isLoginRoute ? null : AppRoutes.login;
       if (isLoginRoute || isSplashRoute) {
         if (authState case AuthAuthenticated(:final user)) {

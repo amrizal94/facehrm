@@ -12,8 +12,16 @@ class AuthInitial extends AuthState {
   const AuthInitial();
 }
 
-class AuthLoading extends AuthState {
-  const AuthLoading();
+class AuthCheckingSession extends AuthState {
+  const AuthCheckingSession();
+}
+
+class AuthSubmittingLogin extends AuthState {
+  const AuthSubmittingLogin();
+}
+
+class AuthLoggingOut extends AuthState {
+  const AuthLoggingOut();
 }
 
 class AuthAuthenticated extends AuthState {
@@ -36,7 +44,7 @@ class AuthNotifier extends Notifier<AuthState> {
   AuthState build() => const AuthInitial();
 
   Future<void> checkAuthStatus() async {
-    state = const AuthLoading();
+    state = const AuthCheckingSession();
     try {
       final user = await ref.read(authRepositoryProvider).getMe();
       state = user != null ? AuthAuthenticated(user) : const AuthUnauthenticated();
@@ -46,7 +54,7 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> login({required String email, required String password}) async {
-    state = const AuthLoading();
+    state = const AuthSubmittingLogin();
     try {
       final user = await ref.read(authRepositoryProvider).login(email: email, password: password);
       state = AuthAuthenticated(user);
@@ -56,7 +64,7 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
-    state = const AuthLoading();
+    state = const AuthLoggingOut();
     try {
       await ref.read(authRepositoryProvider).logout();
     } catch (_) {

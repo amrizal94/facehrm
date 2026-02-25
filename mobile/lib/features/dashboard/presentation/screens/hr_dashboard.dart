@@ -13,6 +13,7 @@ class HRDashboardScreen extends ConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
     final user =
         authState is AuthAuthenticated ? authState.user : null;
+    final isLoggingOut = authState is AuthLoggingOut;
 
     return Scaffold(
       appBar: AppBar(
@@ -20,19 +21,38 @@ class HRDashboardScreen extends ConsumerWidget {
         backgroundColor: Colors.green.shade700,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await ref.read(authNotifierProvider.notifier).logout();
-              if (context.mounted) context.go(AppRoutes.login);
-            },
-          ),
+          if (isLoggingOut)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
+              onPressed: () async {
+                await ref.read(authNotifierProvider.notifier).logout();
+                if (context.mounted) context.go(AppRoutes.login);
+              },
+            ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.of(context).padding.bottom + 24,
+          ),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Welcome card
@@ -176,6 +196,7 @@ class HRDashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

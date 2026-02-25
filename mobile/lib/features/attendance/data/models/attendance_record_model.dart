@@ -19,12 +19,24 @@ class AttendanceRecordModel {
 
   factory AttendanceRecordModel.fromJson(Map<String, dynamic> json) =>
       AttendanceRecordModel(
-        id: json['id'] as int,
-        date: json['date'] as String,
-        checkIn: json['check_in'] as String?,
-        checkOut: json['check_out'] as String?,
-        status: json['status'] as String,
-        workHours: (json['work_hours'] as num?)?.toDouble(),
-        notes: json['notes'] as String?,
+        id: _toInt(json['id']),
+        date: (json['date'] ?? '').toString(),
+        checkIn: json['check_in']?.toString(),
+        checkOut: json['check_out']?.toString(),
+        status: (json['status'] ?? '').toString(),
+        workHours: _toDoubleNullable(json['work_hours']),
+        notes: json['notes']?.toString(),
       );
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double? _toDoubleNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
+  }
 }

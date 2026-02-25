@@ -35,7 +35,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
-    final isLoading = authState is AuthLoading;
+    final isLoading = authState is AuthSubmittingLogin;
     final errorMessage =
         authState is AuthError ? authState.message : null;
 
@@ -123,16 +123,10 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: isLoading ? null : _submit,
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text(
-                    'Login',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+            child: const Text(
+              'Login',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
