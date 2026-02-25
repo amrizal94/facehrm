@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Pencil, Trash2, Calendar, User, FolderKanban } from 'lucide-react'
+import { Pencil, Trash2, Calendar, User, FolderKanban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -30,7 +30,6 @@ import { useDeleteTask, useTask, useUpdateTask } from '@/hooks/use-tasks'
 import { ChecklistPanel } from './checklist-panel'
 import { LabelBadge } from './label-badge'
 import { PriorityBadge } from './priority-badge'
-import { StatusBadge } from './status-badge'
 import { TaskFormDialog } from './task-form-dialog'
 
 interface TaskDetailSheetProps {
