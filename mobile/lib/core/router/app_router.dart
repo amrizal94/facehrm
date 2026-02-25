@@ -11,6 +11,7 @@ import '../../features/dashboard/presentation/screens/staff_dashboard.dart';
 import '../../features/holiday/presentation/screens/holidays_screen.dart';
 import '../../features/leave/presentation/screens/apply_leave_screen.dart';
 import '../../features/leave/presentation/screens/leave_approvals_screen.dart';
+import '../../features/overtime/presentation/screens/overtime_approvals_screen.dart';
 import '../../features/leave/presentation/screens/my_leaves_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/overtime/presentation/screens/my_overtime_screen.dart';
@@ -99,7 +100,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.notifications, builder: (_, __) => const NotificationsScreen()),
 
       // HR / Admin
-      GoRoute(path: AppRoutes.leaveApprovals, builder: (_, __) => const LeaveApprovalsScreen()),
+      GoRoute(path: AppRoutes.leaveApprovals,    builder: (_, __) => const LeaveApprovalsScreen()),
+      GoRoute(path: AppRoutes.overtimeApprovals, builder: (_, __) => const OvertimeApprovalsScreen()),
 
       GoRoute(path: AppRoutes.unauthorized, builder: (_, __) => const _UnauthorizedScreen()),
     ],

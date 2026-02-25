@@ -51,4 +51,40 @@ class OvertimeRemoteDataSource {
       throw ApiException.fromDioError(e);
     }
   }
+
+  Future<List<OvertimeModel>> getOvertimeRequests({String? status}) async {
+    try {
+      final res = await _dio.get(
+        ApiConstants.overtime,
+        queryParameters: {
+          'per_page': 50,
+          if (status != null) 'status': status,
+        },
+      );
+      return (res.data['data'] as List)
+          .map((e) => OvertimeModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> approveOvertime(int id) async {
+    try {
+      await _dio.post('${ApiConstants.overtime}/$id/approve');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> rejectOvertime(int id, String reason) async {
+    try {
+      await _dio.post(
+        '${ApiConstants.overtime}/$id/reject',
+        data: {'rejection_reason': reason},
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }

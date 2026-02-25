@@ -181,7 +181,7 @@ class HRDashboardScreen extends ConsumerWidget {
                     orElse: () => 0,
                   ),
                   color: Colors.amber.shade700,
-                  onTap: () {},
+                  onTap: () => context.push(AppRoutes.overtimeApprovals),
                 ),
                 _MenuTile(
                   icon: Icons.people_outline,

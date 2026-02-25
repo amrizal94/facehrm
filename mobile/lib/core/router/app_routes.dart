@@ -21,5 +21,6 @@ class AppRoutes {
   static const String notifications  = '/staff/notifications';
 
   // HR / Admin
-  static const String leaveApprovals = '/hr/leave-approvals';
+  static const String leaveApprovals    = '/hr/leave-approvals';
+  static const String overtimeApprovals = '/hr/overtime-approvals';
 }

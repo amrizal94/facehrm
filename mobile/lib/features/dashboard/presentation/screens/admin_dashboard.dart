@@ -183,7 +183,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                     orElse: () => 0,
                   ),
                   color: Colors.amber.shade700,
-                  onTap: () {},
+                  onTap: () => context.push(AppRoutes.overtimeApprovals),
                 ),
                 _MenuTile(
                   icon: Icons.bar_chart_outlined,

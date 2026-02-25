@@ -27,4 +27,12 @@ class OvertimeRepository {
       );
 
   Future<void> cancelOvertime(int id) => _ds.cancelOvertime(id);
+
+  Future<List<OvertimeModel>> getOvertimeRequests({String? status}) =>
+      _ds.getOvertimeRequests(status: status);
+
+  Future<void> approveOvertime(int id) => _ds.approveOvertime(id);
+
+  Future<void> rejectOvertime(int id, String reason) =>
+      _ds.rejectOvertime(id, reason);
 }
