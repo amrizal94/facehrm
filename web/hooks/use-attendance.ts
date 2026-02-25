@@ -91,6 +91,8 @@ export function useDeleteAttendance() {
     mutationFn: (id: number) => deleteAttendance(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['attendance'] })
+      qc.invalidateQueries({ queryKey: ['attendance-today'] })
+      qc.invalidateQueries({ queryKey: ['attendance-summary'] })
       toast.success('Attendance record deleted.')
     },
     onError: (err: unknown) => toast.error(getErrorMessage(err)),
