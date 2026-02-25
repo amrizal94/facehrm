@@ -65,7 +65,8 @@ Route::prefix('v1')->group(function () {
         // Face — all authenticated (check-in/out via face), rate-limited
         Route::middleware('throttle:face')->group(function () {
             Route::post('face/identify',   [FaceDataController::class, 'identify']);
-            Route::post('face/attendance', [FaceDataController::class, 'faceAttendance']);
+            Route::post('face/attendance',       [FaceDataController::class, 'faceAttendance']);
+            Route::post('face/attendance-image', [FaceDataController::class, 'faceAttendanceImage']);
         });
 
         // Admin & HR
@@ -117,6 +118,7 @@ Route::prefix('v1')->group(function () {
             // Face enrollment management
             Route::get('face',                    [FaceDataController::class, 'index']);
             Route::post('face/enroll',            [FaceDataController::class, 'enroll']);
+            Route::post('face/enroll-image',      [FaceDataController::class, 'enrollImage']);
             Route::delete('face/{faceData}',      [FaceDataController::class, 'destroy']);
 
             // Payroll management

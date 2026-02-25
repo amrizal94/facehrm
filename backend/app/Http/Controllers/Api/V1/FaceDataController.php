@@ -306,4 +306,154 @@ class FaceDataController extends Controller
             'confidence' => round((1 - $bestDistance / self::THRESHOLD) * 100, 1),
         ];
     }
+
+    // ---------------------------------------------------------------
+    // Helper: call face-service to extract descriptor from uploaded image
+    // ---------------------------------------------------------------
+    private function extractDescriptorFromImage(\Illuminate\Http\UploadedFile $image): array
+    {
+        $client = new \GuzzleHttp\Client(['timeout' => 15]);
+
+        try {
+            $response = $client->post('http://127.0.0.1:3003/extract', [
+                'multipart' => [
+                    [
+                        'name'     => 'image',
+                        'contents' => fopen($image->getRealPath(), 'r'),
+                        'filename' => $image->getClientOriginalName(),
+                    ],
+                ],
+            ]);
+
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            if (!isset($body['descriptor']) || count($body['descriptor']) !== 128) {
+                throw new \RuntimeException('Invalid descriptor returned from face service.');
+            }
+
+            return $body;
+        } catch (\GuzzleHttp\Exception\ConnectException $e) {
+            throw new \RuntimeException('Face service unavailable. Please try again later.');
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $body = json_decode($e->getResponse()->getBody()->getContents(), true);
+            throw new \RuntimeException($body['error'] ?? 'Face extraction failed.');
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // All authenticated: face check-in/out via raw image (mobile)
+    // POST /face/attendance-image  { image: file, action: check_in|check_out }
+    // ---------------------------------------------------------------
+    public function faceAttendanceImage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'image'  => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'action' => ['required', 'in:check_in,check_out'],
+        ]);
+
+        try {
+            $extracted = $this->extractDescriptorFromImage($validated['image']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $identifyResult = $this->identifyDescriptor($extracted['descriptor']);
+
+        if (!$identifyResult) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Face not recognized. Please try again or use manual check-in.',
+            ], 404);
+        }
+
+        $employee = $identifyResult['face_data']->employee;
+        $today    = Carbon::today();
+        $now      = Carbon::now();
+        $action   = $validated['action'];
+
+        if ($action === 'check_in') {
+            if (AttendanceRecord::where('employee_id', $employee->id)->whereDate('date', $today)->exists()) {
+                return response()->json(['success' => false, 'message' => 'Already checked in today.'], 422);
+            }
+
+            $record = AttendanceRecord::create([
+                'employee_id' => $employee->id,
+                'date'        => $today->toDateString(),
+                'check_in'    => $now,
+                'status'      => AttendanceRecord::resolveStatus($now),
+            ]);
+
+            return response()->json([
+                'success'    => true,
+                'message'    => "Welcome, {$employee->user->name}! Checked in at {$now->format('H:i')}.",
+                'confidence' => $identifyResult['confidence'],
+                'data'       => new AttendanceResource($record->load(['employee.user', 'employee.department'])),
+            ], 201);
+        }
+
+        // check_out
+        $record = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereDate('date', $today)
+            ->first();
+
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'No check-in found for today.'], 422);
+        }
+
+        if ($record->check_out) {
+            return response()->json(['success' => false, 'message' => 'Already checked out today.'], 422);
+        }
+
+        $record->update([
+            'check_out'  => $now,
+            'work_hours' => $record->calculateWorkHours(),
+        ]);
+
+        return response()->json([
+            'success'    => true,
+            'message'    => "Goodbye, {$employee->user->name}! Checked out at {$now->format('H:i')}.",
+            'confidence' => $identifyResult['confidence'],
+            'data'       => new AttendanceResource($record->load(['employee.user', 'employee.department'])),
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // Admin/HR: enroll face via raw image (mobile enrollment)
+    // POST /face/enroll-image  { employee_id: int, image: file }
+    // ---------------------------------------------------------------
+    public function enrollImage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'employee_id' => ['required', 'exists:employees,id'],
+            'image'       => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+        ]);
+
+        try {
+            $extracted = $this->extractDescriptorFromImage($validated['image']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        // Save the image to storage
+        $filename  = 'faces/employee_' . $validated['employee_id'] . '_' . time() . '.jpg';
+        Storage::disk('public')->put($filename, file_get_contents($validated['image']->getRealPath()));
+
+        $faceData = FaceData::updateOrCreate(
+            ['employee_id' => $validated['employee_id']],
+            [
+                'descriptor'  => json_encode($extracted['descriptor']),
+                'image_path'  => $filename,
+                'is_active'   => true,
+                'enrolled_by' => $request->user()->id,
+                'enrolled_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Face enrolled successfully.',
+            'data'    => new FaceDataResource($faceData->load(['employee.user', 'employee.department', 'enrolledBy'])),
+        ], 201);
+    }
+
 }
