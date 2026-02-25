@@ -1,6 +1,6 @@
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart' show WriteBuffer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback, WriteBuffer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -13,8 +13,11 @@ import '../../data/datasources/face_remote_datasource.dart';
 /// Screen type passed when navigating to [FaceCameraScreen].
 enum FaceAction { checkIn, checkOut }
 
-/// Visual state of face detection shown in the oval guide.
+/// Visual state of the face guide oval.
 enum _FaceStatus { none, detected, multiple }
+
+/// Stages of the capture pipeline — drives overlay text + success screen.
+enum _CaptureStatus { idle, capturing, processing, success }
 
 class FaceCameraScreen extends ConsumerStatefulWidget {
   final FaceAction action;
@@ -29,7 +32,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
 
-  // MLKit face detector — fast mode, minimum face size 15% of frame
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
       performanceMode: FaceDetectorMode.fast,
@@ -38,20 +40,27 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   );
   bool _isDetecting = false;
 
-  // State flags
+  // Screen state
   bool _permissionGranted = false;
   bool _isInitializing   = true;
-  bool _isCapturing      = false;
   String? _initError;
 
-  // Face detection state
-  int _faceCount = 0;
+  // Face detection
+  int _faceCount       = 0;
+  bool _hadFaceBefore  = false; // for haptic: fire only on first detection
+
   _FaceStatus get _faceStatus => switch (_faceCount) {
     1 => _FaceStatus.detected,
     0 => _FaceStatus.none,
     _ => _FaceStatus.multiple,
   };
   bool get _faceDetected => _faceCount == 1;
+
+  // Capture pipeline state
+  _CaptureStatus _captureStatus  = _CaptureStatus.idle;
+  String         _successMessage = '';
+
+  bool get _isCapturing => _captureStatus != _CaptureStatus.idle;
 
   @override
   void initState() {
@@ -88,6 +97,8 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       _isInitializing = true;
       _initError      = null;
       _faceCount      = 0;
+      _hadFaceBefore  = false;
+      _captureStatus  = _CaptureStatus.idle;
     });
 
     final status = await Permission.camera.request();
@@ -156,10 +167,18 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           final count = faces.length;
           if (count != _faceCount) {
             setState(() => _faceCount = count);
+
+            // Haptic: light tap when a face first enters the frame
+            if (count == 1 && !_hadFaceBefore) {
+              _hadFaceBefore = true;
+              HapticFeedback.lightImpact();
+            } else if (count == 0) {
+              _hadFaceBefore = false;
+            }
           }
         }
       } catch (_) {
-        // ignore per-frame errors silently
+        // ignore per-frame errors
       } finally {
         await Future.delayed(const Duration(milliseconds: 100));
         _isDetecting = false;
@@ -197,16 +216,16 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
 
   Future<void> _onCapture() async {
     if (_isCapturing || _controller == null) return;
-    setState(() => _isCapturing = true);
+
+    // Stage 1 — capturing
+    setState(() => _captureStatus = _CaptureStatus.capturing);
 
     try {
-      // Stop detection stream (required before takePicture on Android)
       await _controller!.stopImageStream();
-
       final xfile    = await _controller!.takePicture();
       final rawBytes = await xfile.readAsBytes();
 
-      // Compress: max 800px wide, JPEG quality 85
+      // Compress
       final original = img.decodeImage(rawBytes);
       if (original == null) throw Exception('Gagal memproses gambar.');
       final toEncode = original.width > 800
@@ -214,31 +233,35 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           : original;
       final compressed = img.encodeJpg(toEncode, quality: 85);
 
+      // Stage 2 — processing (network + face recognition)
+      if (mounted) setState(() => _captureStatus = _CaptureStatus.processing);
+
       final action = widget.action == FaceAction.checkIn ? 'check_in' : 'check_out';
-      await ref.read(faceRemoteDatasourceProvider).faceAttendance(
+      final message = await ref.read(faceRemoteDatasourceProvider).faceAttendance(
         imageBytes: compressed,
         action: action,
         filename: 'face_${action}_${DateTime.now().millisecondsSinceEpoch}.jpg',
       );
 
       if (!mounted) return;
+
+      // Stage 3 — success
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _captureStatus  = _CaptureStatus.success;
+        _successMessage = message;
+      });
+
+      // Refresh attendance in background, auto-pop after 2 s
       ref.invalidate(todayAttendanceProvider);
-      final label = widget.action == FaceAction.checkIn ? 'Check-in' : 'Check-out';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$label berhasil!'),
-          backgroundColor:
-              widget.action == FaceAction.checkIn ? Colors.green : Colors.blue,
-        ),
-      );
-      context.pop();
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) context.pop();
     } catch (e) {
       if (!mounted) return;
 
-      final msg    = _humanizeCaptureError(e);
+      final msg         = _humanizeCaptureError(e);
       final isAlreadyDone = _isAlreadyDoneError(e);
 
-      // "Already done" — attendance was already recorded; refresh + go back
       if (isAlreadyDone) {
         ref.invalidate(todayAttendanceProvider);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -248,7 +271,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         return;
       }
 
-      // Face mismatch → longer snackbar with "Coba Lagi" label
       final isMismatch = _isFaceMismatchError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -265,15 +287,21 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         ),
       );
 
-      // Reset + restart stream so user can retry
       setState(() {
-        _isCapturing = false;
-        _faceCount   = 0;
+        _captureStatus = _CaptureStatus.idle;
+        _faceCount     = 0;
+        _hadFaceBefore = false;
       });
       if (_controller != null && _controller!.value.isInitialized) {
         _startDetection(_controller!);
       }
     }
+  }
+
+  // Tapping the success overlay pops immediately (no need to wait 2s)
+  Future<void> _dismissSuccess() async {
+    if (!mounted) return;
+    context.pop();
   }
 
   // ── Error helpers ─────────────────────────────────────────────────────────
@@ -282,37 +310,26 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     final raw   = e.toString().replaceFirst('ApiException: ', '');
     final lower = raw.toLowerCase();
 
-    if (lower.contains('already checked in')) {
-      return 'Kamu sudah check-in hari ini.';
-    }
-    if (lower.contains('already checked out')) {
-      return 'Kamu sudah check-out hari ini.';
-    }
-    if (lower.contains('no check-in found')) {
-      return 'Belum ada check-in hari ini untuk di-check-out.';
-    }
+    if (lower.contains('already checked in'))   return 'Kamu sudah check-in hari ini.';
+    if (lower.contains('already checked out'))  return 'Kamu sudah check-out hari ini.';
+    if (lower.contains('no check-in found'))    return 'Belum ada check-in hari ini untuk di-check-out.';
     if (lower.contains('not recognized') || lower.contains('no matching face')) {
       return 'Wajah tidak dikenali. Pastikan pencahayaan cukup lalu coba lagi.';
     }
     if (lower.contains('no enrolled faces')) {
       return 'Wajah belum terdaftar dalam sistem. Hubungi HR.';
     }
-    if (lower.contains('no face') ||
-        lower.contains('no faces') ||
-        lower.contains('extraction failed') ||
-        lower.contains('invalid descriptor') ||
-        lower.contains('face extraction')) {
+    if (lower.contains('no face') || lower.contains('extraction failed') ||
+        lower.contains('invalid descriptor') || lower.contains('face extraction')) {
       return 'Tidak ada wajah terdeteksi dalam foto. Pastikan pencahayaan cukup lalu coba lagi.';
     }
     if (lower.contains('terlalu lama') || lower.contains('timeout')) {
       return 'Proses terlalu lama. Coba lagi.';
     }
-    if (lower.contains('koneksi gagal') ||
-        lower.contains('network error') ||
+    if (lower.contains('koneksi gagal') || lower.contains('network error') ||
         lower.contains('connection')) {
       return 'Koneksi gagal. Periksa jaringan dan coba lagi.';
     }
-    // Fallback: return backend message as-is (already human-readable from server)
     return raw;
   }
 
@@ -385,7 +402,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Camera preview (mirrored for front camera)
+        // Camera preview
         Transform.scale(
           scaleX: _controller!.description.lensDirection == CameraLensDirection.front
               ? -1
@@ -393,12 +410,10 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           child: CameraPreview(_controller!),
         ),
 
-        // Oval guide overlay — color reflects detection state
-        CustomPaint(
-          painter: _FaceGuidePainter(status: _faceStatus),
-        ),
+        // Oval guide
+        CustomPaint(painter: _FaceGuidePainter(status: _faceStatus)),
 
-        // Contextual instruction text
+        // Instruction text
         Positioned(
           top: 24,
           left: 0,
@@ -430,28 +445,21 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           ),
         ),
 
-        // Processing overlay
-        if (_isCapturing)
-          Container(
-            color: Colors.black54,
-            child: const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(color: Colors.white),
-                  SizedBox(height: 16),
-                  Text(
-                    'Memproses...',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+        // ── Overlays (animated switch between processing / success) ──────
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: switch (_captureStatus) {
+            _CaptureStatus.capturing  => const _ProcessingOverlay(key: ValueKey('cap'),  label: 'Memotret wajah...'),
+            _CaptureStatus.processing => const _ProcessingOverlay(key: ValueKey('proc'), label: 'Mengenali wajah...'),
+            _CaptureStatus.success    => _SuccessOverlay(
+                key: const ValueKey('ok'),
+                message: _successMessage,
+                actionColor: actionColor,
+                onTap: _dismissSuccess,
               ),
-            ),
-          ),
+            _CaptureStatus.idle       => const SizedBox.shrink(key: ValueKey('idle')),
+          },
+        ),
       ],
     );
   }
@@ -505,6 +513,107 @@ class _FaceGuidePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FaceGuidePainter old) => old.status != status;
+}
+
+// ── Processing overlay ───────────────────────────────────────────────────────
+class _ProcessingOverlay extends StatelessWidget {
+  final String label;
+  const _ProcessingOverlay({super.key, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black54,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Success overlay ───────────────────────────────────────────────────────────
+class _SuccessOverlay extends StatelessWidget {
+  final String message;
+  final Color  actionColor;
+  final VoidCallback onTap;
+
+  const _SuccessOverlay({
+    super.key,
+    required this.message,
+    required this.actionColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        color: Colors.black87,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Animated checkmark circle
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.elasticOut,
+                builder: (_, value, child) =>
+                    Transform.scale(scale: value, child: child),
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: actionColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 64),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Backend message: "Welcome, John! Checked in at 08:00."
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Tap untuk menutup',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Capture button ───────────────────────────────────────────────────────────

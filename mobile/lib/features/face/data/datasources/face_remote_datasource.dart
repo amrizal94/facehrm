@@ -10,10 +10,8 @@ class FaceRemoteDatasource {
   FaceRemoteDatasource(this._dio);
 
   /// POST /face/attendance-image
-  /// [imageBytes] — compressed JPEG bytes
-  /// [action]     — 'check_in' | 'check_out'
-  /// [filename]   — e.g. 'face_checkin_1234.jpg'
-  Future<void> faceAttendance({
+  /// Returns the backend success message (e.g. "Welcome, John! Checked in at 08:00.")
+  Future<String> faceAttendance({
     required List<int> imageBytes,
     required String action,
     required String filename,
@@ -36,14 +34,12 @@ class FaceRemoteDatasource {
           message: body['message']?.toString() ?? 'Face attendance failed',
         );
       }
+      return body['message']?.toString() ?? 'Berhasil!';
     } on DioException catch (e) {
-      // Give timeout a clearer message before the generic handler
       if (e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.sendTimeout ||
           e.type == DioExceptionType.connectionTimeout) {
-        throw const ApiException(
-          message: 'Proses terlalu lama. Coba lagi.',
-        );
+        throw const ApiException(message: 'Proses terlalu lama. Coba lagi.');
       }
       if (e.type == DioExceptionType.connectionError) {
         throw const ApiException(
