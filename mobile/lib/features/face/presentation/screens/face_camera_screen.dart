@@ -2,8 +2,13 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show WriteBuffer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
+
+import '../../../../features/attendance/presentation/providers/attendance_provider.dart';
+import '../../data/datasources/face_remote_datasource.dart';
 
 /// Screen type passed when navigating to [FaceCameraScreen].
 enum FaceAction { checkIn, checkOut }
@@ -33,6 +38,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   // State flags
   bool _permissionGranted = false;
   bool _isInitializing   = true;
+  bool _isCapturing      = false;
   String? _initError;
   bool _faceDetected = false;
 
@@ -180,6 +186,71 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     );
   }
 
+  // ── Capture pipeline ──────────────────────────────────────────────────────
+
+  Future<void> _onCapture() async {
+    if (_isCapturing || _controller == null) return;
+    setState(() => _isCapturing = true);
+
+    try {
+      // Stop detection stream — required before takePicture() on Android
+      await _controller!.stopImageStream();
+
+      // Take photo
+      final xfile    = await _controller!.takePicture();
+      final rawBytes = await xfile.readAsBytes();
+
+      // Compress: resize to max 800 width, JPEG quality 85
+      final original = img.decodeImage(rawBytes);
+      if (original == null) throw Exception('Gagal memproses gambar.');
+      final toEncode = original.width > 800
+          ? img.copyResize(original, width: 800)
+          : original;
+      final compressed = img.encodeJpg(toEncode, quality: 85);
+
+      // POST to backend
+      final action = widget.action == FaceAction.checkIn ? 'check_in' : 'check_out';
+      await ref.read(faceRemoteDatasourceProvider).faceAttendance(
+        imageBytes: compressed,
+        action: action,
+        filename: 'face_${action}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+
+      // Refresh attendance data and navigate back
+      if (!mounted) return;
+      ref.invalidate(todayAttendanceProvider);
+      final label = widget.action == FaceAction.checkIn ? 'Check-in' : 'Check-out';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$label berhasil!'),
+          backgroundColor:
+              widget.action == FaceAction.checkIn ? Colors.green : Colors.blue,
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+
+      final msg = e.toString().replaceFirst('ApiException: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+
+      // Reset and restart stream so user can retry
+      setState(() {
+        _isCapturing  = false;
+        _faceDetected = false;
+      });
+      if (_controller != null && _controller!.value.isInitialized) {
+        _startDetection(_controller!);
+      }
+    }
+  }
+
   // ── UI ────────────────────────────────────────────────────────────────────
 
   @override
@@ -273,7 +344,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           ),
         ),
 
-        // Capture button (enabled only when face detected)
+        // Capture button (enabled only when face detected and not capturing)
         Positioned(
           bottom: 48,
           left: 0,
@@ -282,18 +353,36 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
             child: _CaptureButton(
               label: actionLabel,
               color: actionColor,
-              enabled: _faceDetected,
-              onPressed: _faceDetected ? () => _onCapture() : null,
+              enabled: _faceDetected && !_isCapturing,
+              onPressed: (_faceDetected && !_isCapturing) ? _onCapture : null,
             ),
           ),
         ),
+
+        // Processing overlay — shown while uploading to backend
+        if (_isCapturing)
+          Container(
+            color: Colors.black54,
+            child: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Colors.white),
+                  SizedBox(height: 16),
+                  Text(
+                    'Memproses...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
-  }
-
-  // Capture handler — fully implemented in Day 5
-  Future<void> _onCapture() async {
-    // TODO Day 5: capture image → compress → POST to /face/attendance-image
   }
 }
 

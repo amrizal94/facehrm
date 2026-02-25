@@ -37,6 +37,9 @@ class ApiConstants {
   static const String notifications       = '/notifications';
   static const String notificationsReadAll = '/notifications/read-all';
 
+  // Face recognition
+  static const String faceAttendanceImage = '/face/attendance-image';
+
   // Payroll (staff)
   static const String payrollMy = '/payroll/my';
 
