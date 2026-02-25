@@ -39,7 +39,7 @@ function ProjectFormInner({
 }) {
   const [name, setName]               = useState(project?.name ?? '')
   const [description, setDescription] = useState(project?.description ?? '')
-  const [status, setStatus]           = useState(project?.status ?? 'active')
+  const [status, setStatus]           = useState<string>(project?.status ?? 'active')
   const [deadline, setDeadline]       = useState(project?.deadline ?? '')
 
   const createProject = useCreateProject()
