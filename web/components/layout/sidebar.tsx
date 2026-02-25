@@ -16,6 +16,8 @@ import {
   ScanFace,
   BarChart3,
   Timer,
+  FolderKanban,
+  CheckSquare,
 } from 'lucide-react'
 
 interface NavItem {
@@ -41,7 +43,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'My Payslip',  href: '/staff/payslip',    icon: Receipt,         roles: ['staff'] },
   { label: 'Face Data',   href: '/admin/face',       icon: ScanFace,        roles: ['admin', 'hr'] },
   { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,       roles: ['admin', 'hr'] },
+  { label: 'Projects',    href: '/admin/projects',   icon: FolderKanban,    roles: ['admin', 'hr'] },
   { label: 'Settings',    href: '/admin/settings',   icon: Settings,        roles: ['admin'] },
+  { label: 'My Tasks',    href: '/staff/tasks',       icon: CheckSquare,     roles: ['staff'] },
 ]
 
 interface SidebarProps {

@@ -43,6 +43,10 @@ class ApiConstants {
   // Payroll (staff)
   static const String payrollMy = '/payroll/my';
 
+  // Tasks & Projects
+  static const String projects = '/projects';
+  static const String tasks    = '/tasks';
+
   // Reports
   static const String reportsOverview = '/reports/overview';
 

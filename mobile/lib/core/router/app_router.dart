@@ -21,6 +21,8 @@ import '../../features/overtime/presentation/screens/submit_overtime_screen.dart
 import '../../features/payslip/data/models/payslip_model.dart';
 import '../../features/payslip/presentation/screens/payslip_detail_screen.dart';
 import '../../features/payslip/presentation/screens/payslip_list_screen.dart';
+import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
+import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../constants/app_constants.dart';
 import 'app_routes.dart';
 
@@ -109,6 +111,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.submitOvertime, builder: (_, __) => const SubmitOvertimeScreen()),
       GoRoute(path: AppRoutes.holidays,      builder: (_, __) => const HolidaysScreen()),
       GoRoute(path: AppRoutes.notifications, builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: AppRoutes.myTasks,       builder: (_, __) => const MyTasksScreen()),
+      GoRoute(
+        path: AppRoutes.taskDetail,
+        builder: (_, state) => TaskDetailScreen(taskId: state.extra as int),
+      ),
 
       // HR / Admin
       GoRoute(path: AppRoutes.leaveApprovals,    builder: (_, __) => const LeaveApprovalsScreen()),

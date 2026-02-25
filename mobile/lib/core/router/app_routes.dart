@@ -21,6 +21,10 @@ class AppRoutes {
   static const String holidays       = '/staff/holidays';
   static const String notifications  = '/staff/notifications';
 
+  // Task management (staff)
+  static const String myTasks    = '/staff/tasks';
+  static const String taskDetail = '/staff/tasks/:id';
+
   // HR / Admin
   static const String leaveApprovals       = '/hr/leave-approvals';
   static const String overtimeApprovals    = '/hr/overtime-approvals';

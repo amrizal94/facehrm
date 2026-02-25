@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\EmployeeController;
+use App\Http\Controllers\Api\V1\LabelController;
 use App\Http\Controllers\Api\V1\LeaveRequestController;
 use App\Http\Controllers\Api\V1\LeaveTypeController;
 use App\Http\Controllers\Api\V1\FaceDataController;
@@ -12,8 +13,10 @@ use App\Http\Controllers\Api\V1\HolidayController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OvertimeController;
 use App\Http\Controllers\Api\V1\PayrollController;
+use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SettingController;
+use App\Http\Controllers\Api\V1\TaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -62,6 +65,15 @@ Route::prefix('v1')->group(function () {
         // Payroll — staff
         Route::get('payroll/my', [PayrollController::class, 'myPayslips']);
 
+        // Tasks & Projects — all authenticated (read + staff update)
+        Route::get('labels',              [LabelController::class, 'index']);
+        Route::get('projects',            [ProjectController::class, 'index']);
+        Route::get('projects/{project}',  [ProjectController::class, 'show']);
+        Route::get('tasks',               [TaskController::class, 'index']);
+        Route::get('tasks/{task}',        [TaskController::class, 'show']);
+        Route::put('tasks/{task}',        [TaskController::class, 'update']);
+        Route::patch('tasks/{task}/checklist/{item}/toggle', [TaskController::class, 'toggleChecklistItem']);
+
         // Face — all authenticated (check-in/out via face), rate-limited
         Route::middleware('throttle:face')->group(function () {
             Route::post('face/identify',   [FaceDataController::class, 'identify']);
@@ -71,6 +83,22 @@ Route::prefix('v1')->group(function () {
 
         // Admin & HR
         Route::middleware('role:admin|hr')->group(function () {
+            // Labels
+            Route::post('labels',           [LabelController::class, 'store']);
+            Route::put('labels/{label}',    [LabelController::class, 'update']);
+            Route::delete('labels/{label}', [LabelController::class, 'destroy']);
+
+            // Projects
+            Route::post('projects',             [ProjectController::class, 'store']);
+            Route::put('projects/{project}',    [ProjectController::class, 'update']);
+            Route::delete('projects/{project}', [ProjectController::class, 'destroy']);
+
+            // Tasks
+            Route::post('tasks',                                        [TaskController::class, 'store']);
+            Route::delete('tasks/{task}',                               [TaskController::class, 'destroy']);
+            Route::post('tasks/{task}/checklist',                       [TaskController::class, 'addChecklistItem']);
+            Route::delete('tasks/{task}/checklist/{item}',              [TaskController::class, 'deleteChecklistItem']);
+
             Route::apiResource('departments', DepartmentController::class);
             Route::apiResource('employees',   EmployeeController::class);
 
