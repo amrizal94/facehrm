@@ -11,13 +11,13 @@
 | Face Recognition Attendance                     | Medium-High         | Done       | Done                           | -        | Admin enroll + staff check-in/out |
 | Face Self-Enrollment                            | Medium              | -          | Done                           | -        | Staff daftar wajah sendiri via mobile |
 | Task & Project Management                       | Medium-High         | Done       | Done                           | -        | Admin/HR CRUD; staff view+checklist |
-| Admin delete face data                          | Medium              | Gap        | -                              | P1       | Admin belum bisa reset wajah karyawan |
+| Admin delete face data                          | Medium              | Done       | -                              | -        | Tombol delete per baris di /admin/face + confirm dialog |
 | Liveness / Anti-spoof                           | Medium              | -          | Gap                            | P1       | - |
-| GPS Attendance + Geofencing                     | High                | Gap        | Gap                            | P1       | - |
-| Anti-fake GPS detection                         | Medium-High         | Gap        | Gap                            | P1       | - |
+| GPS Attendance + Geofencing                     | High                | Done       | Done                           | -        | Lokasi dicatat di setiap check-in; geofence radius via Settings |
+| Anti-fake GPS detection                         | Medium-High         | -          | Done                           | -        | Deteksi isMocked (Android), backend reject jika mock=true |
 | Offline attendance + auto sync                  | Medium              | -          | Gap                            | P1       | - |
-| Dashboard Admin Mobile (full)                   | High                | Done       | Stub                           | P1       | Mobile admin dashboard masih kosong |
-| Dashboard HR Mobile (full)                      | High                | Done       | Stub                           | P1       | Mobile HR dashboard masih kosong |
+| Dashboard Admin Mobile (full)                   | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
+| Dashboard HR Mobile (full)                      | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
 | Shift / Schedule / Break advanced setup         | Medium              | Gap        | Gap                            | P2       | - |
 | QR Attendance                                   | Medium              | Gap        | Gap                            | P2       | - |
 | Expense / Accounts                              | Medium              | Gap        | Gap                            | P2       | - |

@@ -31,6 +31,10 @@ dependencies:
   # GPS location + geofencing
   geolocator: ^13.0.2
 
+  # Offline support
+  connectivity_plus: ^6.0.5
+  shared_preferences: ^2.3.0
+
   # Camera + face recognition
   camera: ^0.11.0
   google_mlkit_face_detection: ^0.12.0

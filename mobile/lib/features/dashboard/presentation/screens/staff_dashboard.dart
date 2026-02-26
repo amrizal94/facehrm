@@ -54,6 +54,7 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
     final user = authState is AuthAuthenticated ? authState.user : null;
     final isLoggingOut = authState is AuthLoggingOut;
     final todayAsync = ref.watch(todayAttendanceProvider);
+    final syncState = ref.watch(attendanceSyncProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -166,6 +167,44 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Offline / pending sync banner
+                      if (syncState.pendingCount > 0)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.amber.shade300),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                syncState.isSyncing
+                                    ? Icons.sync
+                                    : Icons.cloud_upload_outlined,
+                                size: 15,
+                                color: Colors.amber.shade800,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  syncState.isSyncing
+                                      ? 'Syncing attendance...'
+                                      : 'Attendance saved offline — will sync when connected',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.amber.shade800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       // Today's status
                       todayAsync.when(
                         loading: () => const CircularProgressIndicator(),
@@ -265,9 +304,14 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
     if (err != null) {
       messenger.showSnackBar(SnackBar(content: Text(err)));
     } else {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Check-in recorded!'), backgroundColor: Colors.green),
-      );
+      final isPending =
+          ref.read(todayAttendanceProvider).value?.isPending == true;
+      messenger.showSnackBar(SnackBar(
+        content: Text(isPending
+            ? 'Check-in saved offline. Will sync when connected.'
+            : 'Check-in recorded!'),
+        backgroundColor: isPending ? Colors.amber.shade700 : Colors.green,
+      ));
     }
   }
 
@@ -278,9 +322,14 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
     if (err != null) {
       messenger.showSnackBar(SnackBar(content: Text(err)));
     } else {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Check-out recorded!'), backgroundColor: Colors.blue),
-      );
+      final isPending =
+          ref.read(todayAttendanceProvider).value?.isPending == true;
+      messenger.showSnackBar(SnackBar(
+        content: Text(isPending
+            ? 'Check-out saved offline. Will sync when connected.'
+            : 'Check-out recorded!'),
+        backgroundColor: isPending ? Colors.amber.shade700 : Colors.blue,
+      ));
     }
   }
 }

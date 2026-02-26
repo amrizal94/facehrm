@@ -153,10 +153,11 @@ class AttendanceController extends Controller
     public function checkIn(Request $request): JsonResponse
     {
         $request->validate([
-            'latitude'         => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude'        => ['nullable', 'numeric', 'between:-180,180'],
-            'location_accuracy'=> ['nullable', 'numeric', 'min:0'],
-            'is_mock_location' => ['nullable', 'boolean'],
+            'latitude'            => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'           => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy'   => ['nullable', 'numeric', 'min:0'],
+            'is_mock_location'    => ['nullable', 'boolean'],
+            'client_checked_in_at'=> ['nullable', 'date'],
         ]);
 
         $employee = $this->getAuthEmployee($request);
@@ -174,7 +175,19 @@ class AttendanceController extends Controller
         if ($geoError) return $geoError;
 
         $today = Carbon::today();
-        $now   = Carbon::now();
+
+        // Accept client timestamp for offline sync — must be today and not in the future
+        $checkInTime = Carbon::now();
+        if ($request->filled('client_checked_in_at')) {
+            try {
+                $clientTime = Carbon::parse($request->string('client_checked_in_at'));
+                if ($clientTime->isToday() && $clientTime->lte(Carbon::now())) {
+                    $checkInTime = $clientTime;
+                }
+            } catch (\Exception) {
+                // Fall back to server time
+            }
+        }
 
         if (AttendanceRecord::where('employee_id', $employee->id)->whereDate('date', $today)->exists()) {
             return response()->json(['success' => false, 'message' => 'Already checked in today.'], 422);
@@ -183,8 +196,8 @@ class AttendanceController extends Controller
         $record = AttendanceRecord::create([
             'employee_id'      => $employee->id,
             'date'             => $today->toDateString(),
-            'check_in'         => $now,
-            'status'           => AttendanceRecord::resolveStatus($now),
+            'check_in'         => $checkInTime,
+            'status'           => AttendanceRecord::resolveStatus($checkInTime),
             'latitude'         => $request->input('latitude'),
             'longitude'        => $request->input('longitude'),
             'location_accuracy'=> $request->input('location_accuracy'),
@@ -193,7 +206,7 @@ class AttendanceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Check-in recorded at ' . $now->format('H:i'),
+            'message' => 'Check-in recorded at ' . $checkInTime->format('H:i'),
             'data'    => new AttendanceResource($record->load(['employee.user', 'employee.department'])),
         ], 201);
     }
@@ -204,10 +217,11 @@ class AttendanceController extends Controller
     public function checkOut(Request $request): JsonResponse
     {
         $request->validate([
-            'latitude'         => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude'        => ['nullable', 'numeric', 'between:-180,180'],
-            'location_accuracy'=> ['nullable', 'numeric', 'min:0'],
-            'is_mock_location' => ['nullable', 'boolean'],
+            'latitude'             => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'            => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy'    => ['nullable', 'numeric', 'min:0'],
+            'is_mock_location'     => ['nullable', 'boolean'],
+            'client_checked_out_at'=> ['nullable', 'date'],
         ]);
 
         $employee = $this->getAuthEmployee($request);
@@ -236,15 +250,30 @@ class AttendanceController extends Controller
             return response()->json(['success' => false, 'message' => 'Already checked out today.'], 422);
         }
 
-        $now = Carbon::now();
+        // Accept client timestamp for offline sync — must not be in the future
+        $checkOutTime = Carbon::now();
+        if ($request->filled('client_checked_out_at')) {
+            try {
+                $clientTime = Carbon::parse($request->string('client_checked_out_at'));
+                if ($clientTime->lte(Carbon::now())) {
+                    $checkOutTime = $clientTime;
+                }
+            } catch (\Exception) {
+                // Fall back to server time
+            }
+        }
+
         $record->update([
-            'check_out'  => $now,
-            'work_hours' => $record->calculateWorkHours(),
+            'check_out'  => $checkOutTime,
+            'work_hours' => round(
+                $checkOutTime->diffInMinutes($record->check_in) / 60,
+                2
+            ),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Check-out recorded at ' . $now->format('H:i'),
+            'message' => 'Check-out recorded at ' . $checkOutTime->format('H:i'),
             'data'    => new AttendanceResource($record->load(['employee.user', 'employee.department'])),
         ]);
     }

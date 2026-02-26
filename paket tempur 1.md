@@ -182,3 +182,64 @@ OUTPUT YANG DIMINTA DARI CLAUDE:
 
 **CI/CD**
 - [x] CI/Deploy pipeline kini berjalan benar setelah semua fix di atas
+
+---
+
+### ✅ Dashboard Polish + Versioning + Task Notifications Sprint — Selesai (Feb 2026)
+
+**Mobile — Admin & HR Dashboard**
+- [x] Notification bell (unread badge) di AppBar admin_dashboard + hr_dashboard
+- [x] Admin dashboard: ganti tile Reports yg broken (`onTap: () {}`) → Attendance Records (fungsional)
+- [x] HR dashboard: sudah ada Attendance Records tile (confirmed)
+- [x] `flutter analyze`: 0 issues
+
+**Mobile — APK Versioning**
+- [x] Tambah `package_info_plus ^8.1.3` ke pubspec.yaml
+- [x] Login screen: tampilkan versi real dari APK (`v1.0.0 (build N)`) via FutureBuilder + PackageInfo
+- [x] Hapus `AppConstants.appVersion` hardcoded (tidak relevan lagi)
+- [x] `deploy-apk.sh` + `deploy-apk.ps1`: auto `--build-name` + `--build-number` dari git commit count
+- [x] Script tulis `version.txt` ke server setelah upload APK
+
+**Backend — Task Notifications**
+- [x] `TaskAssigned` notification: kirim ke staff saat task dibuat/diassign ulang ke mereka
+- [x] `TaskStatusChanged` notification: kirim ke staff saat admin cancel task mereka
+- [x] `TaskController`: trigger notify di `store()` dan `update()`
+
+**Status item dari Paket Tempur:**
+- F. Notification & UX Operasional → ✅ SELESAI (mobile + task notif backend)
+- A, B, C, D, E, G, H → belum dikerjakan
+
+---
+
+### ✅ GPS Attendance + Geofencing + Anti-fake GPS Sprint — Selesai (Feb 2026)
+
+**Backend**
+- [x] Migration: tambah `latitude`, `longitude`, `location_accuracy`, `is_mock_location` ke `attendance_records`
+- [x] `AttendanceRecord`: haversine distance method + fillable/casts baru
+- [x] `AttendanceResource`: expose location fields di API response
+- [x] `SettingController`: 4 key geofence baru (`geofence_enabled`, `office_latitude`, `office_longitude`, `office_radius`)
+- [x] `AttendanceController` (`checkIn`/`checkOut`): terima lokasi, validasi geofence, reject mock GPS
+- [x] `FaceDataController` (`faceAttendanceImage`): idem untuk face check-in/out
+
+**Web**
+- [x] Settings → Attendance Policy: section Geofence (toggle enable + input lat/lng/radius + link Google Maps)
+- [x] `types/setting.ts`: tambah 4 field geofence ke `AttendanceSettings`
+- [x] `setting-api.ts`: `updateSettings` accept `boolean | null`
+
+**Mobile**
+- [x] `geolocator ^13.0.2` + `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` di AndroidManifest
+- [x] `LocationService`: get current position + deteksi `isMocked` (anti-fake GPS Android)
+- [x] `AttendanceRemoteDatasource`: kirim lokasi saat manual check-in/check-out
+- [x] `FaceRemoteDatasource`: kirim lokasi saat face attendance image
+- [x] `FaceCameraScreen`: ambil lokasi sebelum capture, pass ke request
+- [x] `flutter analyze`: 0 issues
+
+**Behavior:**
+- Geofence disabled (default): lokasi dicatat di DB, tidak divalidasi (backward compatible)
+- Geofence enabled + terlalu jauh: `"You are 350m away. Maximum allowed is 200m."`
+- Mock/fake GPS terdeteksi: langsung ditolak di backend
+- GPS tidak tersedia: lokasi null → jika geofence enabled, backend minta aktifkan GPS
+
+**Status item dari Paket Tempur:**
+- B. Biometric Security (anti-fake GPS) → ✅ SEBAGIAN SELESAI
+- A, C, D, E, G, H → belum dikerjakan

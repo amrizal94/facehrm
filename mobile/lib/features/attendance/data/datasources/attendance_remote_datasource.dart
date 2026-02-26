@@ -43,15 +43,22 @@ class AttendanceRemoteDataSource {
     }
   }
 
-  Future<AttendanceRecordModel> checkIn() async {
+  /// Normal online check-in — caller provides fresh [location] (may be null).
+  /// For offline sync, also pass [clientTimestamp] to preserve the real check-in time.
+  Future<AttendanceRecordModel> checkIn({
+    LocationResult? location,
+    DateTime? clientTimestamp,
+  }) async {
     try {
-      final loc = await LocationService.getCurrentLocation();
       final body = <String, dynamic>{};
-      if (loc != null) {
-        body['latitude']          = loc.latitude;
-        body['longitude']         = loc.longitude;
-        body['location_accuracy'] = loc.accuracy;
-        body['is_mock_location']  = loc.isMocked;
+      if (location != null) {
+        body['latitude']          = location.latitude;
+        body['longitude']         = location.longitude;
+        body['location_accuracy'] = location.accuracy;
+        body['is_mock_location']  = location.isMocked;
+      }
+      if (clientTimestamp != null) {
+        body['client_checked_in_at'] = clientTimestamp.toIso8601String();
       }
       final res = await _dio.post(ApiConstants.attendanceCheckIn, data: body);
       return AttendanceRecordModel.fromJson(res.data['data'] as Map<String, dynamic>);
@@ -60,15 +67,22 @@ class AttendanceRemoteDataSource {
     }
   }
 
-  Future<AttendanceRecordModel> checkOut() async {
+  /// Normal online check-out — caller provides fresh [location] (may be null).
+  /// For offline sync, also pass [clientTimestamp].
+  Future<AttendanceRecordModel> checkOut({
+    LocationResult? location,
+    DateTime? clientTimestamp,
+  }) async {
     try {
-      final loc = await LocationService.getCurrentLocation();
       final body = <String, dynamic>{};
-      if (loc != null) {
-        body['latitude']          = loc.latitude;
-        body['longitude']         = loc.longitude;
-        body['location_accuracy'] = loc.accuracy;
-        body['is_mock_location']  = loc.isMocked;
+      if (location != null) {
+        body['latitude']          = location.latitude;
+        body['longitude']         = location.longitude;
+        body['location_accuracy'] = location.accuracy;
+        body['is_mock_location']  = location.isMocked;
+      }
+      if (clientTimestamp != null) {
+        body['client_checked_out_at'] = clientTimestamp.toIso8601String();
       }
       final res = await _dio.post(ApiConstants.attendanceCheckOut, data: body);
       return AttendanceRecordModel.fromJson(res.data['data'] as Map<String, dynamic>);

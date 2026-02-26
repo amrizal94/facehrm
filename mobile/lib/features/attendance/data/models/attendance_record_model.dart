@@ -9,6 +9,8 @@ class AttendanceRecordModel {
   // Admin/HR view
   final String? employeeName;
   final String? employeeNumber;
+  // Local-only: true when saved offline, not yet synced to server
+  final bool isPending;
 
   const AttendanceRecordModel({
     required this.id,
@@ -20,7 +22,25 @@ class AttendanceRecordModel {
     this.notes,
     this.employeeName,
     this.employeeNumber,
+    this.isPending = false,
   });
+
+  AttendanceRecordModel copyWith({
+    String? checkOut,
+    bool? isPending,
+  }) =>
+      AttendanceRecordModel(
+        id: id,
+        date: date,
+        checkIn: checkIn,
+        checkOut: checkOut ?? this.checkOut,
+        status: status,
+        workHours: workHours,
+        notes: notes,
+        employeeName: employeeName,
+        employeeNumber: employeeNumber,
+        isPending: isPending ?? this.isPending,
+      );
 
   factory AttendanceRecordModel.fromJson(Map<String, dynamic> json) {
     final employeeObj = json['employee'] as Map<String, dynamic>?;
