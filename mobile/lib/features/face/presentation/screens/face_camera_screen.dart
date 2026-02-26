@@ -36,7 +36,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
       performanceMode: FaceDetectorMode.fast,
-      minFaceSize: 0.15,
+      minFaceSize: 0.25,
     ),
   );
   bool _isDetecting = false;
@@ -193,7 +193,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         final faces = await _faceDetector.processImage(inputImage);
 
         if (mounted) {
-          final count = faces.length;
+          final count = _filterFacesInOval(faces, image.width, image.height).length;
           if (count != _faceCount) {
             setState(() => _faceCount = count);
 
@@ -239,6 +239,30 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         bytesPerRow: image.planes[0].bytesPerRow,
       ),
     );
+  }
+
+  /// Only count faces whose center falls within the oval guide area.
+  /// MLKit returns bounding boxes in the rotated (portrait) coordinate space
+  /// when rotation metadata is provided, so portrait width = imgH, portrait height = imgW
+  /// for a landscape-sensor camera with sensorOrientation 90 or 270.
+  List<Face> _filterFacesInOval(List<Face> faces, int imgWidth, int imgHeight) {
+    final orientation = _controller?.description.sensorOrientation ?? 270;
+    final bool isRotated = orientation == 90 || orientation == 270;
+    final double pW = isRotated ? imgHeight.toDouble() : imgWidth.toDouble();
+    final double pH = isRotated ? imgWidth.toDouble() : imgHeight.toDouble();
+
+    return faces.where((face) {
+      final box = face.boundingBox;
+      // Size gate: reject tiny faces (t-shirt prints, far-away people)
+      if (box.width < pW * 0.18 || box.height < pH * 0.15) return false;
+      // Oval zone: centre (0.5, 0.42), semi-axes (0.40, 0.34) in normalised portrait coords.
+      // These match the _FaceGuidePainter oval with a small margin added.
+      final cx = box.center.dx / pW;
+      final cy = box.center.dy / pH;
+      final dx = (cx - 0.5) / 0.40;
+      final dy = (cy - 0.42) / 0.34;
+      return dx * dx + dy * dy <= 1.0;
+    }).toList();
   }
 
   // ── Capture pipeline ──────────────────────────────────────────────────────
