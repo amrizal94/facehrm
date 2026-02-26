@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../providers/auth_provider.dart';
@@ -91,11 +92,19 @@ class LoginScreen extends ConsumerWidget {
 
                   const SizedBox(height: 24),
 
-                  Text(
-                    'v${AppConstants.appVersion}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                  FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snap) {
+                      final version = snap.hasData
+                          ? 'v${snap.data!.version} (build ${snap.data!.buildNumber})'
+                          : '...';
+                      return Text(
+                        version,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
                 ],

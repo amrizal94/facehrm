@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../reports/data/models/reports_overview_model.dart';
 import '../../../reports/presentation/providers/reports_provider.dart';
 
@@ -34,7 +35,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                 ),
               ),
             )
-          else
+          else ...[
+            const _NotificationBadge(),
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'Logout',
@@ -43,6 +45,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                 if (context.mounted) context.go(AppRoutes.login);
               },
             ),
+          ],
         ],
       ),
       body: RefreshIndicator(
@@ -186,12 +189,12 @@ class AdminDashboardScreen extends ConsumerWidget {
                   onTap: () => context.push(AppRoutes.overtimeApprovals),
                 ),
                 _MenuTile(
-                  icon: Icons.bar_chart_outlined,
-                  title: 'Reports',
-                  subtitle: 'Attendance, leave & payroll reports',
+                  icon: Icons.people_outline,
+                  title: 'Attendance Records',
+                  subtitle: 'Monitor employee attendance',
                   badge: 0,
-                  color: Colors.blue,
-                  onTap: () {},
+                  color: Colors.teal,
+                  onTap: () => context.push(AppRoutes.attendanceRecords),
                 ),
               ],
             ),
@@ -291,6 +294,47 @@ class _StatCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Notification badge ────────────────────────────────────────────────────────
+class _NotificationBadge extends ConsumerWidget {
+  const _NotificationBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadCountProvider);
+    return Stack(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          tooltip: 'Notifications',
+          onPressed: () => context.push(AppRoutes.notifications),
+        ),
+        if (unread > 0)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                unread > 99 ? '99+' : '$unread',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
