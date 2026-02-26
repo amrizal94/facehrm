@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FaceHRM Web
 
-## Getting Started
+Next.js 15 web frontend for FaceHRM — Human Resource Management System.
 
-First, run the development server:
+## Stack
+
+- **Framework**: Next.js 15 (App Router, standalone output)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui
+- **State**: TanStack Query (server state) + Zustand (auth)
+- **Auth**: Cookie-based (`facehrm_token`), middleware.ts route protection
+- **Face**: face-api.js (lazy loaded from `/public/models/`)
+
+## Features
+
+| Module | Route | Roles |
+|--------|-------|-------|
+| Login | `/login` | Public |
+| Admin Dashboard | `/admin` | Admin |
+| HR Dashboard | `/hr` | HR |
+| Staff Dashboard | `/staff` | Staff |
+| Employee Management | `/admin/employees` | Admin |
+| Attendance Management | `/admin/attendance` | Admin |
+| Leave Management | `/admin/leave`, `/staff/leave` | Admin, Staff |
+| Payroll | `/admin/payroll`, `/staff/payslip` | Admin, Staff |
+| Face Enrollment | `/admin/face` | Admin |
+| Reports | `/admin/reports` | Admin |
+| Settings | `/admin/settings` | Admin |
+| Task & Project | `/admin/projects`, `/staff/tasks` | Admin, HR, Staff |
+
+## Dev Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev   # port 3002 (3000 taken by other app)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Build
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+# Output: .next/standalone/
+# After build, copy:
+cp -r .next/static .next/standalone/.next/static
+cp -r public .next/standalone/public
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key Patterns
 
-## Learn More
+- **API client**: `import { api } from './api'` (not `@/lib/api-client`)
+- **Zod v4**: `z.string().email()` (not `z.email()`); use `z.string()` + manual `parseFloat()` for numbers
+- **Radix Select**: Never use `value=""` — use sentinel `"all"` / `"none"` / `"unspecified"`
+- **DashboardLayout**: requires `title` prop + optional `allowedRoles`
+- **Optimistic update**: local state + `useRef` pendingCount pattern (see checklist-panel.tsx)
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEXT_PUBLIC_API_URL=https://hrm.kreasikaryaarjuna.co.id/api/v1
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## face-api.js Models
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Models (7 files) live in `public/models/`. Lazy-loaded via `web/lib/face-api-loader.ts` singleton.

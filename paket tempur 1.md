@@ -133,3 +133,52 @@ OUTPUT YANG DIMINTA DARI CLAUDE:
 - F. Notification & UX Operasional → ✅ SELESAI (mobile side)
 - C. Core Business Flow (overtime/leave → payroll) → 🔄 Backend integration belum diverifikasi
 - A, B, D, E, G, H → belum dikerjakan
+
+---
+
+### ✅ Task & Project Management Sprint — Selesai (Feb 2026)
+
+**Backend**
+- [x] Tables: labels, projects, tasks, task_label, task_checklist_items
+- [x] RBAC: admin/hr = full CRUD; staff = read own tasks + update status + toggle checklist
+- [x] Routes: GET labels/projects/tasks (all auth); POST/PUT/DELETE + checklist (admin|hr only)
+
+**Web (`/admin/projects`, `/staff/tasks`)**
+- [x] Project table + kanban view (admin)
+- [x] Task list + filter by project/status/label (staff)
+- [x] Task detail dialog: status dropdown + checklist with optimistic toggle
+- [x] Optimistic checklist toggle (instant UI, revert on error, pendingCount ref pattern)
+
+**Mobile**
+- [x] Staff tasks list (project chips + status filter)
+- [x] Task detail: status dropdown + checklist toggle
+
+**Bug fixes sesi ini:**
+- [x] Duplicate tasks cleanup via psql (POST /tasks returned 500 saat development)
+- [x] Attendance stats stale cache: useDeleteAttendance kini invalidate `attendance-today` + `attendance-summary`
+
+---
+
+### ✅ Face Self-Enrollment Sprint — Selesai (Feb 2026)
+
+**Backend**
+- [x] `GET /face/me` — cek status enrollment wajah user sendiri
+- [x] `POST /face/self-enroll-image` — staff daftar wajah sendiri via foto
+- [x] Fix: tambah `employee()` hasOne relationship ke User model
+- [x] Fix: `bootstrap/cache/*.php` dihapus dari git (tidak di-commit) — fix CI/CD & production 500 error
+- [x] Fix: `composer install --no-dev` wajib dijalankan setelah deploy untuk hapus dev dependency dari autoloader
+
+**Mobile**
+- [x] `FaceSelfEnrollScreen` — screen kamera untuk self-enrollment wajah
+- [x] `FaceCameraScreen` pre-check: GET /face/me sebelum buka kamera check-in; jika belum enroll → redirect FaceSelfEnrollScreen
+- [x] Fix: filter `_filterFacesInOval()` — hanya wajah dalam area oval yang dihitung (reject wajah di luar oval / gambar kaos)
+- [x] Fix: `minFaceSize` 0.15 → 0.25 untuk filter deteksi palsu (gambar di baju, orang jauh)
+- [x] Fix: 800ms delay setelah enrollment sebelum buka kamera FaceCameraScreen (Android camera release timing)
+
+**Web**
+- [x] Tombol "Download APK" di halaman login → `/app/facehrm.apk`
+- [x] Nginx location block `/app/` untuk serve APK langsung (bypass Next.js)
+- [x] Fix ESLint error: `react-hooks/set-state-in-effect` di checklist-panel.tsx (posisi eslint-disable comment)
+
+**CI/CD**
+- [x] CI/Deploy pipeline kini berjalan benar setelah semua fix di atas
