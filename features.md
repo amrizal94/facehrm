@@ -15,7 +15,7 @@
 | Liveness / Anti-spoof                           | Medium              | -          | Gap                            | P1       | - |
 | GPS Attendance + Geofencing                     | High                | Done       | Done                           | -        | Lokasi dicatat di setiap check-in; geofence radius via Settings |
 | Anti-fake GPS detection                         | Medium-High         | -          | Done                           | -        | Deteksi isMocked (Android), backend reject jika mock=true |
-| Offline attendance + auto sync                  | Medium              | -          | Gap                            | P1       | - |
+| Offline attendance + auto sync                  | Medium              | -          | Done                           | -        | Queue di shared_prefs, sync otomatis saat online, anti-duplikasi via 422 |
 | Dashboard Admin Mobile (full)                   | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
 | Dashboard HR Mobile (full)                      | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
 | Shift / Schedule / Break advanced setup         | Medium              | Gap        | Gap                            | P2       | - |

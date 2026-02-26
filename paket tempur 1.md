@@ -242,4 +242,37 @@ OUTPUT YANG DIMINTA DARI CLAUDE:
 
 **Status item dari Paket Tempur:**
 - B. Biometric Security (anti-fake GPS) → ✅ SEBAGIAN SELESAI
-- A, C, D, E, G, H → belum dikerjakan
+- E. Mobile Absensi Real-World → ✅ SELESAI (offline-first + auto sync — lihat sprint berikutnya)
+- A, C, D, G, H → belum dikerjakan
+
+---
+
+### ✅ Offline Attendance + Auto Sync Sprint — Selesai (Feb 2026)
+
+**Mobile**
+- [x] `connectivity_plus ^6.0.5` + `shared_preferences ^2.3.0` ditambah ke pubspec
+- [x] `ConnectivityService` — `connectivityProvider` (StreamProvider<bool>) + `isOnline()` helper
+- [x] `PendingAttendanceAction` model — id, action, timestamp, lat/lng/accuracy/isMocked + toJson/fromJson
+- [x] `AttendanceLocalDatasource` — queue di shared_preferences: enqueue/remove/pendingCount
+- [x] `AttendanceRecordModel` — tambah `isPending: bool` field + `copyWith(checkOut, isPending)`
+- [x] `AttendanceRemoteDatasource` — refactor: terima `LocationResult? location` + `DateTime? clientTimestamp` sebagai parameter (tidak capture GPS internal)
+- [x] `AttendanceRepository` — `checkIn()`/`checkOut()` capture GPS fresh; `syncCheckIn(action)`/`syncCheckOut(action)` untuk sync path
+- [x] `AttendanceSyncNotifier` — watch connectivity, auto-sync queue on reconnect, 422=already synced
+- [x] `TodayAttendanceNotifier` — offline-first: cek `isOnline()`, jika offline enqueue + optimistic update
+- [x] `staff_dashboard.dart` — amber banner "Attendance saved offline — will sync when connected"
+- [x] Snackbar offline-aware: warna amber + pesan offline jika `isPending=true`
+- [x] `flutter analyze`: 0 issues
+
+**Backend**
+- [x] `AttendanceController::checkIn()` — terima optional `client_checked_in_at` (date) → pakai jika valid (hari ini, tidak di masa depan)
+- [x] `AttendanceController::checkOut()` — terima optional `client_checked_out_at` (date) → pakai jika valid
+
+**Flow:**
+- Staff check-in offline → disimpan lokal dengan timestamp asli + lokasi → UI langsung update (optimistic)
+- Saat online → auto sync → POST ke backend dengan `client_checked_in_at` → backend simpan dengan waktu asli
+- Jika backend 422 (sudah ada) → treat sebagai berhasil sync (anti-duplikasi)
+- GPS tidak tersedia saat offline → lokasi null → tetap ter-queue, backend terima tanpa GPS
+
+**Status item dari Paket Tempur:**
+- E. Mobile Absensi Real-World → ✅ SELESAI
+- A, C, D, G, H → belum dikerjakan
