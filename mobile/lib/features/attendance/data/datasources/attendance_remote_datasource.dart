@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/services/location_service.dart';
 import '../models/attendance_record_model.dart';
 
 final attendanceRemoteDataSourceProvider = Provider<AttendanceRemoteDataSource>(
@@ -44,7 +45,15 @@ class AttendanceRemoteDataSource {
 
   Future<AttendanceRecordModel> checkIn() async {
     try {
-      final res = await _dio.post(ApiConstants.attendanceCheckIn);
+      final loc = await LocationService.getCurrentLocation();
+      final body = <String, dynamic>{};
+      if (loc != null) {
+        body['latitude']          = loc.latitude;
+        body['longitude']         = loc.longitude;
+        body['location_accuracy'] = loc.accuracy;
+        body['is_mock_location']  = loc.isMocked;
+      }
+      final res = await _dio.post(ApiConstants.attendanceCheckIn, data: body);
       return AttendanceRecordModel.fromJson(res.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -53,7 +62,15 @@ class AttendanceRemoteDataSource {
 
   Future<AttendanceRecordModel> checkOut() async {
     try {
-      final res = await _dio.post(ApiConstants.attendanceCheckOut);
+      final loc = await LocationService.getCurrentLocation();
+      final body = <String, dynamic>{};
+      if (loc != null) {
+        body['latitude']          = loc.latitude;
+        body['longitude']         = loc.longitude;
+        body['location_accuracy'] = loc.accuracy;
+        body['is_mock_location']  = loc.isMocked;
+      }
+      final res = await _dio.post(ApiConstants.attendanceCheckOut, data: body);
       return AttendanceRecordModel.fromJson(res.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);

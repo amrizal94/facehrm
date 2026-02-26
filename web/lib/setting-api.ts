@@ -6,7 +6,7 @@ export async function fetchSettings(): Promise<{ success: boolean; data: AllSett
   return res.data
 }
 
-export async function updateSettings(data: Record<string, Record<string, string | number>>): Promise<{ success: boolean; message: string }> {
+export async function updateSettings(data: Record<string, Record<string, string | number | boolean | null>>): Promise<{ success: boolean; message: string }> {
   const res = await api.put('/settings', data)
   return res.data
 }

@@ -200,9 +200,13 @@ function CompanyTab() {
 // ─── Attendance Policy Tab ────────────────────────────────────────────────────
 
 const attendanceSchema = z.object({
-  work_start:      z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
-  late_threshold:  z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
-  work_end:        z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
+  work_start:        z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
+  late_threshold:    z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
+  work_end:          z.string().regex(/^\d{2}:\d{2}$/, 'Format HH:MM'),
+  geofence_enabled:  z.boolean(),
+  office_latitude:   z.string(),
+  office_longitude:  z.string(),
+  office_radius:     z.string(),
 })
 
 type AttendanceForm = z.infer<typeof attendanceSchema>
@@ -213,23 +217,40 @@ function AttendancePolicyTab() {
 
   const form = useForm<AttendanceForm>({
     resolver: zodResolver(attendanceSchema),
-    defaultValues: { work_start: '08:00', late_threshold: '09:00', work_end: '17:00' },
+    defaultValues: {
+      work_start: '08:00', late_threshold: '09:00', work_end: '17:00',
+      geofence_enabled: false, office_latitude: '', office_longitude: '', office_radius: '200',
+    },
   })
+
+  const geofenceEnabled = form.watch('geofence_enabled')
 
   useEffect(() => {
     if (data?.data?.attendance) {
       const a = data.data.attendance
       form.reset({
-        work_start:     a['attendance.work_start']     ?? '08:00',
-        late_threshold: a['attendance.late_threshold'] ?? '09:00',
-        work_end:       a['attendance.work_end']       ?? '17:00',
+        work_start:       a['attendance.work_start']       ?? '08:00',
+        late_threshold:   a['attendance.late_threshold']   ?? '09:00',
+        work_end:         a['attendance.work_end']         ?? '17:00',
+        geofence_enabled: a['attendance.geofence_enabled'] === '1',
+        office_latitude:  a['attendance.office_latitude']  ?? '',
+        office_longitude: a['attendance.office_longitude'] ?? '',
+        office_radius:    a['attendance.office_radius']    ?? '200',
       })
     }
   }, [data, form])
 
   function onSubmit(values: AttendanceForm) {
     mutate(
-      { attendance: { work_start: values.work_start, late_threshold: values.late_threshold, work_end: values.work_end } },
+      {
+        attendance: {
+          work_start: values.work_start, late_threshold: values.late_threshold, work_end: values.work_end,
+          geofence_enabled: values.geofence_enabled,
+          office_latitude:  values.office_latitude  || null,
+          office_longitude: values.office_longitude || null,
+          office_radius:    values.office_radius,
+        },
+      },
       {
         onSuccess: () => toast.success('Attendance policy saved.'),
         onError:   () => toast.error('Failed to save settings.'),
@@ -238,27 +259,77 @@ function AttendancePolicyTab() {
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-lg">
       <div className="rounded-lg border bg-amber-50 border-amber-200 p-3 text-sm text-amber-800">
         Changes to attendance policy affect future check-in status calculations.
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="work_start">Work Start Time</Label>
-        <Input id="work_start" type="time" {...form.register('work_start')} className="w-36" />
-        <p className="text-xs text-muted-foreground">Expected start of the work day.</p>
-        {form.formState.errors.work_start && <p className="text-xs text-red-500">{form.formState.errors.work_start.message}</p>}
+
+      {/* Work Hours */}
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="work_start">Work Start Time</Label>
+          <Input id="work_start" type="time" {...form.register('work_start')} className="w-36" />
+          <p className="text-xs text-muted-foreground">Expected start of the work day.</p>
+          {form.formState.errors.work_start && <p className="text-xs text-red-500">{form.formState.errors.work_start.message}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="late_threshold">Late Check-In Threshold</Label>
+          <Input id="late_threshold" type="time" {...form.register('late_threshold')} className="w-36" />
+          <p className="text-xs text-muted-foreground">Employees checking in after this time are marked <strong>Late</strong>.</p>
+          {form.formState.errors.late_threshold && <p className="text-xs text-red-500">{form.formState.errors.late_threshold.message}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="work_end">Work End Time</Label>
+          <Input id="work_end" type="time" {...form.register('work_end')} className="w-36" />
+          {form.formState.errors.work_end && <p className="text-xs text-red-500">{form.formState.errors.work_end.message}</p>}
+        </div>
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="late_threshold">Late Check-In Threshold</Label>
-        <Input id="late_threshold" type="time" {...form.register('late_threshold')} className="w-36" />
-        <p className="text-xs text-muted-foreground">Employees checking in after this time are marked <strong>Late</strong>.</p>
-        {form.formState.errors.late_threshold && <p className="text-xs text-red-500">{form.formState.errors.late_threshold.message}</p>}
+
+      <Separator />
+
+      {/* Geofence */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold">GPS Geofencing</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Restrict check-in to within a set radius of the office.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            id="geofence_enabled"
+            type="checkbox"
+            className="h-4 w-4 rounded border-gray-300"
+            {...form.register('geofence_enabled')}
+          />
+          <Label htmlFor="geofence_enabled" className="cursor-pointer">Enable Geofencing</Label>
+        </div>
+        {geofenceEnabled && (
+          <div className="space-y-3 pl-1">
+            <div className="rounded-lg border bg-blue-50 border-blue-200 p-3 text-xs text-blue-800">
+              Get your office coordinates from{' '}
+              <a href="https://maps.google.com" target="_blank" rel="noreferrer" className="underline font-medium">Google Maps</a>
+              {' '}— right-click on the office location → copy coordinates.
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="office_latitude">Office Latitude</Label>
+                <Input id="office_latitude" type="number" step="any" placeholder="-6.2088" {...form.register('office_latitude')} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="office_longitude">Office Longitude</Label>
+                <Input id="office_longitude" type="number" step="any" placeholder="106.8456" {...form.register('office_longitude')} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="office_radius">Allowed Radius (meters)</Label>
+              <div className="flex items-center gap-2">
+                <Input id="office_radius" type="number" min="50" max="10000" step="50" {...form.register('office_radius')} className="w-28" />
+                <span className="text-sm text-muted-foreground">meters from office</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="work_end">Work End Time</Label>
-        <Input id="work_end" type="time" {...form.register('work_end')} className="w-36" />
-        {form.formState.errors.work_end && <p className="text-xs text-red-500">{form.formState.errors.work_end.message}</p>}
-      </div>
+
       <Button type="submit" disabled={isPending}>
         {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         Save Attendance Policy

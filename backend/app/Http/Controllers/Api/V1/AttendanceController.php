@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateAttendanceRequest;
 use App\Http\Resources\AttendanceResource;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -151,10 +152,26 @@ class AttendanceController extends Controller
     // ---------------------------------------------------------------
     public function checkIn(Request $request): JsonResponse
     {
+        $request->validate([
+            'latitude'         => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'        => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy'=> ['nullable', 'numeric', 'min:0'],
+            'is_mock_location' => ['nullable', 'boolean'],
+        ]);
+
         $employee = $this->getAuthEmployee($request);
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'No employee record found for this user.'], 404);
         }
+
+        // Reject mock/fake GPS
+        if ($request->boolean('is_mock_location')) {
+            return response()->json(['success' => false, 'message' => 'Fake GPS detected. Please disable mock location and try again.'], 422);
+        }
+
+        // Geofence check
+        $geoError = $this->validateGeofence($request->input('latitude'), $request->input('longitude'));
+        if ($geoError) return $geoError;
 
         $today = Carbon::today();
         $now   = Carbon::now();
@@ -164,10 +181,14 @@ class AttendanceController extends Controller
         }
 
         $record = AttendanceRecord::create([
-            'employee_id' => $employee->id,
-            'date'        => $today->toDateString(),
-            'check_in'    => $now,
-            'status'      => AttendanceRecord::resolveStatus($now),
+            'employee_id'      => $employee->id,
+            'date'             => $today->toDateString(),
+            'check_in'         => $now,
+            'status'           => AttendanceRecord::resolveStatus($now),
+            'latitude'         => $request->input('latitude'),
+            'longitude'        => $request->input('longitude'),
+            'location_accuracy'=> $request->input('location_accuracy'),
+            'is_mock_location' => $request->boolean('is_mock_location', false),
         ]);
 
         return response()->json([
@@ -182,10 +203,26 @@ class AttendanceController extends Controller
     // ---------------------------------------------------------------
     public function checkOut(Request $request): JsonResponse
     {
+        $request->validate([
+            'latitude'         => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'        => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy'=> ['nullable', 'numeric', 'min:0'],
+            'is_mock_location' => ['nullable', 'boolean'],
+        ]);
+
         $employee = $this->getAuthEmployee($request);
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'No employee record found for this user.'], 404);
         }
+
+        // Reject mock/fake GPS
+        if ($request->boolean('is_mock_location')) {
+            return response()->json(['success' => false, 'message' => 'Fake GPS detected. Please disable mock location and try again.'], 422);
+        }
+
+        // Geofence check
+        $geoError = $this->validateGeofence($request->input('latitude'), $request->input('longitude'));
+        if ($geoError) return $geoError;
 
         $record = AttendanceRecord::where('employee_id', $employee->id)
             ->whereDate('date', Carbon::today())
@@ -312,5 +349,34 @@ class AttendanceController extends Controller
     private function calcHours(string $checkIn, string $checkOut): float
     {
         return round(Carbon::parse($checkOut)->diffInMinutes(Carbon::parse($checkIn)) / 60, 2);
+    }
+
+    private function validateGeofence(mixed $lat, mixed $lng): ?JsonResponse
+    {
+        $enabled = Setting::get('attendance.geofence_enabled', '0') === '1';
+        if (!$enabled) return null;
+
+        $officeLat = (float) Setting::get('attendance.office_latitude', '0');
+        $officeLng = (float) Setting::get('attendance.office_longitude', '0');
+        $radius    = (int)   Setting::get('attendance.office_radius', '200');
+
+        // Skip if office location not configured
+        if (!$officeLat || !$officeLng) return null;
+
+        if ($lat === null || $lng === null) {
+            return response()->json(['success' => false, 'message' => 'Location is required for attendance. Please enable GPS.'], 422);
+        }
+
+        $distance = AttendanceRecord::haversineDistance((float) $lat, (float) $lng, $officeLat, $officeLng);
+
+        if ($distance > $radius) {
+            $dist = (int) round($distance);
+            return response()->json([
+                'success' => false,
+                'message' => "You are {$dist}m away from the office. Maximum allowed distance is {$radius}m.",
+            ], 422);
+        }
+
+        return null;
     }
 }

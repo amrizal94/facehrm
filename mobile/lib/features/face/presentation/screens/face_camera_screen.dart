@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../features/attendance/presentation/providers/attendance_provider.dart';
 import '../../data/datasources/face_remote_datasource.dart';
 
@@ -292,14 +293,16 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           : original;
       final compressed = img.encodeJpg(toEncode, quality: 85);
 
-      // Stage 2 — processing (network + face recognition)
+      // Stage 2 — processing (location + network + face recognition)
       if (mounted) setState(() => _captureStatus = _CaptureStatus.processing);
 
+      final location = await LocationService.getCurrentLocation();
       final action = widget.action == FaceAction.checkIn ? 'check_in' : 'check_out';
       final message = await ref.read(faceRemoteDatasourceProvider).faceAttendance(
         imageBytes: compressed,
         action: action,
         filename: 'face_${action}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        location: location,
       );
 
       if (!mounted) return;

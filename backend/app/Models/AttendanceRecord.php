@@ -16,15 +16,23 @@ class AttendanceRecord extends Model
         'status',
         'work_hours',
         'notes',
+        'latitude',
+        'longitude',
+        'location_accuracy',
+        'is_mock_location',
     ];
 
     protected function casts(): array
     {
         return [
-            'date'       => 'date',
-            'check_in'   => 'datetime',
-            'check_out'  => 'datetime',
-            'work_hours' => 'decimal:2',
+            'date'             => 'date',
+            'check_in'         => 'datetime',
+            'check_out'        => 'datetime',
+            'work_hours'       => 'decimal:2',
+            'latitude'         => 'float',
+            'longitude'        => 'float',
+            'location_accuracy'=> 'float',
+            'is_mock_location' => 'boolean',
         ];
     }
 
@@ -43,6 +51,20 @@ class AttendanceRecord extends Model
         }
 
         return round($this->check_out->diffInMinutes($this->check_in) / 60, 2);
+    }
+
+    /**
+     * Haversine distance in meters between two GPS coordinates.
+     */
+    public static function haversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $r  = 6371000; // Earth radius in meters
+        $φ1 = deg2rad($lat1);
+        $φ2 = deg2rad($lat2);
+        $Δφ = deg2rad($lat2 - $lat1);
+        $Δλ = deg2rad($lon2 - $lon1);
+        $a  = sin($Δφ / 2) ** 2 + cos($φ1) * cos($φ2) * sin($Δλ / 2) ** 2;
+        return $r * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     /**

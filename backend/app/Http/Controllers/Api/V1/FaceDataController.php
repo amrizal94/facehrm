@@ -8,6 +8,7 @@ use App\Http\Resources\FaceDataResource;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
 use App\Models\FaceData;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -235,10 +236,14 @@ class FaceDataController extends Controller
             }
 
             $record = AttendanceRecord::create([
-                'employee_id' => $employee->id,
-                'date'        => $today->toDateString(),
-                'check_in'    => $now,
-                'status'      => AttendanceRecord::resolveStatus($now),
+                'employee_id'      => $employee->id,
+                'date'             => $today->toDateString(),
+                'check_in'         => $now,
+                'status'           => AttendanceRecord::resolveStatus($now),
+                'latitude'         => $request->input('latitude'),
+                'longitude'        => $request->input('longitude'),
+                'location_accuracy'=> $request->input('location_accuracy'),
+                'is_mock_location' => $request->boolean('is_mock_location', false),
             ]);
 
             return response()->json([
@@ -273,6 +278,35 @@ class FaceDataController extends Controller
             'confidence' => $identifyResult['confidence'],
             'data'       => new AttendanceResource($record->load(['employee.user', 'employee.department'])),
         ]);
+    }
+
+    // ---------------------------------------------------------------
+    private function validateGeofence(mixed $lat, mixed $lng): ?JsonResponse
+    {
+        $enabled = Setting::get('attendance.geofence_enabled', '0') === '1';
+        if (!$enabled) return null;
+
+        $officeLat = (float) Setting::get('attendance.office_latitude', '0');
+        $officeLng = (float) Setting::get('attendance.office_longitude', '0');
+        $radius    = (int)   Setting::get('attendance.office_radius', '200');
+
+        if (!$officeLat || !$officeLng) return null;
+
+        if ($lat === null || $lng === null) {
+            return response()->json(['success' => false, 'message' => 'Location is required for attendance. Please enable GPS.'], 422);
+        }
+
+        $distance = AttendanceRecord::haversineDistance((float) $lat, (float) $lng, $officeLat, $officeLng);
+
+        if ($distance > $radius) {
+            $dist = (int) round($distance);
+            return response()->json([
+                'success' => false,
+                'message' => "You are {$dist}m away from the office. Maximum allowed distance is {$radius}m.",
+            ], 422);
+        }
+
+        return null;
     }
 
     // ---------------------------------------------------------------
@@ -347,9 +381,22 @@ class FaceDataController extends Controller
     public function faceAttendanceImage(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'image'  => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
-            'action' => ['required', 'in:check_in,check_out'],
+            'image'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'action'           => ['required', 'in:check_in,check_out'],
+            'latitude'         => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'        => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy'=> ['nullable', 'numeric', 'min:0'],
+            'is_mock_location' => ['nullable', 'boolean'],
         ]);
+
+        // Reject mock/fake GPS
+        if ($request->boolean('is_mock_location')) {
+            return response()->json(['success' => false, 'message' => 'Fake GPS detected. Please disable mock location and try again.'], 422);
+        }
+
+        // Geofence check
+        $geoError = $this->validateGeofence($request->input('latitude'), $request->input('longitude'));
+        if ($geoError) return $geoError;
 
         try {
             $extracted = $this->extractDescriptorFromImage($validated['image']);

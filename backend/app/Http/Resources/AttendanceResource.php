@@ -16,7 +16,11 @@ class AttendanceResource extends JsonResource
             'check_out'  => $this->check_out?->toISOString(),
             'status'     => $this->status,
             'work_hours' => $this->work_hours,
-            'notes'      => $this->notes,
+            'notes'             => $this->notes,
+            'latitude'          => $this->latitude,
+            'longitude'         => $this->longitude,
+            'location_accuracy' => $this->location_accuracy,
+            'is_mock_location'  => $this->is_mock_location,
             'employee'   => $this->whenLoaded('employee', fn() => [
                 'id'              => $this->employee->id,
                 'employee_number' => $this->employee->employee_number,

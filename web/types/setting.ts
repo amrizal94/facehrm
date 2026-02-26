@@ -9,6 +9,10 @@ export interface AttendanceSettings {
   'attendance.work_start': string
   'attendance.late_threshold': string
   'attendance.work_end': string
+  'attendance.geofence_enabled': string
+  'attendance.office_latitude': string
+  'attendance.office_longitude': string
+  'attendance.office_radius': string
 }
 
 export interface PayrollSettings {

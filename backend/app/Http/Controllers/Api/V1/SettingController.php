@@ -13,6 +13,7 @@ class SettingController extends Controller
     private const ALLOWED_KEYS = [
         'company.name', 'company.address', 'company.phone', 'company.email',
         'attendance.work_start', 'attendance.late_threshold', 'attendance.work_end',
+        'attendance.geofence_enabled', 'attendance.office_latitude', 'attendance.office_longitude', 'attendance.office_radius',
         'payroll.tax_rate', 'payroll.bpjs_rate',
     ];
 
@@ -29,7 +30,15 @@ class SettingController extends Controller
         // Ensure all groups exist even if DB is empty
         $defaults = [
             'company'    => ['company.name' => '', 'company.address' => '', 'company.phone' => '', 'company.email' => ''],
-            'attendance' => ['attendance.work_start' => '08:00', 'attendance.late_threshold' => '09:00', 'attendance.work_end' => '17:00'],
+            'attendance' => [
+                'attendance.work_start'       => '08:00',
+                'attendance.late_threshold'   => '09:00',
+                'attendance.work_end'         => '17:00',
+                'attendance.geofence_enabled' => '0',
+                'attendance.office_latitude'  => '',
+                'attendance.office_longitude' => '',
+                'attendance.office_radius'    => '200',
+            ],
             'payroll'    => ['payroll.tax_rate' => '5', 'payroll.bpjs_rate' => '3'],
         ];
 
@@ -54,9 +63,13 @@ class SettingController extends Controller
             'company.email'   => ['sometimes', 'nullable', 'email', 'max:255'],
 
             // Attendance
-            'attendance.work_start'     => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
-            'attendance.late_threshold' => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
-            'attendance.work_end'       => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
+            'attendance.work_start'       => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
+            'attendance.late_threshold'   => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
+            'attendance.work_end'         => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
+            'attendance.geofence_enabled' => ['sometimes', 'boolean'],
+            'attendance.office_latitude'  => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'attendance.office_longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            'attendance.office_radius'    => ['sometimes', 'integer', 'min:50', 'max:10000'],
 
             // Payroll
             'payroll.tax_rate'  => ['sometimes', 'numeric', 'min:0', 'max:100'],

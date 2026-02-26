@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/services/location_service.dart';
 
 class FaceRemoteDatasource {
   final Dio _dio;
@@ -15,12 +16,20 @@ class FaceRemoteDatasource {
     required List<int> imageBytes,
     required String action,
     required String filename,
+    LocationResult? location,
   }) async {
     try {
-      final formData = FormData.fromMap({
+      final fields = <String, dynamic>{
         'action': action,
         'image': MultipartFile.fromBytes(imageBytes, filename: filename),
-      });
+      };
+      if (location != null) {
+        fields['latitude']          = location.latitude.toString();
+        fields['longitude']         = location.longitude.toString();
+        fields['location_accuracy'] = location.accuracy.toString();
+        fields['is_mock_location']  = location.isMocked ? '1' : '0';
+      }
+      final formData = FormData.fromMap(fields);
 
       final response = await _dio.post(
         ApiConstants.faceAttendanceImage,
