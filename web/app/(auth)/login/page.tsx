@@ -36,6 +36,29 @@ export default function LoginPage() {
           <LoginForm />
         </div>
 
+        {/* Android App Download */}
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 px-5 py-4 flex items-center gap-4">
+          <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0">
+            <svg className="w-6 h-6 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.523 15.341 20 12.869l-1.029-1.029-2.477 2.472a7.3 7.3 0 0 0-3.494-.876 7.3 7.3 0 0 0-3.494.876L7.029 11.84 6 12.869l2.477 2.472A7.44 7.44 0 0 0 5 22h14a7.44 7.44 0 0 0-3.477-6.659M9.5 19a1 1 0 1 1 0-2 1 1 0 0 1 0 2m5 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2M14.471 2.297l1.905-1.905 1.078 1.078-1.905 1.905A8.3 8.3 0 0 0 12 3a8.3 8.3 0 0 0-3.549.375L6.546 1.47l1.078-1.078 1.905 1.905A8.5 8.5 0 0 1 12 2a8.5 8.5 0 0 1 2.471.297" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-700">Aplikasi Android</p>
+            <p className="text-xs text-slate-400">Untuk absensi wajah via smartphone</p>
+          </div>
+          <a
+            href="/app/facehrm.apk"
+            download="FaceHRM.apk"
+            className="shrink-0 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </a>
+        </div>
+
         <p className="text-center text-xs text-slate-400">v1.0.0 &copy; 2026 FaceHRM</p>
       </div>
     </div>
