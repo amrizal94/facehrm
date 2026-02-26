@@ -50,6 +50,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function employee(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Employee::class);
+    }
+
     /**
      * Get the user's primary role name.
      */
