@@ -9,6 +9,8 @@ use App\Http\Resources\TaskResource;
 use App\Models\Employee;
 use App\Models\Task;
 use App\Models\TaskChecklistItem;
+use App\Notifications\TaskAssigned;
+use App\Notifications\TaskStatusChanged;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -90,12 +92,17 @@ class TaskController extends Controller
             TaskChecklistItem::insert($items);
         }
 
+        $task->load(['project', 'assignee.user', 'creator', 'labels', 'checklistItems']);
+
+        // Notify assignee about new task
+        if ($task->assigned_to) {
+            optional($task->assignee?->user)->notify(new TaskAssigned($task));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Task created.',
-            'data'    => new TaskResource(
-                $task->load(['project', 'assignee.user', 'creator', 'labels', 'checklistItems'])
-            ),
+            'data'    => new TaskResource($task),
         ], 201);
     }
 
@@ -132,8 +139,10 @@ class TaskController extends Controller
             $validated = collect($validated)->only(['status'])->toArray();
         }
 
-        $labelIds = $validated['label_ids'] ?? null;
-        $data     = collect($validated)->except(['label_ids', 'checklist_items'])->toArray();
+        $labelIds      = $validated['label_ids'] ?? null;
+        $data          = collect($validated)->except(['label_ids', 'checklist_items'])->toArray();
+        $oldAssignee   = $task->assigned_to;
+        $oldStatus     = $task->status;
 
         $task->update($data);
 
@@ -141,12 +150,29 @@ class TaskController extends Controller
             $task->labels()->sync($labelIds);
         }
 
+        $task->load(['project', 'assignee.user', 'creator', 'labels', 'checklistItems']);
+
+        // Notify new assignee when task is (re)assigned
+        if (array_key_exists('assigned_to', $data)
+            && $data['assigned_to'] !== $oldAssignee
+            && $task->assigned_to
+        ) {
+            optional($task->assignee?->user)->notify(new TaskAssigned($task));
+        }
+
+        // Notify assignee when admin cancels their task
+        if (array_key_exists('status', $data)
+            && $data['status'] === 'cancelled'
+            && $oldStatus !== 'cancelled'
+            && $task->assigned_to
+        ) {
+            optional($task->assignee?->user)->notify(new TaskStatusChanged($task));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Task updated.',
-            'data'    => new TaskResource(
-                $task->load(['project', 'assignee.user', 'creator', 'labels', 'checklistItems'])
-            ),
+            'data'    => new TaskResource($task),
         ]);
     }
 
