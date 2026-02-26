@@ -299,3 +299,50 @@ OUTPUT YANG DIMINTA DARI CLAUDE:
 **Status item dari Paket Tempur:**
 - G. Reporting for Demo → ✅ SELESAI (mobile reports 4 tab)
 - A, C, D, H → belum dikerjakan
+
+---
+
+### ✅ Auth + RBAC Audit + Observability Sprint — Selesai (Feb 2026)
+
+**A. Auth + RBAC End-to-End — Audit Result: SOLID ✅**
+- [x] 1 public route: `POST /v1/auth/login` (throttle:login rate-limited)
+- [x] ~26 staff routes: dilindungi `auth:sanctum`
+- [x] ~77+ admin/hr routes: dilindungi `auth:sanctum` + `role:admin|hr` (Spatie Permission)
+- [x] Face endpoints: + `throttle:face` rate limit aktif
+- [x] Error responses konsisten: 401 (unauthenticated), 403 (unauthorized role), 422 (validation), 500 (generic — no stack trace in prod) — semua terpusat di `bootstrap/app.php`
+- [x] `app/Http/Middleware/` tidak perlu custom — Spatie + Sanctum sudah handle semuanya
+- **Temuan: tidak ada endpoint sensitif yang tidak terlindungi**
+
+**C. Core Business Flow — Audit Result: SOLID ✅**
+- [x] `PayrollRecord::buildPayrollData()` mengambil approved `LeaveRequest` days → kurangi absent_deduction
+- [x] `PayrollRecord::buildPayrollData()` mengambil approved `OvertimeRequest` → hitung `overtime_pay` dengan multiplier: regular=1.5x, weekend=2.0x, holiday=3.0x
+- [x] Working days dihitung dari Mon–Fri dikurangi hari libur dari tabel `holidays` (bukan hardcoded)
+- [x] `recalculate()` konsisten saat payroll diedit manual — satu sumber kebenaran di model
+- **Temuan: integrasi overtime/leave → payroll sudah benar dan konsisten**
+
+**D. Delivery Reliability — Audit Result: SUDAH ADA ✅**
+- [x] `ci.yml`: PHP syntax check + Laravel bootstrap + Next.js lint + TypeScript + build
+- [x] `deploy.yml`: auto-deploy via SSH setelah CI pass di branch main
+
+**H. Observability & Safety Guard — ✅ SELESAI**
+- [x] Error handling terpusat → `bootstrap/app.php` (sudah ada sebelumnya)
+- [x] Stack trace tidak bocor di production → catch-all `!config('app.debug')` (sudah ada)
+- [x] **NEWCorrelation ID middleware** — `app/Http/Middleware/RequestIdMiddleware.php`:
+  - Baca/generate `X-Request-ID` UUID per request
+  - `Log::withContext(['request_id' => $requestId])` — semua log entries auto-include request_id
+  - Echo balik `X-Request-ID` di response header (client/load-balancer bisa trace)
+  - Structured access log: method, path, status, ms, ip, user_id per request
+- [x] **NEW** `config/logging.php` — published dengan channel `daily` (30-day rotation) untuk production
+- [x] `.env.example` diupdate: rekomendasi `LOG_CHANNEL=daily` + `LOG_LEVEL=info` untuk production
+
+**Files Changed:**
+- `backend/app/Http/Middleware/RequestIdMiddleware.php` (baru)
+- `backend/bootstrap/app.php` — register middleware di API group
+- `backend/config/logging.php` (baru) — daily rotation config
+- `backend/.env.example` — tambah LOG_DAILY_DAYS + rekomendasi production values
+
+**Status item dari Paket Tempur:**
+- A. Auth + RBAC End-to-End → ✅ VERIFIED SOLID (tidak perlu perubahan)
+- C. Core Business Flow Integration → ✅ VERIFIED SOLID (tidak perlu perubahan)
+- D. Delivery Reliability → ✅ VERIFIED SOLID (CI/CD sudah ada)
+- H. Observability & Safety Guard → ✅ SELESAI (correlation ID + logging config baru)
