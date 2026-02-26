@@ -18,9 +18,10 @@ export function ChecklistPanel({ taskId, items, isAdmin = false }: ChecklistPane
   const [localItems, setLocalItems]   = useState<ChecklistItem[]>(items)
   const pendingCount                  = useRef(0)
 
-  // Sync with server data only when no toggle is in-flight (avoid overwriting optimistic state)
+  // Sync with server data only when no toggle is in-flight (avoid overwriting optimistic state).
   useEffect(() => {
     if (pendingCount.current === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalItems(items)
     }
   }, [items])
