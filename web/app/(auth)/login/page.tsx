@@ -2,7 +2,46 @@ import { LoginForm } from './login-form'
 
 export const dynamic = 'force-dynamic'
 
-export default function LoginPage() {
+// ── Fetch APK version from /app/version.txt written by deploy-apk.sh ─────────
+// Format on server: "v1.0.0 (build 47) — 2026-02-26"
+// Returns e.g. { version: 'v1.0.0 (build 47)', date: '27 Feb 2026' } or null
+async function getApkInfo(): Promise<{ version: string; date: string } | null> {
+  // Derive base URL from NEXT_PUBLIC_API_URL (remove /api/v1 suffix)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ''
+  const baseUrl = apiUrl.replace(/\/api\/v1\/?$/, '')
+  if (!baseUrl) return null
+  try {
+    const res = await fetch(`${baseUrl}/app/version.txt`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3000),
+    })
+    if (!res.ok) return null
+    const text = (await res.text()).trim()
+    // "v1.0.0 (build 47) — 2026-02-26"
+    const parts = text.split('—')
+    const version = parts[0]?.trim() ?? ''
+    const rawDate = parts[1]?.trim() ?? ''
+    let date = ''
+    if (rawDate) {
+      try {
+        date = new Date(rawDate).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      } catch {
+        date = rawDate
+      }
+    }
+    return version ? { version, date } : null
+  } catch {
+    return null
+  }
+}
+
+export default async function LoginPage() {
+  const apkInfo = await getApkInfo()
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 p-4">
       <div className="w-full max-w-md space-y-6">
@@ -46,6 +85,14 @@ export default function LoginPage() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-700">Aplikasi Android</p>
             <p className="text-xs text-slate-400">Untuk absensi wajah via smartphone</p>
+            {apkInfo && (
+              <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                {apkInfo.version}
+                {apkInfo.date ? (
+                  <span className="text-slate-400 font-normal"> · {apkInfo.date}</span>
+                ) : null}
+              </p>
+            )}
           </div>
           <a
             href="/app/facehrm.apk"
