@@ -22,6 +22,7 @@ import '../../features/overtime/presentation/screens/submit_overtime_screen.dart
 import '../../features/payslip/data/models/payslip_model.dart';
 import '../../features/payslip/presentation/screens/payslip_detail_screen.dart';
 import '../../features/payslip/presentation/screens/payslip_list_screen.dart';
+import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../constants/app_constants.dart';
@@ -126,6 +127,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.leaveApprovals,    builder: (_, __) => const LeaveApprovalsScreen()),
       GoRoute(path: AppRoutes.overtimeApprovals, builder: (_, __) => const OvertimeApprovalsScreen()),
       GoRoute(path: AppRoutes.attendanceRecords, builder: (_, __) => const AttendanceRecordsScreen()),
+      GoRoute(path: AppRoutes.reports,           builder: (_, __) => const ReportsScreen()),
 
       GoRoute(path: AppRoutes.unauthorized, builder: (_, __) => const _UnauthorizedScreen()),
     ],

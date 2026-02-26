@@ -50,7 +50,11 @@ class ApiConstants {
   static const String tasks    = '/tasks';
 
   // Reports
-  static const String reportsOverview = '/reports/overview';
+  static const String reportsOverview    = '/reports/overview';
+  static const String reportsAttendance  = '/reports/attendance';
+  static const String reportsLeave       = '/reports/leave';
+  static const String reportsPayroll     = '/reports/payroll';
+  static const String reportsOvertime    = '/reports/overtime';
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 15);
