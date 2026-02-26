@@ -89,7 +89,10 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           context.pop();
           return;
         }
-        // Enrolled successfully — proceed to camera
+        // Give Android time to fully release the camera that FaceSelfEnrollScreen used
+        // before FaceCameraScreen tries to open the same front camera.
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
       }
     } catch (_) {
       // If status check fails (network error, no employee profile, etc.)
