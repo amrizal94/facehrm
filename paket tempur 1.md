@@ -276,3 +276,26 @@ OUTPUT YANG DIMINTA DARI CLAUDE:
 **Status item dari Paket Tempur:**
 - E. Mobile Absensi Real-World → ✅ SELESAI
 - A, C, D, G, H → belum dikerjakan
+
+---
+
+### ✅ Reports Mobile UI Sprint — Selesai (Feb 2026)
+
+**Mobile**
+- [x] 4 model baru: `AttendanceReportModel`, `LeaveReportModel`, `PayrollReportModel`, `OvertimeReportModel`
+- [x] `ReportsRemoteDataSource` — 4 metode baru: getAttendanceReport, getLeaveReport, getPayrollReport, getOvertimeReport
+- [x] `ReportsRepository` — wrap 4 metode baru
+- [x] 4 `FutureProvider.family` baru di `reports_provider.dart`
+- [x] `ReportsScreen` — `DefaultTabController` dengan 4 tab:
+  - **Attendance**: year+month filter, summary (employees/working days/avg rate), per-employee card (present/late/absent/leave/hours + % rate)
+  - **Leave**: year filter, summary (total approved/pending), per-employee list (approved days, pending, rejected)
+  - **Payroll**: year+month filter, summary card (total gross/net/deductions + draft/final/paid count), per-employee row (net salary + status badge)
+  - **Overtime**: year+month filter, summary (employees/approved hours/pending), per-employee list (approved hours + pending)
+- [x] Route `/hr/reports` → `ReportsScreen`
+- [x] Reports tile di admin_dashboard + hr_dashboard
+- [x] `flutter analyze`: 0 issues
+- [x] `_fmtRupiah()` helper: auto abbreviate (jt/M untuk angka besar)
+
+**Status item dari Paket Tempur:**
+- G. Reporting for Demo → ✅ SELESAI (mobile reports 4 tab)
+- A, C, D, H → belum dikerjakan

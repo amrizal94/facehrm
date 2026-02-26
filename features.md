@@ -7,7 +7,7 @@
 | Payslip (employee view)                         | Medium-High         | Done       | Done                           | -        | - |
 | Holidays                                        | Medium              | Done       | Done                           | -        | - |
 | Notifications (in-app)                          | Medium              | -          | Done                           | -        | Web: tidak ada |
-| Reports (attendance, leave, payroll + CSV)      | High                | Done       | Partial (API ada, UI terbatas) | P1       | - |
+| Reports (attendance, leave, payroll + CSV)      | High                | Done       | Done                           | -        | Admin/HR: 4 tab (Attendance, Leave, Payroll, Overtime) + filter year/month |
 | Face Recognition Attendance                     | Medium-High         | Done       | Done                           | -        | Admin enroll + staff check-in/out |
 | Face Self-Enrollment                            | Medium              | -          | Done                           | -        | Staff daftar wajah sendiri via mobile |
 | Task & Project Management                       | Medium-High         | Done       | Done                           | -        | Admin/HR CRUD; staff view+checklist |
