@@ -13,6 +13,7 @@ export interface AttendanceSettings {
   'attendance.office_latitude': string
   'attendance.office_longitude': string
   'attendance.office_radius': string
+  'attendance.check_in_method': string
 }
 
 export interface PayrollSettings {

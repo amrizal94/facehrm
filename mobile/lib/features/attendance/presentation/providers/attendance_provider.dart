@@ -3,9 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/connectivity_service.dart';
 import '../../../../core/services/location_service.dart';
+import '../../data/datasources/attendance_remote_datasource.dart';
+import '../../data/models/attendance_policy_model.dart';
 import '../../data/models/attendance_record_model.dart';
 import '../../data/models/pending_attendance_action.dart';
 import '../../data/repositories/attendance_repository.dart';
+
+// ── Attendance policy (check-in method) ───────────────────────────────────────
+
+final attendancePolicyProvider = FutureProvider<AttendancePolicyModel>((ref) =>
+    ref.watch(attendanceRemoteDataSourceProvider).getAttendancePolicy());
 
 // ── Sync state ────────────────────────────────────────────────────────────────
 

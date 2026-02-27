@@ -21,6 +21,7 @@ class AttendanceResource extends JsonResource
             'longitude'         => $this->longitude,
             'location_accuracy' => $this->location_accuracy,
             'is_mock_location'  => $this->is_mock_location,
+            'check_in_method'   => $this->check_in_method,
             'employee'   => $this->whenLoaded('employee', fn() => [
                 'id'              => $this->employee->id,
                 'employee_number' => $this->employee->employee_number,

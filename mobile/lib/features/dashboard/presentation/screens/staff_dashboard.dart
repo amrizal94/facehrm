@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/router/app_routes.dart';
+import '../../../attendance/data/models/attendance_policy_model.dart';
 import '../../../attendance/presentation/providers/attendance_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
@@ -55,6 +56,8 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
     final isLoggingOut = authState is AuthLoggingOut;
     final todayAsync = ref.watch(todayAttendanceProvider);
     final syncState = ref.watch(attendanceSyncProvider);
+    final policy = ref.watch(attendancePolicyProvider).asData?.value
+        ?? const AttendancePolicyModel(checkInMethod: 'any');
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -211,6 +214,7 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                         error: (_, __) => const Text('Could not load attendance'),
                         data: (record) => _AttendanceStatusWidget(
                           record: record,
+                          policy: policy,
                           onCheckIn: () => _doCheckIn(context),
                           onCheckOut: () => _doCheckOut(context),
                           onFaceCheckIn: () => context.push(
@@ -344,6 +348,7 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
 // ── Today attendance status widget ──────────────────────────────────────────
 class _AttendanceStatusWidget extends StatelessWidget {
   final dynamic record; // AttendanceRecordModel?
+  final AttendancePolicyModel policy;
   final VoidCallback onCheckIn;
   final VoidCallback onCheckOut;
   final VoidCallback onFaceCheckIn;
@@ -351,6 +356,7 @@ class _AttendanceStatusWidget extends StatelessWidget {
 
   const _AttendanceStatusWidget({
     required this.record,
+    required this.policy,
     required this.onCheckIn,
     required this.onCheckOut,
     required this.onFaceCheckIn,
@@ -360,32 +366,37 @@ class _AttendanceStatusWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (record == null) {
-      // Not yet checked in
+      // Not yet checked in — show buttons based on policy
+      final showManual = !policy.isFaceOnly;
+      final showFace   = !policy.isManualOnly;
+
       return Column(
         children: [
           const Text('Not checked in yet', style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: onCheckIn,
-            icon: const Icon(Icons.login),
-            label: const Text('Check In'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 44),
+          if (showManual)
+            ElevatedButton.icon(
+              onPressed: onCheckIn,
+              icon: const Icon(Icons.login),
+              label: const Text('Check In'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 44),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: onFaceCheckIn,
-            icon: const Icon(Icons.face_retouching_natural),
-            label: const Text('Face Check-In'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.green,
-              side: const BorderSide(color: Colors.green),
-              minimumSize: const Size(double.infinity, 44),
+          if (showManual && showFace) const SizedBox(height: 8),
+          if (showFace)
+            OutlinedButton.icon(
+              onPressed: onFaceCheckIn,
+              icon: const Icon(Icons.face_retouching_natural),
+              label: const Text('Face Check-In'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.green,
+                side: const BorderSide(color: Colors.green),
+                minimumSize: const Size(double.infinity, 44),
+              ),
             ),
-          ),
         ],
       );
     }
@@ -422,27 +433,29 @@ class _AttendanceStatusWidget extends StatelessWidget {
         ),
         if (record.checkOut == null) ...[
           const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: onCheckOut,
-            icon: const Icon(Icons.logout),
-            label: const Text('Check Out'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 44),
+          if (!policy.isFaceOnly)
+            ElevatedButton.icon(
+              onPressed: onCheckOut,
+              icon: const Icon(Icons.logout),
+              label: const Text('Check Out'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 44),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: onFaceCheckOut,
-            icon: const Icon(Icons.face_retouching_natural),
-            label: const Text('Face Check-Out'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.blue,
-              side: const BorderSide(color: Colors.blue),
-              minimumSize: const Size(double.infinity, 44),
+          if (!policy.isFaceOnly && !policy.isManualOnly) const SizedBox(height: 8),
+          if (!policy.isManualOnly)
+            OutlinedButton.icon(
+              onPressed: onFaceCheckOut,
+              icon: const Icon(Icons.face_retouching_natural),
+              label: const Text('Face Check-Out'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.blue,
+                side: const BorderSide(color: Colors.blue),
+                minimumSize: const Size(double.infinity, 44),
+              ),
             ),
-          ),
         ] else if (record.workHours != null) ...[
           const SizedBox(height: 4),
           Text(

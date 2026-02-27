@@ -165,6 +165,15 @@ class AttendanceController extends Controller
             return response()->json(['success' => false, 'message' => 'No employee record found for this user.'], 404);
         }
 
+        // Check-in method policy
+        $policy = Setting::get('attendance.check_in_method', 'any');
+        if ($policy === 'face_only') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Manual check-in is disabled. Please use face recognition to check in.',
+            ], 422);
+        }
+
         // Reject mock/fake GPS
         if ($request->boolean('is_mock_location')) {
             return response()->json(['success' => false, 'message' => 'Fake GPS detected. Please disable mock location and try again.'], 422);
@@ -202,6 +211,7 @@ class AttendanceController extends Controller
             'longitude'        => $request->input('longitude'),
             'location_accuracy'=> $request->input('location_accuracy'),
             'is_mock_location' => $request->boolean('is_mock_location', false),
+            'check_in_method'  => 'manual',
         ]);
 
         return response()->json([
@@ -365,6 +375,19 @@ class AttendanceController extends Controller
                 'late'            => $late,
                 'absent'          => $absent,
                 'on_leave'        => $onLeave,
+            ],
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // All authenticated: current check-in method policy (for mobile)
+    // ---------------------------------------------------------------
+    public function policy(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'check_in_method' => Setting::get('attendance.check_in_method', 'any'),
             ],
         ]);
     }

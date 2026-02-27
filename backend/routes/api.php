@@ -39,6 +39,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/check-out', [AttendanceController::class, 'checkOut']);
             Route::get('/today',      [AttendanceController::class, 'today']);
             Route::get('/my',         [AttendanceController::class, 'myAttendance']);
+            Route::get('/policy',     [AttendanceController::class, 'policy']);
         });
 
         // Leave — staff

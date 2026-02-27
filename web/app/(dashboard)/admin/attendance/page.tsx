@@ -44,6 +44,11 @@ const STATUS_STYLES: Record<string, { label: string; className: string }> = {
   on_leave: { label: 'On Leave', className: 'bg-purple-100 text-purple-700' },
 }
 
+const METHOD_STYLES: Record<string, { label: string; className: string }> = {
+  face:   { label: 'Face',   className: 'bg-emerald-100 text-emerald-700' },
+  manual: { label: 'Manual', className: 'bg-slate-100 text-slate-600' },
+}
+
 function formatTime(iso: string | null): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -171,6 +176,7 @@ export default function AdminAttendancePage() {
                 <TableHead>Check Out</TableHead>
                 <TableHead>Work Hours</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Method</TableHead>
                 <TableHead className="w-20 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -178,14 +184,14 @@ export default function AdminAttendancePage() {
               {isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 8 }).map((__, j) => (
+                    {Array.from({ length: 9 }).map((__, j) => (
                       <TableCell key={j}><div className="h-4 bg-muted animate-pulse rounded" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     No attendance records found.
                   </TableCell>
                 </TableRow>
@@ -207,6 +213,15 @@ export default function AdminAttendancePage() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[rec.status]?.className}`}>
                         {STATUS_STYLES[rec.status]?.label}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      {rec.check_in_method ? (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${METHOD_STYLES[rec.check_in_method]?.className}`}>
+                          {METHOD_STYLES[rec.check_in_method]?.label}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">

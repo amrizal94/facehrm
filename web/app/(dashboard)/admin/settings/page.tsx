@@ -207,6 +207,7 @@ const attendanceSchema = z.object({
   office_latitude:   z.string(),
   office_longitude:  z.string(),
   office_radius:     z.string(),
+  check_in_method:   z.enum(['any', 'face_only', 'manual_only']),
 })
 
 type AttendanceForm = z.infer<typeof attendanceSchema>
@@ -220,6 +221,7 @@ function AttendancePolicyTab() {
     defaultValues: {
       work_start: '08:00', late_threshold: '09:00', work_end: '17:00',
       geofence_enabled: false, office_latitude: '', office_longitude: '', office_radius: '200',
+      check_in_method: 'any' as const,
     },
   })
 
@@ -236,6 +238,7 @@ function AttendancePolicyTab() {
         office_latitude:  a['attendance.office_latitude']  ?? '',
         office_longitude: a['attendance.office_longitude'] ?? '',
         office_radius:    a['attendance.office_radius']    ?? '200',
+        check_in_method:  (a['attendance.check_in_method'] ?? 'any') as 'any' | 'face_only' | 'manual_only',
       })
     }
   }, [data, form])
@@ -249,6 +252,7 @@ function AttendancePolicyTab() {
           office_latitude:  values.office_latitude  || null,
           office_longitude: values.office_longitude || null,
           office_radius:    values.office_radius,
+          check_in_method:  values.check_in_method,
         },
       },
       {
@@ -328,6 +332,39 @@ function AttendancePolicyTab() {
             </div>
           </div>
         )}
+      </div>
+
+      <Separator />
+
+      {/* Check-In Method */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold">Check-In Method</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Control how staff members are allowed to check in via the mobile app.</p>
+        </div>
+        <div className="space-y-2">
+          {([
+            { value: 'any',         label: 'Any Method',   desc: 'Staff may choose between face recognition or the manual button.' },
+            { value: 'face_only',   label: 'Face Only',    desc: 'Staff must use face recognition. Manual check-in button is disabled.' },
+            { value: 'manual_only', label: 'Manual Only',  desc: 'Staff use the manual button only. Face check-in is disabled.' },
+          ] as const).map((opt) => (
+            <label
+              key={opt.value}
+              className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border hover:bg-muted/50 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+            >
+              <input
+                type="radio"
+                value={opt.value}
+                className="mt-0.5 accent-primary"
+                {...form.register('check_in_method')}
+              />
+              <div>
+                <p className="text-sm font-medium leading-tight">{opt.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
       </div>
 
       <Button type="submit" disabled={isPending}>

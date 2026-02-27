@@ -14,6 +14,7 @@ class SettingController extends Controller
         'company.name', 'company.address', 'company.phone', 'company.email',
         'attendance.work_start', 'attendance.late_threshold', 'attendance.work_end',
         'attendance.geofence_enabled', 'attendance.office_latitude', 'attendance.office_longitude', 'attendance.office_radius',
+        'attendance.check_in_method',
         'payroll.tax_rate', 'payroll.bpjs_rate',
     ];
 
@@ -38,6 +39,7 @@ class SettingController extends Controller
                 'attendance.office_latitude'  => '',
                 'attendance.office_longitude' => '',
                 'attendance.office_radius'    => '200',
+                'attendance.check_in_method'  => 'any',
             ],
             'payroll'    => ['payroll.tax_rate' => '5', 'payroll.bpjs_rate' => '3'],
         ];
@@ -70,6 +72,7 @@ class SettingController extends Controller
             'attendance.office_latitude'  => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'attendance.office_longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
             'attendance.office_radius'    => ['sometimes', 'integer', 'min:50', 'max:10000'],
+            'attendance.check_in_method'  => ['sometimes', 'string', 'in:any,face_only,manual_only'],
 
             // Payroll
             'payroll.tax_rate'  => ['sometimes', 'numeric', 'min:0', 'max:100'],

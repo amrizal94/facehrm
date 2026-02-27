@@ -5,6 +5,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/services/location_service.dart';
+import '../models/attendance_policy_model.dart';
 import '../models/attendance_record_model.dart';
 
 final attendanceRemoteDataSourceProvider = Provider<AttendanceRemoteDataSource>(
@@ -14,6 +15,17 @@ final attendanceRemoteDataSourceProvider = Provider<AttendanceRemoteDataSource>(
 class AttendanceRemoteDataSource {
   final Dio _dio;
   AttendanceRemoteDataSource(this._dio);
+
+  Future<AttendancePolicyModel> getAttendancePolicy() async {
+    try {
+      final res = await _dio.get(ApiConstants.attendancePolicy);
+      return AttendancePolicyModel.fromJson(
+        res.data['data'] as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 
   Future<AttendanceRecordModel?> getToday() async {
     try {

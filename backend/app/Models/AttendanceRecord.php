@@ -20,6 +20,7 @@ class AttendanceRecord extends Model
         'longitude',
         'location_accuracy',
         'is_mock_location',
+        'check_in_method',
     ];
 
     protected function casts(): array

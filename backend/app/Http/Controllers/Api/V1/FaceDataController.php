@@ -228,6 +228,15 @@ class FaceDataController extends Controller
             'action'       => ['required', 'in:check_in,check_out'],
         ]);
 
+        // Check-in method policy
+        $policy = Setting::get('attendance.check_in_method', 'any');
+        if ($policy === 'manual_only') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Face check-in is disabled by administrator.',
+            ], 422);
+        }
+
         // Identify face
         $identifyResult = $this->identifyDescriptor($validated['descriptor']);
 
@@ -260,6 +269,7 @@ class FaceDataController extends Controller
                 'longitude'        => $request->input('longitude'),
                 'location_accuracy'=> $request->input('location_accuracy'),
                 'is_mock_location' => $request->boolean('is_mock_location', false),
+                'check_in_method'  => 'face',
             ]);
 
             AuditLog::record('face.attendance.check_in', $request,
@@ -416,6 +426,15 @@ class FaceDataController extends Controller
             'liveness_verified' => ['nullable', 'boolean'],
         ]);
 
+        // Check-in method policy
+        $policy = Setting::get('attendance.check_in_method', 'any');
+        if ($policy === 'manual_only') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Face check-in is disabled by administrator.',
+            ], 422);
+        }
+
         // Require client-side liveness verification
         if (!$request->boolean('liveness_verified')) {
             return response()->json([
@@ -470,6 +489,7 @@ class FaceDataController extends Controller
                 'longitude'        => $validated['longitude'] ?? null,
                 'location_accuracy'=> $validated['location_accuracy'] ?? null,
                 'is_mock_location' => $request->boolean('is_mock_location', false),
+                'check_in_method'  => 'face',
             ]);
 
             AuditLog::record('face.attendance.check_in', $request,
