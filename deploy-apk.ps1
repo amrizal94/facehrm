@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($root)) { $root = (Get-Location).Path }
 
-# ── Version info ──────────────────────────────────────────────────────────────
+# -- Version info --------------------------------------------------------------
 $pubspecLine = Get-Content (Join-Path $root "mobile\pubspec.yaml") |
                Where-Object { $_ -match "^version:" } |
                Select-Object -First 1
@@ -19,7 +19,7 @@ $versionName = ($pubspecLine -replace "version:\s*", "").Trim().Split("+")[0]
 $buildNum    = (git -C $root rev-list --count HEAD).Trim()
 Write-Host "==> Version: v$versionName (build $buildNum)"
 
-# ── Build ─────────────────────────────────────────────────────────────────────
+# -- Build ---------------------------------------------------------------------
 Set-Location (Join-Path $root "mobile")
 
 Write-Host "==> Stop Gradle daemon (best effort)"
@@ -40,7 +40,7 @@ Write-Host "==> Clean build artifacts"
 Remove-Item -Recurse -Force .\build          -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force .\android\.gradle -ErrorAction SilentlyContinue
 
-Write-Host "==> Build APK release (arm64 — ~40% lebih kecil dari fat APK)"
+Write-Host "==> Build APK release (arm64 - ~40% lebih kecil dari fat APK)"
 flutter build apk --release `
   --target-platform android-arm64 `
   --build-name="$versionName" `
@@ -54,7 +54,7 @@ if (!(Test-Path $localApk)) {
 $apkSize = (Get-Item $localApk).Length / 1MB
 Write-Host ("==> APK size: {0:N1} MB" -f $apkSize)
 
-# ── Deploy ────────────────────────────────────────────────────────────────────
+# -- Deploy --------------------------------------------------------------------
 $stamp      = Get-Date -Format "yyyyMMdd-HHmmss"
 $remotePath = "$RemoteDir/$RemoteFile"
 $backupPath = "$RemoteDir/$RemoteFile.bak-$stamp"
@@ -67,11 +67,11 @@ scp -i $SshKey $localApk "${Server}:${remotePath}"
 
 Write-Host "==> Write version.txt"
 $today       = Get-Date -Format "yyyy-MM-dd"
-$versionText = "v$versionName (build $buildNum) — $today"
+$versionText = "v$versionName (build $buildNum) - $today"
 ssh -i $SshKey $Server "echo '$versionText' > '$RemoteDir/version.txt'"
 
 Write-Host "==> Cleanup backup lebih dari 7 hari"
-ssh -i $SshKey $Server "find '$RemoteDir' -name '*.bak-*' -mtime +7 -delete 2>/dev/null || true"
+ssh -i $SshKey $Server "find '$RemoteDir' -name '*.bak-*' -mtime +7 -delete 2>/dev/null; true"
 
 Write-Host "==> Verifikasi file remote"
 ssh -i $SshKey $Server "ls -lh '$remotePath' && cat '$RemoteDir/version.txt'"
@@ -85,8 +85,8 @@ try {
   $httpCode = 0
 }
 if ($httpCode -lt 200 -or $httpCode -ge 400) {
-  throw "❌ APK tidak accessible di $ApkUrl (HTTP $httpCode)"
+  throw "APK tidak accessible di $ApkUrl (HTTP $httpCode)"
 }
-Write-Host "✅ APK accessible (HTTP $httpCode): $ApkUrl"
+Write-Host "OK APK accessible (HTTP $httpCode): $ApkUrl"
 
-Write-Host "✅ Deploy selesai: v$versionName (build $buildNum)"
+Write-Host "DONE Deploy selesai: v$versionName (build $buildNum)"
