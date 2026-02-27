@@ -33,6 +33,19 @@ $PHP artisan migrate --force
 $PHP artisan config:cache
 $PHP artisan route:cache
 # view:cache dilewati — backend ini API-only, tidak ada Blade views
+
+# Firebase credentials — harus readable oleh PHP-FPM (user www), bukan root
+# File ini di luar git (gitignored), jadi chown dijalankan setiap deploy
+FIREBASE_CRED="/www/wwwroot/facehrm/firebase-service-account.json"
+if [ -f "$FIREBASE_CRED" ]; then
+    chown www:www "$FIREBASE_CRED"
+    chmod 600 "$FIREBASE_CRED"
+fi
+
+# Storage directory harus writable oleh www (PHP-FPM)
+chown -R www:www "$APP_DIR/backend/storage/"
+chmod -R 775 "$APP_DIR/backend/storage/"
+
 /etc/init.d/php-fpm-83 reload
 
 # ── 3. Frontend update ───────────────────────────────────────────
