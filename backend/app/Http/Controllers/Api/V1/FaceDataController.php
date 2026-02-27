@@ -111,7 +111,7 @@ class FaceDataController extends Controller
         $faceData = FaceData::updateOrCreate(
             ['employee_id' => $validated['employee_id']],
             [
-                'descriptor'  => json_encode($validated['descriptor']),
+                'descriptor'  => $validated['descriptor'], // encrypted:array cast handles encode+encrypt
                 'image_path'  => $imagePath,
                 'is_active'   => true,
                 'enrolled_by' => $request->user()->id,
@@ -559,7 +559,7 @@ class FaceDataController extends Controller
         FaceData::updateOrCreate(
             ['employee_id' => $employee->id],
             [
-                'descriptor'  => json_encode($extracted['descriptor']),
+                'descriptor'  => $extracted['descriptor'], // encrypted:array cast handles encode+encrypt
                 'image_path'  => $filename,
                 'is_active'   => true,
                 'enrolled_by' => $request->user()->id,
@@ -603,7 +603,7 @@ class FaceDataController extends Controller
         $faceData = FaceData::updateOrCreate(
             ['employee_id' => $validated['employee_id']],
             [
-                'descriptor'  => json_encode($extracted['descriptor']),
+                'descriptor'  => $extracted['descriptor'], // encrypted:array cast handles encode+encrypt
                 'image_path'  => $filename,
                 'is_active'   => true,
                 'enrolled_by' => $request->user()->id,

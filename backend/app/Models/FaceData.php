@@ -19,6 +19,7 @@ class FaceData extends Model
     protected function casts(): array
     {
         return [
+            'descriptor'  => 'encrypted:array', // AES-256-CBC via APP_KEY, transparent encrypt/decrypt
             'is_active'   => 'boolean',
             'enrolled_at' => 'datetime',
         ];
@@ -36,10 +37,11 @@ class FaceData extends Model
 
     /**
      * Get descriptor as float array.
+     * The encrypted:array cast already decrypts + json_decodes on access.
      */
     public function getDescriptorArray(): array
     {
-        return json_decode($this->descriptor, true) ?? [];
+        return $this->descriptor ?? [];
     }
 
     /**
