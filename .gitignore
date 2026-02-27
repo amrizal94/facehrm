@@ -26,3 +26,7 @@ docker/.env.staging
 # ── JVM crash logs ────────────────────────────────────────────────
 hs_err_pid*.log
 replay_pid*.log
+
+# Firebase — jangan commit ke repo publik
+mobile/android/app/google-services.json
+mobile/ios/Runner/GoogleService-Info.plist
