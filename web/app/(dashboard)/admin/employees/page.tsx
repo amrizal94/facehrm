@@ -166,6 +166,7 @@ export default function EmployeesPage() {
                 <TableHead className="w-28">Emp #</TableHead>
                 <TableHead>Name / Email</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Shift</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Salary</TableHead>
@@ -179,7 +180,7 @@ export default function EmployeesPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 10 }).map((__, j) => (
+                    {Array.from({ length: 11 }).map((__, j) => (
                       <TableCell key={j}>
                         <div className="h-4 bg-muted animate-pulse rounded" />
                       </TableCell>
@@ -188,7 +189,7 @@ export default function EmployeesPage() {
                 ))
               ) : employees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                     No employees found.
                   </TableCell>
                 </TableRow>
@@ -207,6 +208,13 @@ export default function EmployeesPage() {
                     <TableCell className="text-sm">
                       {emp.department ? (
                         <span>{emp.department.name}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {emp.shift ? (
+                        <span>{emp.shift.name}</span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}

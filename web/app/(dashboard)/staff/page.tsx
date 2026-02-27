@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Clock, CalendarDays, Receipt, ScanFace, Timer,
-  LogIn, LogOut, ChevronRight, CheckCircle2,
+  LogIn, LogOut, ChevronRight, CheckCircle2, AlarmClock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,6 +18,7 @@ import { useTodayAttendance, useCheckIn, useCheckOut, useMyAttendance } from '@/
 import { useLeaveQuota, useMyLeaves } from '@/hooks/use-leave'
 import { useMyOvertimes } from '@/hooks/use-overtime'
 import { useMyPayslips } from '@/hooks/use-payroll'
+import { useMyShift } from '@/hooks/use-shifts'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -351,6 +352,9 @@ export default function StaffDashboardPage() {
   const { data: payslipData } = useMyPayslips({ per_page: 1 })
   const lastPayslip = payslipData?.data?.[0]
 
+  // My shift
+  const { data: shift } = useMyShift()
+
   return (
     <DashboardLayout title="My Dashboard" allowedRoles={['staff', 'hr', 'admin']}>
       <div className="space-y-5">
@@ -359,7 +363,7 @@ export default function StaffDashboardPage() {
         <LiveClock name={user?.name ?? 'Employee'} />
 
         {/* Top grid: Today card + Stat cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="md:col-span-2 lg:col-span-1">
             <TodayCard />
           </div>
@@ -387,6 +391,14 @@ export default function StaffDashboardPage() {
             iconColor="text-purple-600"
             iconBg="bg-purple-50"
           />
+          <StatCard
+            title="My Shift"
+            value={shift?.name ?? '—'}
+            subtitle={shift ? `${shift.check_in_time} – ${shift.check_out_time}` : 'No shift assigned'}
+            icon={AlarmClock}
+            iconColor="text-indigo-600"
+            iconBg="bg-indigo-50"
+          />
         </div>
 
         {/* Bottom grid */}
@@ -408,10 +420,11 @@ export default function StaffDashboardPage() {
               <h3 className="font-semibold text-sm mb-3">Quick Links</h3>
               <div className="space-y-1">
                 {[
-                  { href: '/staff/attendance', icon: Clock,       label: 'Attendance History', color: 'text-green-600' },
-                  { href: '/staff/leave',      icon: CalendarDays, label: 'My Leave',          color: 'text-orange-600' },
-                  { href: '/staff/overtime',   icon: Timer,        label: 'My Overtime',       color: 'text-blue-600' },
-                  { href: '/staff/payslip',    icon: Receipt,      label: 'My Payslips',       color: 'text-purple-600' },
+                  { href: '/staff/attendance', icon: Clock,        label: 'Attendance History', color: 'text-green-600' },
+                  { href: '/staff/leave',      icon: CalendarDays, label: 'My Leave',           color: 'text-orange-600' },
+                  { href: '/staff/overtime',   icon: Timer,        label: 'My Overtime',        color: 'text-blue-600' },
+                  { href: '/staff/payslip',    icon: Receipt,      label: 'My Payslips',        color: 'text-purple-600' },
+                  { href: '/staff/shift',      icon: AlarmClock,   label: 'My Shift',           color: 'text-indigo-600' },
                 ].map(item => (
                   <Link
                     key={item.href}

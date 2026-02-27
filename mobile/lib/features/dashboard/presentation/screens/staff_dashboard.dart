@@ -11,6 +11,7 @@ import '../../../attendance/data/models/attendance_policy_model.dart';
 import '../../../attendance/presentation/providers/attendance_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
+import '../../../shift/presentation/providers/shift_provider.dart';
 
 class StaffDashboardScreen extends ConsumerStatefulWidget {
   const StaffDashboardScreen({super.key});
@@ -60,6 +61,7 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
     final syncState = ref.watch(attendanceSyncProvider);
     final policy = ref.watch(attendancePolicyProvider).asData?.value
         ?? const AttendancePolicyModel(checkInMethod: 'any');
+    final shiftAsync = ref.watch(myShiftProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -210,6 +212,17 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                           ),
                         ),
 
+                      // Shift info
+                      if (shiftAsync.asData?.value != null) ...[
+                        Text(
+                          'Shift: ${shiftAsync.asData!.value!.checkInTime} – ${shiftAsync.asData!.value!.checkOutTime}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+
                       // Today's status
                       todayAsync.when(
                         loading: () => const CircularProgressIndicator(),
@@ -246,6 +259,13 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
               ),
               const SizedBox(height: 8),
 
+              _MenuTile(
+                icon: Icons.schedule_outlined,
+                title: 'Jadwal Kerja',
+                subtitle: shiftAsync.asData?.value?.name ?? 'Belum diatur',
+                color: Colors.indigo,
+                onTap: () => context.push(AppRoutes.myShift),
+              ),
               _MenuTile(
                 icon: Icons.access_time,
                 title: 'My Attendance',

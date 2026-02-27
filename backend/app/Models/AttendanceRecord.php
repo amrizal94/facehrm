@@ -21,6 +21,8 @@ class AttendanceRecord extends Model
         'location_accuracy',
         'is_mock_location',
         'check_in_method',
+        'is_late',
+        'late_minutes',
     ];
 
     protected function casts(): array
@@ -34,6 +36,7 @@ class AttendanceRecord extends Model
             'longitude'        => 'float',
             'location_accuracy'=> 'float',
             'is_mock_location' => 'boolean',
+            'is_late'          => 'boolean',
         ];
     }
 

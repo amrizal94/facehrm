@@ -216,6 +216,17 @@ class AttendanceController extends Controller
             'check_in_method'  => 'manual',
         ]);
 
+        // Late detection
+        $employee->loadMissing('shift');
+        if ($employee->shift) {
+            $shiftStart  = Carbon::createFromTimeString($employee->shift->check_in_time);
+            $deadline    = $shiftStart->copy()->addMinutes($employee->shift->late_tolerance_minutes);
+            if ($checkInTime->gt($deadline)) {
+                $lateMinutes = (int) $checkInTime->diffInMinutes($shiftStart);
+                $record->update(['is_late' => true, 'late_minutes' => $lateMinutes]);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Check-in recorded at ' . $checkInTime->format('H:i'),

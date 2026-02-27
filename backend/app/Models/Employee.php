@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Shift;
 
 class Employee extends Model
 {
@@ -16,6 +17,7 @@ class Employee extends Model
         'user_id',
         'employee_number',
         'department_id',
+        'shift_id',
         'position',
         'employment_type',
         'status',
@@ -51,6 +53,11 @@ class Employee extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     public function faceData(): HasOne

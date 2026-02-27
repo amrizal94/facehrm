@@ -26,6 +26,7 @@ import '../../features/payslip/presentation/screens/payslip_detail_screen.dart';
 import '../../features/payslip/presentation/screens/payslip_list_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/auth/presentation/screens/profile_screen.dart';
+import '../../features/shift/presentation/screens/my_shift_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../constants/app_constants.dart';
@@ -133,6 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.submitOvertime, builder: (_, __) => const SubmitOvertimeScreen()),
       GoRoute(path: AppRoutes.holidays,      builder: (_, __) => const HolidaysScreen()),
       GoRoute(path: AppRoutes.notifications, builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: AppRoutes.myShift,       builder: (_, __) => const MyShiftScreen()),
       GoRoute(path: AppRoutes.myTasks,       builder: (_, __) => const MyTasksScreen()),
       GoRoute(
         path: AppRoutes.taskDetail,

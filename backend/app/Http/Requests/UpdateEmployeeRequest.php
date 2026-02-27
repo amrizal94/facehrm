@@ -26,6 +26,7 @@ class UpdateEmployeeRequest extends FormRequest
             // Employee fields
             'employee_number'         => ['required', 'string', 'max:50', "unique:employees,employee_number,{$employeeId}"],
             'department_id'           => ['nullable', 'exists:departments,id'],
+            'shift_id'                => ['nullable', 'exists:shifts,id'],
             'position'                => ['required', 'string', 'max:255'],
             'employment_type'         => ['required', 'in:full_time,part_time,contract,intern'],
             'status'                  => ['required', 'in:active,inactive,terminated,on_leave'],

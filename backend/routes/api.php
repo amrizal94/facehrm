@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\PayrollController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SettingController;
+use App\Http\Controllers\Api\V1\ShiftController;
 use App\Http\Controllers\Api\V1\TaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -86,6 +87,9 @@ Route::prefix('v1')->group(function () {
         // Face — enrollment status for current user
         Route::get('face/me', [FaceDataController::class, 'myStatus']);
 
+        // Shifts — any authenticated user can view their own shift
+        Route::get('my-shift', [ShiftController::class, 'myShift']);
+
         // Admin & HR
         Route::middleware('role:admin|hr')->group(function () {
             // Labels
@@ -106,6 +110,7 @@ Route::prefix('v1')->group(function () {
 
             Route::apiResource('departments', DepartmentController::class);
             Route::apiResource('employees',   EmployeeController::class);
+            Route::apiResource('shifts',      ShiftController::class);
             Route::patch('employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive']);
 
             // Attendance management

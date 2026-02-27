@@ -1,3 +1,5 @@
+import type { Shift } from './shift'
+
 export interface Department {
   id: number
   name: string
@@ -43,6 +45,8 @@ export interface Employee {
     name: string
     code: string
   } | null
+  shift_id?: number | null
+  shift?: Shift | null
 }
 
 export interface PaginatedMeta {
@@ -70,6 +74,7 @@ export interface CreateEmployeeData {
   // Employee record
   employee_number: string
   department_id?: number | null
+  shift_id?: number | null
   position: string
   employment_type: EmploymentType
   status: EmployeeStatus

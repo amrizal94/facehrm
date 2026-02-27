@@ -17,7 +17,7 @@ class EmployeeController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Employee::query()->with(['user', 'department']);
+        $query = Employee::query()->with(['user', 'department', 'shift']);
 
         if ($request->filled('search')) {
             $search = $request->string('search');
@@ -79,6 +79,7 @@ class EmployeeController extends Controller
                 'user_id'                 => $user->id,
                 'employee_number'         => $validated['employee_number'],
                 'department_id'           => $validated['department_id'] ?? null,
+                'shift_id'                => $validated['shift_id'] ?? null,
                 'position'                => $validated['position'],
                 'employment_type'         => $validated['employment_type'],
                 'status'                  => $validated['status'],
@@ -101,7 +102,7 @@ class EmployeeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Employee created successfully.',
-                'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+                'data'    => new EmployeeResource($employee->load(['user', 'department', 'shift'])),
             ], 201);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -113,7 +114,7 @@ class EmployeeController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+            'data'    => new EmployeeResource($employee->load(['user', 'department', 'shift'])),
         ]);
     }
 
@@ -134,6 +135,7 @@ class EmployeeController extends Controller
             $employee->update([
                 'employee_number'         => $validated['employee_number'],
                 'department_id'           => $validated['department_id'] ?? null,
+                'shift_id'                => $validated['shift_id'] ?? null,
                 'position'                => $validated['position'],
                 'employment_type'         => $validated['employment_type'],
                 'status'                  => $validated['status'],
@@ -156,7 +158,7 @@ class EmployeeController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Employee updated successfully.',
-                'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+                'data'    => new EmployeeResource($employee->load(['user', 'department', 'shift'])),
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -173,7 +175,7 @@ class EmployeeController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Employee account {$status}.",
-            'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+            'data'    => new EmployeeResource($employee->load(['user', 'department', 'shift'])),
         ]);
     }
 

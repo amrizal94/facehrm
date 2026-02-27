@@ -24,7 +24,9 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useCreateEmployee, useDepartments, useUpdateEmployee } from '@/hooks/use-employees'
+import { useShifts } from '@/hooks/use-shifts'
 import type { Department, Employee } from '@/types/employee'
+import type { Shift } from '@/types/shift'
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -33,6 +35,7 @@ const schema = z.object({
   password: z.string().min(8, 'Min 8 characters').optional().or(z.literal('')),
   employee_number: z.string().min(1, 'Employee number is required'),
   department_id: z.string().optional(),
+  shift_id: z.string().optional(),
   position: z.string().min(1, 'Position is required'),
   employment_type: z.enum(['full_time', 'part_time', 'contract', 'intern']),
   status: z.enum(['active', 'inactive', 'terminated', 'on_leave']),
@@ -62,6 +65,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
   const isEdit = !!employee
   const { data: deptData } = useDepartments()
   const departments: Department[] = deptData?.data ?? []
+  const { data: shiftsData } = useShifts({ is_active: true, per_page: 100 })
+  const shifts: Shift[] = shiftsData?.data ?? []
 
   const createMutation = useCreateEmployee()
   const updateMutation = useUpdateEmployee()
@@ -92,6 +97,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
           password: '',
           employee_number: employee.employee_number,
           department_id: employee.department?.id?.toString() ?? '',
+          shift_id: employee.shift_id?.toString() ?? 'none',
           position: employee.position,
           employment_type: employee.employment_type,
           status: employee.status,
@@ -113,6 +119,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
           employment_type: 'full_time',
           status: 'active',
           department_id: '',
+          shift_id: 'none',
           gender: '',
         })
       }
@@ -126,6 +133,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
       phone: values.phone || undefined,
       employee_number: values.employee_number,
       department_id: values.department_id ? parseInt(values.department_id) : null,
+      shift_id: values.shift_id && values.shift_id !== 'none' ? parseInt(values.shift_id) : null,
       position: values.position,
       employment_type: values.employment_type,
       status: values.status,
@@ -240,6 +248,23 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
                       <SelectItem value="none">— No Department —</SelectItem>
                       {departments.map((d) => (
                         <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Shift</Label>
+                  <Select
+                    value={watch('shift_id') || 'none'}
+                    onValueChange={(v) => setValue('shift_id', v)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— No Shift —</SelectItem>
+                      {shifts.map((s) => (
+                        <SelectItem key={s.id} value={s.id.toString()}>
+                          {s.name} ({s.check_in_time}–{s.check_out_time})
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

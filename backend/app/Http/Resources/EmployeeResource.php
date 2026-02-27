@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\ShiftResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -40,6 +41,7 @@ class EmployeeResource extends JsonResource
                 'name' => $this->department?->name,
                 'code' => $this->department?->code,
             ]),
+            'shift'                   => new ShiftResource($this->whenLoaded('shift')),
             'created_at'              => $this->created_at?->toISOString(),
             'updated_at'              => $this->updated_at?->toISOString(),
         ];

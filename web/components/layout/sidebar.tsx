@@ -19,6 +19,8 @@ import {
   FolderKanban,
   CheckSquare,
   Bell,
+  AlarmClock,
+  UserCircle,
 } from 'lucide-react'
 
 interface NavItem {
@@ -47,7 +49,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Projects',    href: '/admin/projects',   icon: FolderKanban,    roles: ['admin', 'hr'] },
   { label: 'Settings',    href: '/admin/settings',   icon: Settings,        roles: ['admin'] },
   { label: 'My Tasks',      href: '/staff/tasks',      icon: CheckSquare,     roles: ['staff'] },
-  { label: 'Notifications', href: '/notifications',    icon: Bell,            roles: ['admin', 'hr', 'staff'] },
+  { label: 'My Shift',     href: '/staff/shift',      icon: AlarmClock,      roles: ['staff'] },
+  { label: 'Holidays',     href: '/staff/holidays',   icon: CalendarDays,    roles: ['staff'] },
+  { label: 'My Profile',   href: '/staff/profile',    icon: UserCircle,      roles: ['staff', 'hr', 'admin'] },
+  { label: 'Notifications', href: '/notifications',   icon: Bell,            roles: ['admin', 'hr', 'staff'] },
 ]
 
 interface SidebarProps {
