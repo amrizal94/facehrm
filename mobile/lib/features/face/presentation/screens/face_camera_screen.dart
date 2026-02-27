@@ -16,7 +16,17 @@ import '../../data/datasources/face_remote_datasource.dart';
 enum FaceAction { checkIn, checkOut }
 
 /// Visual state of the face guide oval.
-enum _FaceStatus { none, detected, multiple }
+enum _FaceStatus { none, detected, verified, multiple }
+
+/// Liveness blink-detection state machine.
+/// Sequence: waiting → eyesOpen → blinking → passed
+enum _LivenessState { waiting, eyesOpen, blinking, passed }
+
+// Liveness thresholds
+const _kEyeOpenThreshold  = 0.7;
+const _kEyeCloseThreshold = 0.3;
+const _kYawMaxDeg         = 30.0; // |headEulerAngleY|
+const _kPitchMaxDeg       = 20.0; // |headEulerAngleX|
 
 /// Stages of the capture pipeline — drives overlay text + success screen.
 enum _CaptureStatus { idle, capturing, processing, success }
@@ -36,27 +46,37 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
 
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
-      performanceMode: FaceDetectorMode.fast,
-      minFaceSize: 0.25,
+      performanceMode:    FaceDetectorMode.fast,
+      enableClassification: true, // enables leftEyeOpenProbability / rightEyeOpenProbability
+      minFaceSize:        0.25,
     ),
   );
   bool _isDetecting = false;
 
   // Screen state
   bool _permissionGranted = false;
-  bool _isInitializing   = true;
+  bool _isInitializing    = true;
   String? _initError;
 
   // Face detection
-  int _faceCount       = 0;
-  bool _hadFaceBefore  = false; // for haptic: fire only on first detection
+  int  _faceCount      = 0;
+  bool _hadFaceBefore  = false;
+  bool _headPoseOk     = true;
 
-  _FaceStatus get _faceStatus => switch (_faceCount) {
-    1 => _FaceStatus.detected,
-    0 => _FaceStatus.none,
-    _ => _FaceStatus.multiple,
-  };
-  bool get _faceDetected => _faceCount == 1;
+  // Liveness
+  _LivenessState _livenessState = _LivenessState.waiting;
+
+  _FaceStatus get _faceStatus {
+    if (_faceCount == 0) return _FaceStatus.none;
+    if (_faceCount > 1)  return _FaceStatus.multiple;
+    return _livenessState == _LivenessState.passed
+        ? _FaceStatus.verified
+        : _FaceStatus.detected;
+  }
+
+  bool get _faceDetected   => _faceCount == 1;
+  bool get _readyToCapture =>
+      _faceDetected && _livenessState == _LivenessState.passed && !_isCapturing;
 
   // Capture pipeline state
   _CaptureStatus _captureStatus  = _CaptureStatus.idle;
@@ -68,8 +88,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Check enrollment status before opening camera.
-    // Deferred to post-frame so context.push is safe.
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkEnrollmentThenInit());
   }
 
@@ -82,22 +100,18 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       if (!mounted) return;
 
       if (!enrolled) {
-        // Navigate to self-enroll and await result
         final result = await context.push<bool>(AppRoutes.faceEnroll);
         if (!mounted) return;
         if (result != true) {
-          // User cancelled enrollment — go back
           context.pop();
           return;
         }
-        // Give Android time to fully release the camera that FaceSelfEnrollScreen used
-        // before FaceCameraScreen tries to open the same front camera.
+        // Give Android time to fully release the camera
         await Future.delayed(const Duration(milliseconds: 800));
         if (!mounted) return;
       }
     } catch (_) {
-      // If status check fails (network error, no employee profile, etc.)
-      // proceed anyway and let the attendance API report the real error
+      // proceed and let the attendance API report the real error
     }
     _initCamera();
   }
@@ -132,6 +146,8 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       _faceCount      = 0;
       _hadFaceBefore  = false;
       _captureStatus  = _CaptureStatus.idle;
+      _livenessState  = _LivenessState.waiting;
+      _headPoseOk     = true;
     });
 
     final status = await Permission.camera.request();
@@ -194,22 +210,65 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         final inputImage = _toInputImage(image);
         if (inputImage == null) return;
 
-        final faces = await _faceDetector.processImage(inputImage);
+        final faces         = await _faceDetector.processImage(inputImage);
+        final filteredFaces = _filterFacesInOval(faces, image.width, image.height);
+        final count         = filteredFaces.length;
+        final face          = count == 1 ? filteredFaces.first : null;
 
-        if (mounted) {
-          final count = _filterFacesInOval(faces, image.width, image.height).length;
-          if (count != _faceCount) {
-            setState(() => _faceCount = count);
+        if (!mounted) return;
 
-            // Haptic: light tap when a face first enters the frame
-            if (count == 1 && !_hadFaceBefore) {
-              _hadFaceBefore = true;
-              HapticFeedback.lightImpact();
-            } else if (count == 0) {
-              _hadFaceBefore = false;
+        // Head pose: face is too angled if yaw/pitch exceed thresholds
+        final newHeadOk = face == null || (
+          (face.headEulerAngleY?.abs() ?? 0) < _kYawMaxDeg &&
+          (face.headEulerAngleX?.abs() ?? 0) < _kPitchMaxDeg
+        );
+
+        // Liveness blink state machine
+        _LivenessState newLiveness = _livenessState;
+        bool livePassed = false;
+
+        if (_livenessState != _LivenessState.passed) {
+          if (face == null) {
+            newLiveness = _LivenessState.waiting; // face left — reset
+          } else {
+            final lo = face.leftEyeOpenProbability;
+            final ro = face.rightEyeOpenProbability;
+            if (lo != null && ro != null) {
+              final bothOpen   = lo >= _kEyeOpenThreshold  && ro >= _kEyeOpenThreshold;
+              final bothClosed = lo <= _kEyeCloseThreshold && ro <= _kEyeCloseThreshold;
+              newLiveness = switch (_livenessState) {
+                _LivenessState.waiting  => bothOpen   ? _LivenessState.eyesOpen  : _LivenessState.waiting,
+                _LivenessState.eyesOpen => bothClosed ? _LivenessState.blinking  : _LivenessState.eyesOpen,
+                _LivenessState.blinking => bothOpen   ? _LivenessState.passed    : _LivenessState.blinking,
+                _LivenessState.passed   => _LivenessState.passed,
+              };
+              livePassed = newLiveness == _LivenessState.passed &&
+                           _livenessState != _LivenessState.passed;
             }
           }
         }
+
+        final faceChanged = count != _faceCount;
+
+        if (count != _faceCount ||
+            newHeadOk != _headPoseOk ||
+            newLiveness != _livenessState) {
+          setState(() {
+            _faceCount     = count;
+            _headPoseOk    = newHeadOk;
+            _livenessState = newLiveness;
+          });
+        }
+
+        if (faceChanged) {
+          if (count == 1 && !_hadFaceBefore) {
+            _hadFaceBefore = true;
+            HapticFeedback.lightImpact();
+          } else if (count == 0) {
+            _hadFaceBefore = false;
+          }
+        }
+        if (livePassed) HapticFeedback.mediumImpact();
       } catch (_) {
         // ignore per-frame errors
       } finally {
@@ -237,30 +296,24 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     return InputImage.fromBytes(
       bytes: bytes,
       metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format,
-        bytesPerRow: image.planes[0].bytesPerRow,
+        size:         Size(image.width.toDouble(), image.height.toDouble()),
+        rotation:     rotation,
+        format:       format,
+        bytesPerRow:  image.planes[0].bytesPerRow,
       ),
     );
   }
 
   /// Only count faces whose center falls within the oval guide area.
-  /// MLKit returns bounding boxes in the rotated (portrait) coordinate space
-  /// when rotation metadata is provided, so portrait width = imgH, portrait height = imgW
-  /// for a landscape-sensor camera with sensorOrientation 90 or 270.
   List<Face> _filterFacesInOval(List<Face> faces, int imgWidth, int imgHeight) {
     final orientation = _controller?.description.sensorOrientation ?? 270;
     final bool isRotated = orientation == 90 || orientation == 270;
     final double pW = isRotated ? imgHeight.toDouble() : imgWidth.toDouble();
-    final double pH = isRotated ? imgWidth.toDouble() : imgHeight.toDouble();
+    final double pH = isRotated ? imgWidth.toDouble()  : imgHeight.toDouble();
 
     return faces.where((face) {
       final box = face.boundingBox;
-      // Size gate: reject tiny faces (t-shirt prints, far-away people)
       if (box.width < pW * 0.18 || box.height < pH * 0.15) return false;
-      // Oval zone: centre (0.5, 0.42), semi-axes (0.40, 0.34) in normalised portrait coords.
-      // These match the _FaceGuidePainter oval with a small margin added.
       final cx = box.center.dx / pW;
       final cy = box.center.dy / pH;
       final dx = (cx - 0.5) / 0.40;
@@ -274,13 +327,10 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
   Future<void> _onCapture() async {
     if (_isCapturing || _controller == null) return;
 
-    // Stage 1 — capturing
     setState(() => _captureStatus = _CaptureStatus.capturing);
 
     try {
       await _controller!.stopImageStream();
-      // Brief pause — some Android devices need stream to fully settle
-      // before takePicture() to avoid CameraException: preparationFailed
       await Future.delayed(const Duration(milliseconds: 200));
       final xfile    = await _controller!.takePicture();
       final rawBytes = await xfile.readAsBytes();
@@ -293,42 +343,38 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
           : original;
       final compressed = img.encodeJpg(toEncode, quality: 85);
 
-      // Stage 2 — processing (location + network + face recognition)
       if (mounted) setState(() => _captureStatus = _CaptureStatus.processing);
 
       final location = await LocationService.getCurrentLocation();
-      final action = widget.action == FaceAction.checkIn ? 'check_in' : 'check_out';
-      final message = await ref.read(faceRemoteDatasourceProvider).faceAttendance(
-        imageBytes: compressed,
-        action: action,
-        filename: 'face_${action}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        location: location,
+      final action   = widget.action == FaceAction.checkIn ? 'check_in' : 'check_out';
+      final message  = await ref.read(faceRemoteDatasourceProvider).faceAttendance(
+        imageBytes:       compressed,
+        action:           action,
+        filename:         'face_${action}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        location:         location,
+        livenessVerified: true, // blink liveness was confirmed before capture
       );
 
       if (!mounted) return;
 
-      // Stage 3 — success
       HapticFeedback.mediumImpact();
       setState(() {
         _captureStatus  = _CaptureStatus.success;
         _successMessage = message;
       });
 
-      // Refresh attendance in background, auto-pop after 2 s
       ref.invalidate(todayAttendanceProvider);
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) context.pop();
     } catch (e) {
       if (!mounted) return;
 
-      final msg         = _humanizeCaptureError(e);
+      final msg           = _humanizeCaptureError(e);
       final isAlreadyDone = _isAlreadyDoneError(e);
 
       if (isAlreadyDone) {
         ref.invalidate(todayAttendanceProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
         context.pop();
         return;
       }
@@ -336,12 +382,12 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       final isMismatch = _isFaceMismatchError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(msg),
+          content:         Text(msg),
           backgroundColor: Colors.red.shade700,
-          duration: Duration(seconds: isMismatch ? 5 : 4),
+          duration:        Duration(seconds: isMismatch ? 5 : 4),
           action: isMismatch
               ? SnackBarAction(
-                  label: 'Coba Lagi',
+                  label:     'Coba Lagi',
                   textColor: Colors.white,
                   onPressed: () {},
                 )
@@ -353,6 +399,8 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         _captureStatus = _CaptureStatus.idle;
         _faceCount     = 0;
         _hadFaceBefore = false;
+        _livenessState = _LivenessState.waiting;
+        _headPoseOk    = true;
       });
       if (_controller != null && _controller!.value.isInitialized) {
         _startDetection(_controller!);
@@ -360,7 +408,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     }
   }
 
-  // Tapping the success overlay pops immediately (no need to wait 2s)
   Future<void> _dismissSuccess() async {
     if (!mounted) return;
     context.pop();
@@ -395,7 +442,6 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         lower.contains('connection')) {
       return 'Koneksi gagal. Periksa jaringan dan coba lagi.';
     }
-    // Guzzle/HTTP server error from face-service 5xx
     if (lower.contains('server error') || lower.contains('internal server error')) {
       return 'Terjadi kesalahan pada server. Coba lagi.';
     }
@@ -422,7 +468,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Face $actionLabel'),
+        title:           Text('Face $actionLabel'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -442,7 +488,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
               const SizedBox(height: 16),
               Text(
                 _initError!,
-                style: const TextStyle(color: Colors.white70),
+                style:     const TextStyle(color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -463,9 +509,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
     }
 
     if (_isInitializing || _controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
 
     return Stack(
@@ -473,9 +517,7 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       children: [
         // Camera preview
         Transform.scale(
-          scaleX: _controller!.description.lensDirection == CameraLensDirection.front
-              ? -1
-              : 1,
+          scaleX: _controller!.description.lensDirection == CameraLensDirection.front ? -1 : 1,
           child: CameraPreview(_controller!),
         ),
 
@@ -484,15 +526,15 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
 
         // Instruction text
         Positioned(
-          top: 24,
-          left: 0,
+          top:   24,
+          left:  0,
           right: 0,
           child: Text(
             _instructionText,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: _instructionColor,
-              fontSize: 15,
+              color:      _instructionColor,
+              fontSize:   15,
               fontWeight: FontWeight.w600,
               shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
             ),
@@ -502,48 +544,60 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
         // Capture button
         Positioned(
           bottom: 48,
-          left: 0,
-          right: 0,
+          left:   0,
+          right:  0,
           child: Center(
             child: _CaptureButton(
-              label: actionLabel,
-              color: actionColor,
-              enabled: _faceDetected && !_isCapturing,
-              onPressed: (_faceDetected && !_isCapturing) ? _onCapture : null,
+              label:     actionLabel,
+              color:     actionColor,
+              enabled:   _readyToCapture,
+              onPressed: _readyToCapture ? _onCapture : null,
             ),
           ),
         ),
 
-        // ── Overlays (animated switch between processing / success) ──────
+        // Overlays
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: switch (_captureStatus) {
             _CaptureStatus.capturing  => const _ProcessingOverlay(key: ValueKey('cap'),  label: 'Memotret wajah...'),
             _CaptureStatus.processing => const _ProcessingOverlay(key: ValueKey('proc'), label: 'Mengenali wajah...'),
             _CaptureStatus.success    => _SuccessOverlay(
-                key: const ValueKey('ok'),
-                message: _successMessage,
+                key:         const ValueKey('ok'),
+                message:     _successMessage,
                 actionColor: actionColor,
-                onTap: _dismissSuccess,
+                onTap:       _dismissSuccess,
               ),
-            _CaptureStatus.idle       => const SizedBox.shrink(key: ValueKey('idle')),
+            _CaptureStatus.idle => const SizedBox.shrink(key: ValueKey('idle')),
           },
         ),
       ],
     );
   }
 
-  String get _instructionText => switch (_faceStatus) {
-    _FaceStatus.none     => 'Posisikan wajah Anda dalam oval',
-    _FaceStatus.detected => 'Wajah terdeteksi — tahan posisi',
-    _FaceStatus.multiple => 'Lebih dari 1 wajah — pastikan hanya Anda',
-  };
+  String get _instructionText {
+    if (_faceStatus == _FaceStatus.none)     return 'Posisikan wajah Anda dalam oval';
+    if (_faceStatus == _FaceStatus.multiple) return 'Lebih dari 1 wajah — pastikan hanya Anda';
+    if (!_headPoseOk)                        return 'Hadapkan wajah lurus ke kamera';
+    return switch (_livenessState) {
+      _LivenessState.waiting  => 'Kedipkan mata sekali untuk verifikasi',
+      _LivenessState.eyesOpen => 'Kedipkan mata...',
+      _LivenessState.blinking => 'Buka mata kembali...',
+      _LivenessState.passed   => 'Terverifikasi! Tekan tombol untuk ${widget.action == FaceAction.checkIn ? 'Check In' : 'Check Out'}',
+    };
+  }
 
-  Color get _instructionColor => switch (_faceStatus) {
-    _FaceStatus.none     => Colors.white,
-    _FaceStatus.detected => Colors.greenAccent,
-    _FaceStatus.multiple => Colors.orangeAccent,
-  };
+  Color get _instructionColor {
+    if (_faceStatus == _FaceStatus.none)     return Colors.white;
+    if (_faceStatus == _FaceStatus.multiple) return Colors.orangeAccent;
+    if (!_headPoseOk)                        return Colors.orangeAccent;
+    return switch (_livenessState) {
+      _LivenessState.waiting  => Colors.white70,
+      _LivenessState.eyesOpen => Colors.yellowAccent,
+      _LivenessState.blinking => Colors.yellowAccent,
+      _LivenessState.passed   => Colors.greenAccent,
+    };
+  }
 }
 
 // ── Oval face guide painter ──────────────────────────────────────────────────
@@ -567,7 +621,8 @@ class _FaceGuidePainter extends CustomPainter {
 
     final borderColor = switch (status) {
       _FaceStatus.none     => Colors.white70,
-      _FaceStatus.detected => Colors.greenAccent,
+      _FaceStatus.detected => Colors.white70,
+      _FaceStatus.verified => Colors.greenAccent,
       _FaceStatus.multiple => Colors.orangeAccent,
     };
 
@@ -602,8 +657,8 @@ class _ProcessingOverlay extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
+                color:      Colors.white,
+                fontSize:   16,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -616,8 +671,8 @@ class _ProcessingOverlay extends StatelessWidget {
 
 // ── Success overlay ───────────────────────────────────────────────────────────
 class _SuccessOverlay extends StatelessWidget {
-  final String message;
-  final Color  actionColor;
+  final String     message;
+  final Color      actionColor;
   final VoidCallback onTap;
 
   const _SuccessOverlay({
@@ -637,15 +692,14 @@ class _SuccessOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Animated checkmark circle
               TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
+                tween:    Tween(begin: 0.0, end: 1.0),
                 duration: const Duration(milliseconds: 500),
-                curve: Curves.elasticOut,
-                builder: (_, value, child) =>
+                curve:    Curves.elasticOut,
+                builder:  (_, value, child) =>
                     Transform.scale(scale: value, child: child),
                 child: Container(
-                  width: 100,
+                  width:  100,
                   height: 100,
                   decoration: BoxDecoration(
                     color: actionColor,
@@ -655,17 +709,16 @@ class _SuccessOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              // Backend message: "Welcome, John! Checked in at 08:00."
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
                   message,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                    color:      Colors.white,
+                    fontSize:   18,
                     fontWeight: FontWeight.w600,
-                    height: 1.4,
+                    height:     1.4,
                   ),
                 ),
               ),
@@ -673,7 +726,7 @@ class _SuccessOverlay extends StatelessWidget {
               Text(
                 'Tap untuk menutup',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color:    Colors.white.withValues(alpha: 0.5),
                   fontSize: 13,
                 ),
               ),
@@ -687,9 +740,9 @@ class _SuccessOverlay extends StatelessWidget {
 
 // ── Capture button ───────────────────────────────────────────────────────────
 class _CaptureButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool enabled;
+  final String       label;
+  final Color        color;
+  final bool         enabled;
   final VoidCallback? onPressed;
 
   const _CaptureButton({
@@ -702,16 +755,16 @@ class _CaptureButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedOpacity(
-      opacity: enabled ? 1.0 : 0.4,
+      opacity:  enabled ? 1.0 : 0.4,
       duration: const Duration(milliseconds: 200),
       child: GestureDetector(
         onTap: onPressed,
         child: Container(
-          width: 72,
+          width:  72,
           height: 72,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: enabled ? color : Colors.grey,
+            shape:     BoxShape.circle,
+            color:     enabled ? color : Colors.grey,
             boxShadow: enabled
                 ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 12, spreadRadius: 2)]
                 : [],
@@ -719,7 +772,7 @@ class _CaptureButton extends StatelessWidget {
           child: Icon(
             enabled ? Icons.camera_alt : Icons.face_retouching_off,
             color: Colors.white,
-            size: 28,
+            size:  28,
           ),
         ),
       ),

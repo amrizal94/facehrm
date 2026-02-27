@@ -17,11 +17,13 @@ class FaceRemoteDatasource {
     required String action,
     required String filename,
     LocationResult? location,
+    bool livenessVerified = false,
   }) async {
     try {
       final fields = <String, dynamic>{
-        'action': action,
-        'image': MultipartFile.fromBytes(imageBytes, filename: filename),
+        'action':             action,
+        'image':              MultipartFile.fromBytes(imageBytes, filename: filename),
+        'liveness_verified':  livenessVerified ? '1' : '0',
       };
       if (location != null) {
         fields['latitude']          = location.latitude.toString();
@@ -79,10 +81,12 @@ class FaceRemoteDatasource {
   Future<String> selfEnrollFace({
     required List<int> imageBytes,
     required String filename,
+    bool livenessVerified = false,
   }) async {
     try {
       final formData = FormData.fromMap({
-        'image': MultipartFile.fromBytes(imageBytes, filename: filename),
+        'image':             MultipartFile.fromBytes(imageBytes, filename: filename),
+        'liveness_verified': livenessVerified ? '1' : '0',
       });
 
       final response = await _dio.post(

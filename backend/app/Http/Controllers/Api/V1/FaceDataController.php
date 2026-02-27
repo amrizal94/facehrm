@@ -407,13 +407,22 @@ class FaceDataController extends Controller
     public function faceAttendanceImage(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'image'            => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
-            'action'           => ['required', 'in:check_in,check_out'],
-            'latitude'         => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude'        => ['nullable', 'numeric', 'between:-180,180'],
-            'location_accuracy'=> ['nullable', 'numeric', 'min:0'],
-            'is_mock_location' => ['nullable', 'boolean'],
+            'image'             => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'action'            => ['required', 'in:check_in,check_out'],
+            'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy' => ['nullable', 'numeric', 'min:0'],
+            'is_mock_location'  => ['nullable', 'boolean'],
+            'liveness_verified' => ['nullable', 'boolean'],
         ]);
+
+        // Require client-side liveness verification
+        if (!$request->boolean('liveness_verified')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Liveness verification required. Please update the app and blink to verify.',
+            ], 422);
+        }
 
         // Reject mock/fake GPS
         if ($request->boolean('is_mock_location')) {
@@ -538,8 +547,17 @@ class FaceDataController extends Controller
     public function selfEnrollImage(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'image'             => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'liveness_verified' => ['nullable', 'boolean'],
         ]);
+
+        // Require client-side liveness verification
+        if (!$request->boolean('liveness_verified')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Liveness verification required. Please update the app and blink to verify.',
+            ], 422);
+        }
 
         $employee = $request->user()->employee;
 

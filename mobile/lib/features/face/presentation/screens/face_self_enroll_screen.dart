@@ -9,8 +9,16 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../data/datasources/face_remote_datasource.dart';
 
-enum _FaceStatus  { none, detected, multiple }
+enum _FaceStatus  { none, detected, verified, multiple }
 enum _EnrollStage { idle, capturing, processing, success }
+
+/// Liveness blink-detection state machine.
+enum _LivenessState { waiting, eyesOpen, blinking, passed }
+
+const _kEyeOpenThreshold  = 0.7;
+const _kEyeCloseThreshold = 0.3;
+const _kYawMaxDeg         = 30.0;
+const _kPitchMaxDeg       = 20.0;
 
 /// Camera screen for staff self-enrollment.
 /// Pops with [true] on success, or [false]/null if cancelled.
@@ -28,8 +36,9 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
 
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
-      performanceMode: FaceDetectorMode.fast,
-      minFaceSize: 0.25,
+      performanceMode:      FaceDetectorMode.fast,
+      enableClassification: true, // enables leftEyeOpenProbability / rightEyeOpenProbability
+      minFaceSize:          0.25,
     ),
   );
   bool _isDetecting = false;
@@ -40,13 +49,21 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
 
   int  _faceCount      = 0;
   bool _hadFaceBefore  = false;
+  bool _headPoseOk     = true;
 
-  _FaceStatus get _faceStatus => switch (_faceCount) {
-    1 => _FaceStatus.detected,
-    0 => _FaceStatus.none,
-    _ => _FaceStatus.multiple,
-  };
-  bool get _faceDetected => _faceCount == 1;
+  _LivenessState _livenessState = _LivenessState.waiting;
+
+  _FaceStatus get _faceStatus {
+    if (_faceCount == 0) return _FaceStatus.none;
+    if (_faceCount > 1)  return _FaceStatus.multiple;
+    return _livenessState == _LivenessState.passed
+        ? _FaceStatus.verified
+        : _FaceStatus.detected;
+  }
+
+  bool get _faceDetected   => _faceCount == 1;
+  bool get _readyToEnroll  =>
+      _faceDetected && _livenessState == _LivenessState.passed && !_isBusy;
 
   _EnrollStage _stage          = _EnrollStage.idle;
   String       _successMessage = '';
@@ -89,6 +106,8 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
       _faceCount      = 0;
       _hadFaceBefore  = false;
       _stage          = _EnrollStage.idle;
+      _livenessState  = _LivenessState.waiting;
+      _headPoseOk     = true;
     });
 
     final status = await Permission.camera.request();
@@ -147,19 +166,63 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
         final inputImage = _toInputImage(image);
         if (inputImage == null) return;
 
-        final faces = await _faceDetector.processImage(inputImage);
-        if (mounted) {
-          final count = _filterFacesInOval(faces, image.width, image.height).length;
-          if (count != _faceCount) {
-            setState(() => _faceCount = count);
-            if (count == 1 && !_hadFaceBefore) {
-              _hadFaceBefore = true;
-              HapticFeedback.lightImpact();
-            } else if (count == 0) {
-              _hadFaceBefore = false;
+        final faces         = await _faceDetector.processImage(inputImage);
+        final filteredFaces = _filterFacesInOval(faces, image.width, image.height);
+        final count         = filteredFaces.length;
+        final face          = count == 1 ? filteredFaces.first : null;
+
+        if (!mounted) return;
+
+        final newHeadOk = face == null || (
+          (face.headEulerAngleY?.abs() ?? 0) < _kYawMaxDeg &&
+          (face.headEulerAngleX?.abs() ?? 0) < _kPitchMaxDeg
+        );
+
+        _LivenessState newLiveness = _livenessState;
+        bool livePassed = false;
+
+        if (_livenessState != _LivenessState.passed) {
+          if (face == null) {
+            newLiveness = _LivenessState.waiting;
+          } else {
+            final lo = face.leftEyeOpenProbability;
+            final ro = face.rightEyeOpenProbability;
+            if (lo != null && ro != null) {
+              final bothOpen   = lo >= _kEyeOpenThreshold  && ro >= _kEyeOpenThreshold;
+              final bothClosed = lo <= _kEyeCloseThreshold && ro <= _kEyeCloseThreshold;
+              newLiveness = switch (_livenessState) {
+                _LivenessState.waiting  => bothOpen   ? _LivenessState.eyesOpen  : _LivenessState.waiting,
+                _LivenessState.eyesOpen => bothClosed ? _LivenessState.blinking  : _LivenessState.eyesOpen,
+                _LivenessState.blinking => bothOpen   ? _LivenessState.passed    : _LivenessState.blinking,
+                _LivenessState.passed   => _LivenessState.passed,
+              };
+              livePassed = newLiveness == _LivenessState.passed &&
+                           _livenessState != _LivenessState.passed;
             }
           }
         }
+
+        final faceChanged = count != _faceCount;
+
+        if (count != _faceCount ||
+            newHeadOk != _headPoseOk ||
+            newLiveness != _livenessState) {
+          setState(() {
+            _faceCount     = count;
+            _headPoseOk    = newHeadOk;
+            _livenessState = newLiveness;
+          });
+        }
+
+        if (faceChanged) {
+          if (count == 1 && !_hadFaceBefore) {
+            _hadFaceBefore = true;
+            HapticFeedback.lightImpact();
+          } else if (count == 0) {
+            _hadFaceBefore = false;
+          }
+        }
+        if (livePassed) HapticFeedback.mediumImpact();
       } catch (_) {
         // ignore per-frame errors
       } finally {
@@ -169,22 +232,15 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
     });
   }
 
-  /// Only count faces whose center falls within the oval guide area.
-  /// MLKit returns bounding boxes in the rotated (portrait) coordinate space
-  /// when rotation metadata is provided, so portrait width = imgH, portrait height = imgW
-  /// for a landscape-sensor camera with sensorOrientation 90 or 270.
   List<Face> _filterFacesInOval(List<Face> faces, int imgWidth, int imgHeight) {
     final orientation = _controller?.description.sensorOrientation ?? 270;
     final bool isRotated = orientation == 90 || orientation == 270;
     final double pW = isRotated ? imgHeight.toDouble() : imgWidth.toDouble();
-    final double pH = isRotated ? imgWidth.toDouble() : imgHeight.toDouble();
+    final double pH = isRotated ? imgWidth.toDouble()  : imgHeight.toDouble();
 
     return faces.where((face) {
       final box = face.boundingBox;
-      // Size gate: reject tiny faces (t-shirt prints, far-away people)
       if (box.width < pW * 0.18 || box.height < pH * 0.15) return false;
-      // Oval zone: centre (0.5, 0.42), semi-axes (0.40, 0.34) in normalised portrait coords.
-      // These match the _EnrollGuidePainter oval with a small margin added.
       final cx = box.center.dx / pW;
       final cy = box.center.dy / pH;
       final dx = (cx - 0.5) / 0.40;
@@ -211,9 +267,9 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
     return InputImage.fromBytes(
       bytes: bytes,
       metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format,
+        size:        Size(image.width.toDouble(), image.height.toDouble()),
+        rotation:    rotation,
+        format:      format,
         bytesPerRow: image.planes[0].bytesPerRow,
       ),
     );
@@ -239,8 +295,9 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
       if (mounted) setState(() => _stage = _EnrollStage.processing);
 
       final message = await ref.read(faceRemoteDatasourceProvider).selfEnrollFace(
-        imageBytes: compressed,
-        filename:   'enroll_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        imageBytes:       compressed,
+        filename:         'enroll_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        livenessVerified: true, // blink liveness was confirmed before capture
       );
 
       if (!mounted) return;
@@ -252,16 +309,16 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
       });
 
       await Future.delayed(const Duration(seconds: 2));
-      if (mounted) context.pop(true); // signal success to caller
+      if (mounted) context.pop(true);
     } catch (e) {
       if (!mounted) return;
 
       final msg = _humanizeError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(msg),
+          content:         Text(msg),
           backgroundColor: Colors.red.shade700,
-          duration: const Duration(seconds: 4),
+          duration:        const Duration(seconds: 4),
         ),
       );
 
@@ -269,6 +326,8 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
         _stage         = _EnrollStage.idle;
         _faceCount     = 0;
         _hadFaceBefore = false;
+        _livenessState = _LivenessState.waiting;
+        _headPoseOk    = true;
       });
       if (_controller != null && _controller!.value.isInitialized) {
         _startDetection(_controller!);
@@ -297,7 +356,7 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Daftarkan Wajah'),
+        title:           const Text('Daftarkan Wajah'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -351,8 +410,8 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
 
         // Instruction
         Positioned(
-          top: 24,
-          left: 0,
+          top:   24,
+          left:  0,
           right: 0,
           child: Column(
             children: [
@@ -360,8 +419,8 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
                 _instructionText,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: _instructionColor,
-                  fontSize: 15,
+                  color:      _instructionColor,
+                  fontSize:   15,
                   fontWeight: FontWeight.w600,
                   shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
                 ),
@@ -371,7 +430,7 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
                 'Foto wajah akan disimpan untuk check-in otomatis',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white54,
+                  color:   Colors.white54,
                   fontSize: 12,
                   shadows: [Shadow(blurRadius: 4, color: Colors.black)],
                 ),
@@ -383,12 +442,12 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
         // Enroll button
         Positioned(
           bottom: 48,
-          left: 0,
-          right: 0,
+          left:   0,
+          right:  0,
           child: Center(
             child: _EnrollButton(
-              enabled: _faceDetected && !_isBusy,
-              onPressed: (_faceDetected && !_isBusy) ? _onEnroll : null,
+              enabled:   _readyToEnroll,
+              onPressed: _readyToEnroll ? _onEnroll : null,
             ),
           ),
         ),
@@ -400,28 +459,40 @@ class _FaceSelfEnrollScreenState extends ConsumerState<FaceSelfEnrollScreen>
             _EnrollStage.capturing  => const _OverlayMessage(key: ValueKey('cap'),  label: 'Memotret wajah...'),
             _EnrollStage.processing => const _OverlayMessage(key: ValueKey('proc'), label: 'Mendaftarkan wajah...'),
             _EnrollStage.success    => _SuccessView(
-                key: const ValueKey('ok'),
+                key:     const ValueKey('ok'),
                 message: _successMessage,
-                onTap: () => context.pop(true),
+                onTap:   () => context.pop(true),
               ),
-            _EnrollStage.idle       => const SizedBox.shrink(key: ValueKey('idle')),
+            _EnrollStage.idle => const SizedBox.shrink(key: ValueKey('idle')),
           },
         ),
       ],
     );
   }
 
-  String get _instructionText => switch (_faceStatus) {
-    _FaceStatus.none     => 'Posisikan wajah Anda dalam oval',
-    _FaceStatus.detected => 'Wajah terdeteksi — tahan posisi',
-    _FaceStatus.multiple => 'Lebih dari 1 wajah — pastikan hanya Anda',
-  };
+  String get _instructionText {
+    if (_faceStatus == _FaceStatus.none)     return 'Posisikan wajah Anda dalam oval';
+    if (_faceStatus == _FaceStatus.multiple) return 'Lebih dari 1 wajah — pastikan hanya Anda';
+    if (!_headPoseOk)                        return 'Hadapkan wajah lurus ke kamera';
+    return switch (_livenessState) {
+      _LivenessState.waiting  => 'Kedipkan mata sekali untuk verifikasi',
+      _LivenessState.eyesOpen => 'Kedipkan mata...',
+      _LivenessState.blinking => 'Buka mata kembali...',
+      _LivenessState.passed   => 'Terverifikasi! Tekan Daftarkan Wajah',
+    };
+  }
 
-  Color get _instructionColor => switch (_faceStatus) {
-    _FaceStatus.none     => Colors.white,
-    _FaceStatus.detected => Colors.greenAccent,
-    _FaceStatus.multiple => Colors.orangeAccent,
-  };
+  Color get _instructionColor {
+    if (_faceStatus == _FaceStatus.none)     return Colors.white;
+    if (_faceStatus == _FaceStatus.multiple) return Colors.orangeAccent;
+    if (!_headPoseOk)                        return Colors.orangeAccent;
+    return switch (_livenessState) {
+      _LivenessState.waiting  => Colors.white70,
+      _LivenessState.eyesOpen => Colors.yellowAccent,
+      _LivenessState.blinking => Colors.yellowAccent,
+      _LivenessState.passed   => Colors.greenAccent,
+    };
+  }
 }
 
 // ── Oval guide painter ───────────────────────────────────────────────────────
@@ -445,7 +516,8 @@ class _EnrollGuidePainter extends CustomPainter {
 
     final borderColor = switch (status) {
       _FaceStatus.none     => Colors.white70,
-      _FaceStatus.detected => Colors.greenAccent,
+      _FaceStatus.detected => Colors.white70,
+      _FaceStatus.verified => Colors.greenAccent,
       _FaceStatus.multiple => Colors.orangeAccent,
     };
 
@@ -487,7 +559,7 @@ class _OverlayMessage extends StatelessWidget {
 
 // ── Success overlay ──────────────────────────────────────────────────────────
 class _SuccessView extends StatelessWidget {
-  final String message;
+  final String       message;
   final VoidCallback onTap;
   const _SuccessView({super.key, required this.message, required this.onTap});
 
@@ -502,7 +574,7 @@ class _SuccessView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 80,
+                width:  80,
                 height: 80,
                 decoration: const BoxDecoration(
                   color: Colors.green,
@@ -513,13 +585,13 @@ class _SuccessView extends StatelessWidget {
               const SizedBox(height: 20),
               Text(
                 message,
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style:     const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
                 'Kamu sekarang bisa check-in dengan wajah',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style:     TextStyle(color: Colors.white70, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -532,24 +604,24 @@ class _SuccessView extends StatelessWidget {
 
 // ── Enroll button ────────────────────────────────────────────────────────────
 class _EnrollButton extends StatelessWidget {
-  final bool     enabled;
+  final bool         enabled;
   final VoidCallback? onPressed;
   const _EnrollButton({required this.enabled, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
     return AnimatedOpacity(
-      opacity: enabled ? 1.0 : 0.4,
+      opacity:  enabled ? 1.0 : 0.4,
       duration: const Duration(milliseconds: 200),
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: const Icon(Icons.how_to_reg_outlined),
+        icon:  const Icon(Icons.how_to_reg_outlined),
         label: const Text('Daftar Wajah', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.indigo,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+          padding:         const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+          shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
         ),
       ),
     );
