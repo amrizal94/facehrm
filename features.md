@@ -24,4 +24,4 @@
 | Communication Suite (meeting/conference)        | Medium              | Gap        | Gap                            | P2       | - |
 | Multi-branch / multi-company                    | Medium              | Gap        | Gap                            | P2       | - |
 | Push Notifications (FCM)                        | Medium              | Gap        | Gap                            | P2       | In-app notif sudah ada, push belum |
-| Profile page mobile                             | Medium              | Done       | Gap                            | P2       | Staff belum bisa lihat/edit profil di mobile |
+| Profile page mobile                             | Medium              | Done       | Done                           | -        | All roles — view info, edit name/phone, change password |

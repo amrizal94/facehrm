@@ -26,6 +26,9 @@ class AppRoutes {
   static const String myTasks    = '/staff/tasks';
   static const String taskDetail = '/staff/tasks/:id';
 
+  // Profile (all roles)
+  static const String profile = '/profile';
+
   // HR / Admin
   static const String leaveApprovals       = '/hr/leave-approvals';
   static const String overtimeApprovals    = '/hr/overtime-approvals';

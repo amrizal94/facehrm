@@ -23,6 +23,7 @@ import '../../features/payslip/data/models/payslip_model.dart';
 import '../../features/payslip/presentation/screens/payslip_detail_screen.dart';
 import '../../features/payslip/presentation/screens/payslip_list_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
+import '../../features/auth/presentation/screens/profile_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../constants/app_constants.dart';
@@ -122,6 +123,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.taskDetail,
         builder: (_, state) => TaskDetailScreen(taskId: state.extra as int),
       ),
+      GoRoute(path: AppRoutes.profile,       builder: (_, __) => const ProfileScreen()),
 
       // HR / Admin
       GoRoute(path: AppRoutes.leaveApprovals,    builder: (_, __) => const LeaveApprovalsScreen()),

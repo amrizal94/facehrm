@@ -289,6 +289,13 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                 color: Colors.blue.shade700,
                 onTap: () => context.push(AppRoutes.notifications),
               ),
+              _MenuTile(
+                icon: Icons.person_outline,
+                title: 'My Profile',
+                subtitle: 'View & edit your profile and password',
+                color: Colors.grey.shade700,
+                onTap: () => context.push(AppRoutes.profile),
+              ),
             ],
           ),
         ),
