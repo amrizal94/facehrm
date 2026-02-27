@@ -1,5 +1,8 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/services/push_notification_service.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -26,11 +29,16 @@ class AuthRepositoryImpl implements AuthRepository {
     final res = await _dataSource.login(email: email, password: password);
     await _storage.saveToken(res.token);
     await _storage.saveUser(res.user.toJson());
+    unawaited(PushNotificationService.instance.registerToken(res.token));
     return _toEntity(res.user);
   }
 
   @override
   Future<void> logout() async {
+    final authToken = await _storage.getToken();
+    if (authToken != null) {
+      await PushNotificationService.instance.clearToken(authToken);
+    }
     try {
       await _dataSource.logout();
     } finally {

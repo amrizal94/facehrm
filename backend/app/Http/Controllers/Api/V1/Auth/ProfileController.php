@@ -58,4 +58,14 @@ class ProfileController extends Controller
             ],
         ]);
     }
+
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['fcm_token' => ['nullable', 'string', 'max:255']]);
+        $request->user()->update([
+            'fcm_token'            => $validated['fcm_token'],
+            'fcm_token_updated_at' => $validated['fcm_token'] ? now() : null,
+        ]);
+        return response()->json(['success' => true, 'message' => 'FCM token updated.']);
+    }
 }

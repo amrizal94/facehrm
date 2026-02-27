@@ -8,10 +8,11 @@ class ApiConstants {
   static const String baseUrl = 'https://hrm.kreasikaryaarjuna.co.id/api/v1';
 
   // Auth
-  static const String login   = '/auth/login';
-  static const String logout  = '/auth/logout';
-  static const String me      = '/auth/me';
-  static const String profile = '/auth/profile';
+  static const String login    = '/auth/login';
+  static const String logout   = '/auth/logout';
+  static const String me       = '/auth/me';
+  static const String profile  = '/auth/profile';
+  static const String fcmToken = '/auth/fcm-token';
 
   // Attendance
   static const String attendanceCheckIn  = '/attendance/check-in';

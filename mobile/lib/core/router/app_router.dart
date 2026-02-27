@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../services/push_notification_service.dart';
+
 import '../../features/attendance/presentation/screens/attendance_records_screen.dart';
 import '../../features/attendance/presentation/screens/my_attendance_screen.dart';
 import '../../features/face/presentation/screens/face_camera_screen.dart';
@@ -30,11 +32,14 @@ import '../constants/app_constants.dart';
 import '../../features/onboarding/presentation/screens/permission_setup_screen.dart';
 import 'app_routes.dart';
 
+final appNavigatorKey = GlobalKey<NavigatorState>();
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authNotifierProvider);
   final setupDone = ref.watch(permissionSetupDoneProvider);
 
-  return GoRouter(
+  final router = GoRouter(
+    navigatorKey: appNavigatorKey,
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
       final isAuthenticated = authState is AuthAuthenticated;
@@ -144,6 +149,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.unauthorized, builder: (_, __) => const _UnauthorizedScreen()),
     ],
   );
+
+  PushNotificationService.setRouter(router);
+  return router;
 });
 
 String _dashboardForRole(String role) => switch (role) {

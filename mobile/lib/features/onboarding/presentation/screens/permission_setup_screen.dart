@@ -30,8 +30,9 @@ class PermissionSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen> {
-  PermissionStatus _cameraStatus = PermissionStatus.denied;
-  PermissionStatus _locationStatus = PermissionStatus.denied;
+  PermissionStatus _cameraStatus       = PermissionStatus.denied;
+  PermissionStatus _locationStatus     = PermissionStatus.denied;
+  PermissionStatus _notificationStatus = PermissionStatus.denied;
   bool _loading = false;
 
   @override
@@ -41,12 +42,14 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen> {
   }
 
   Future<void> _checkPermissions() async {
-    final cam = await Permission.camera.status;
-    final loc = await Permission.locationWhenInUse.status;
+    final cam  = await Permission.camera.status;
+    final loc  = await Permission.locationWhenInUse.status;
+    final notif = await Permission.notification.status;
     if (!mounted) return;
     setState(() {
-      _cameraStatus = cam;
-      _locationStatus = loc;
+      _cameraStatus       = cam;
+      _locationStatus     = loc;
+      _notificationStatus = notif;
     });
   }
 
@@ -56,8 +59,10 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen> {
     setState(() {
       if (perm == Permission.camera) {
         _cameraStatus = result;
-      } else {
+      } else if (perm == Permission.locationWhenInUse) {
         _locationStatus = result;
+      } else {
+        _notificationStatus = result;
       }
     });
   }
@@ -73,7 +78,9 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen> {
   }
 
   bool get _anyDenied =>
-      !_cameraStatus.isGranted || !_locationStatus.isGranted;
+      !_cameraStatus.isGranted ||
+      !_locationStatus.isGranted ||
+      !_notificationStatus.isGranted;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +113,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Aplikasi ini membutuhkan akses kamera dan lokasi untuk fitur absensi wajah dan validasi geofence.',
+              'Aplikasi ini membutuhkan akses kamera, lokasi, dan notifikasi untuk fitur absensi wajah, validasi geofence, dan push notification.',
               textAlign: TextAlign.center,
               style: Theme.of(context)
                   .textTheme
@@ -128,6 +135,14 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen> {
               icon: Icons.location_on_rounded,
               status: _locationStatus,
               onRequest: () => _onRequest(Permission.locationWhenInUse),
+            ),
+            const SizedBox(height: 12),
+            _PermissionCard(
+              title: 'Notifikasi',
+              description: 'Diperlukan untuk menerima push notification approval cuti, lembur, dan task.',
+              icon: Icons.notifications_rounded,
+              status: _notificationStatus,
+              onRequest: () => _onRequest(Permission.notification),
             ),
             const SizedBox(height: 32),
             if (_anyDenied) ...[

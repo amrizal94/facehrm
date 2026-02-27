@@ -24,6 +24,8 @@ class User extends Authenticatable
         'phone',
         'avatar',
         'is_active',
+        'fcm_token',
+        'fcm_token_updated_at',
     ];
 
     /**
@@ -44,10 +46,16 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_active' => 'boolean',
+            'email_verified_at'    => 'datetime',
+            'password'             => 'hashed',
+            'is_active'            => 'boolean',
+            'fcm_token_updated_at' => 'datetime',
         ];
+    }
+
+    public function routeNotificationForFcm(): ?string
+    {
+        return $this->fcm_token ?: null;
     }
 
     public function employee(): \Illuminate\Database\Eloquent\Relations\HasOne

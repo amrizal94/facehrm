@@ -5,6 +5,10 @@ namespace App\Notifications;
 use App\Models\OvertimeRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\FCM\FcmChannel;
+use NotificationChannels\FCM\FcmMessage;
+use NotificationChannels\FCM\Resources\AndroidConfig;
+use NotificationChannels\FCM\Resources\Notification as FcmNotification;
 
 class OvertimeStatusChanged extends Notification
 {
@@ -14,7 +18,7 @@ class OvertimeStatusChanged extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', FcmChannel::class];
     }
 
     public function toDatabase(object $notifiable): array
@@ -42,5 +46,41 @@ class OvertimeStatusChanged extends Notification
             'request_id' => $this->overtimeRequest->id,
             'link'       => '/staff/overtime',
         ];
+    }
+
+    public function toFcm(object $notifiable): FcmMessage
+    {
+        $status = $this->overtimeRequest->status;
+        $date   = $this->overtimeRequest->date?->toDateString();
+        $hours  = $this->overtimeRequest->overtime_hours;
+
+        $title = match ($status) {
+            'approved' => 'Overtime Request Approved',
+            'rejected' => 'Overtime Request Rejected',
+            'cancelled'=> 'Overtime Request Cancelled',
+            default    => 'Overtime Request Updated',
+        };
+
+        $body = match ($status) {
+            'approved' => "Your overtime request on {$date} ({$hours}h) has been approved.",
+            'rejected' => "Your overtime request on {$date} ({$hours}h) has been rejected." .
+                ($this->overtimeRequest->rejection_reason ? " Reason: {$this->overtimeRequest->rejection_reason}" : ''),
+            'cancelled'=> "Your overtime request on {$date} ({$hours}h) has been cancelled.",
+            default    => "Your overtime request status has changed to {$status}.",
+        };
+
+        return FcmMessage::create()
+            ->setNotification(
+                FcmNotification::create()->setTitle($title)->setBody($body)
+            )
+            ->setData([
+                'type'       => 'overtime_status',
+                'status'     => $status,
+                'request_id' => (string) $this->overtimeRequest->id,
+                'link'       => '/staff/overtime',
+            ])
+            ->setAndroidConfig(
+                AndroidConfig::create()->setPriority(AndroidConfig::PRIORITY_HIGH)
+            );
     }
 }

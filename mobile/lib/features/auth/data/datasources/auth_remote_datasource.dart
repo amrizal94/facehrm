@@ -42,6 +42,14 @@ class AuthRemoteDataSource {
     }
   }
 
+  Future<void> updateFcmToken(String? token) async {
+    try {
+      await _dio.put(ApiConstants.fcmToken, data: {'fcm_token': token});
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<UserModel> updateProfile({
     String? name,
     String? phone,
