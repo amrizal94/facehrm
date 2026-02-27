@@ -69,7 +69,7 @@ class EmployeeController extends Controller
                 'email'     => $validated['email'],
                 'phone'     => $validated['phone'] ?? null,
                 'password'  => Hash::make($validated['password'] ?? $validated['employee_number']),
-                'is_active' => true,
+                'is_active' => false,
             ]);
 
             $user->assignRole('staff');
@@ -162,6 +162,19 @@ class EmployeeController extends Controller
             DB::rollBack();
             throw $e;
         }
+    }
+
+    public function toggleActive(Employee $employee): JsonResponse
+    {
+        $employee->user->update(['is_active' => ! $employee->user->is_active]);
+
+        $status = $employee->user->is_active ? 'activated' : 'deactivated';
+
+        return response()->json([
+            'success' => true,
+            'message' => "Employee account {$status}.",
+            'data'    => new EmployeeResource($employee->load(['user', 'department'])),
+        ]);
     }
 
     public function destroy(Employee $employee): JsonResponse

@@ -45,6 +45,11 @@ export async function deleteEmployee(id: number): Promise<void> {
   await api.delete(`/employees/${id}`)
 }
 
+export async function toggleEmployeeActive(id: number): Promise<Employee> {
+  const res = await api.patch(`/employees/${id}/toggle-active`)
+  return res.data.data
+}
+
 export async function fetchDepartments(params?: { is_active?: boolean; per_page?: number }): Promise<PaginatedDepartments> {
   const res = await api.get('/departments', { params: { per_page: 100, ...params } })
   return res.data

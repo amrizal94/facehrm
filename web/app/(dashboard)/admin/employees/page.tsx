@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Trash2, Power } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
-import { useDepartments, useEmployees } from '@/hooks/use-employees'
+import { useDepartments, useEmployees, useToggleEmployeeActive } from '@/hooks/use-employees'
 import { EmployeeFormDialog } from './employee-form-dialog'
 import { DeleteEmployeeDialog } from './delete-employee-dialog'
 import type { Employee, EmployeeFilters } from '@/types/employee'
@@ -55,6 +55,7 @@ export default function EmployeesPage() {
 
   const { data, isLoading } = useEmployees(filters)
   const { data: deptData } = useDepartments()
+  const toggleActive = useToggleEmployeeActive()
 
   const employees = data?.data ?? []
   const meta = data?.meta
@@ -170,6 +171,7 @@ export default function EmployeesPage() {
                 <TableHead>Salary</TableHead>
                 <TableHead>Join Date</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Login</TableHead>
                 <TableHead className="w-20 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -177,7 +179,7 @@ export default function EmployeesPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 9 }).map((__, j) => (
+                    {Array.from({ length: 10 }).map((__, j) => (
                       <TableCell key={j}>
                         <div className="h-4 bg-muted animate-pulse rounded" />
                       </TableCell>
@@ -186,7 +188,7 @@ export default function EmployeesPage() {
                 ))
               ) : employees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                     No employees found.
                   </TableCell>
                 </TableRow>
@@ -224,8 +226,29 @@ export default function EmployeesPage() {
                         {emp.status.replace('_', ' ')}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          emp.user.is_active
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {emp.user.is_active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 ${emp.user.is_active ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
+                          title={emp.user.is_active ? 'Nonaktifkan akun' : 'Aktifkan akun'}
+                          disabled={toggleActive.isPending}
+                          onClick={() => toggleActive.mutate(emp.id)}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

@@ -13,6 +13,7 @@
 | Task & Project Management                       | Medium-High         | Done       | Done                           | -        | Admin/HR CRUD; staff view+checklist |
 | Admin delete face data                          | Medium              | Done       | -                              | -        | Tombol delete per baris di /admin/face + confirm dialog |
 | Liveness / Anti-spoof                           | Medium              | -          | Done                           | -        | Blink detection (MLKit classification) + head pose gate; backend enforce liveness_verified |
+| Account Activation                              | Medium              | Done       | -                              | -        | Karyawan baru default nonaktif; admin aktifkan via tombol Power di tabel; login blocked jika nonaktif |
 | Check-in Method Policy                          | Medium              | Done       | Done                           | -        | Admin setting: Any / Face Only / Manual Only; mobile tombol tampil/sembunyi sesuai policy; backend enforce |
 | Face Descriptor Encryption (at-rest)           | Medium              | -          | -                              | -        | AES-256-CBC via Laravel encrypted:array cast; idempotent data migration |
 | Face Audit Log                                  | Medium              | -          | -                              | -        | Setiap event face (enroll/check-in/no_match/delete) dicatat di audit_logs |

@@ -28,11 +28,12 @@ class EmployeeResource extends JsonResource
             'tax_id'                  => $this->tax_id,
             'national_id'             => $this->national_id,
             'user'                    => $this->whenLoaded('user', fn() => [
-                'id'     => $this->user->id,
-                'name'   => $this->user->name,
-                'email'  => $this->user->email,
-                'phone'  => $this->user->phone,
-                'avatar' => $this->user->avatar,
+                'id'        => $this->user->id,
+                'name'      => $this->user->name,
+                'email'     => $this->user->email,
+                'phone'     => $this->user->phone,
+                'avatar'    => $this->user->avatar,
+                'is_active' => $this->user->is_active,
             ]),
             'department'              => $this->whenLoaded('department', fn() => [
                 'id'   => $this->department?->id,

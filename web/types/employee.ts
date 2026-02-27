@@ -36,6 +36,7 @@ export interface Employee {
     email: string
     phone?: string | null
     avatar?: string | null
+    is_active: boolean
   }
   department?: {
     id: number

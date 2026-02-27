@@ -105,6 +105,7 @@ Route::prefix('v1')->group(function () {
 
             Route::apiResource('departments', DepartmentController::class);
             Route::apiResource('employees',   EmployeeController::class);
+            Route::patch('employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive']);
 
             // Attendance management
             Route::get('attendance/summary',  [AttendanceController::class, 'summary']);

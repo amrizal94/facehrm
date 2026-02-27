@@ -7,6 +7,7 @@ import {
   deleteEmployee,
   fetchDepartments,
   fetchEmployees,
+  toggleEmployeeActive,
   updateEmployee,
 } from '@/lib/employee-api'
 import type { CreateEmployeeData, EmployeeFilters, UpdateEmployeeData } from '@/types/employee'
@@ -64,6 +65,20 @@ export function useDeleteEmployee() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] })
       toast.success('Employee deleted successfully.')
+    },
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err))
+    },
+  })
+}
+
+export function useToggleEmployeeActive() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => toggleEmployeeActive(id),
+    onSuccess: (emp) => {
+      qc.invalidateQueries({ queryKey: ['employees'] })
+      toast.success(emp.user.is_active ? 'Akun diaktifkan.' : 'Akun dinonaktifkan.')
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err))
