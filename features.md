@@ -12,7 +12,11 @@
 | Face Self-Enrollment                            | Medium              | -          | Done                           | -        | Staff daftar wajah sendiri via mobile |
 | Task & Project Management                       | Medium-High         | Done       | Done                           | -        | Admin/HR CRUD; staff view+checklist |
 | Admin delete face data                          | Medium              | Done       | -                              | -        | Tombol delete per baris di /admin/face + confirm dialog |
-| Liveness / Anti-spoof                           | Medium              | -          | Gap                            | P1       | - |
+| Liveness / Anti-spoof                           | Medium              | -          | Done                           | -        | Blink detection (MLKit classification) + head pose gate; backend enforce liveness_verified |
+| Check-in Method Policy                          | Medium              | Done       | Done                           | -        | Admin setting: Any / Face Only / Manual Only; mobile tombol tampil/sembunyi sesuai policy; backend enforce |
+| Face Descriptor Encryption (at-rest)           | Medium              | -          | -                              | -        | AES-256-CBC via Laravel encrypted:array cast; idempotent data migration |
+| Face Audit Log                                  | Medium              | -          | -                              | -        | Setiap event face (enroll/check-in/no_match/delete) dicatat di audit_logs |
+| APK Versioned Download                          | Low                 | Done       | -                              | -        | Halaman login tampil versi+tanggal APK; download filename = facehrm-v1.0.0-b71.apk |
 | GPS Attendance + Geofencing                     | High                | Done       | Done                           | -        | Lokasi dicatat di setiap check-in; geofence radius via Settings |
 | Anti-fake GPS detection                         | Medium-High         | -          | Done                           | -        | Deteksi isMocked (Android), backend reject jika mock=true |
 | Offline attendance + auto sync                  | Medium              | -          | Done                           | -        | Queue di shared_prefs, sync otomatis saat online, anti-duplikasi via 422 |

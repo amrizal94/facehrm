@@ -83,8 +83,13 @@ The `update.sh` script:
 5. `pm2 restart facehrm-web`
 6. Purge nginx proxy cache
 
-> **Note:** After deploy, copy APK manually if there are mobile changes:
-> `scp mobile/build/app/outputs/flutter-apk/app-release.apk root@45.66.153.156:/www/wwwroot/facehrm/web/public/app/facehrm.apk`
+> **Note:** For mobile changes, build and deploy APK separately using the dedicated script:
+> ```powershell
+> .\deploy-apk.ps1   # Windows PowerShell
+> # or
+> bash deploy-apk.sh  # Linux/macOS
+> ```
+> The script builds a versioned APK (`facehrm-v1.0.0-b{N}.apk`), uploads it, and updates `version.txt` so the login page shows the latest version.
 
 ## API Convention
 
