@@ -10,6 +10,8 @@ use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\FaceData;
 use App\Models\Setting;
+use App\Models\User;
+use App\Notifications\FakeGpsDetected;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -317,6 +319,43 @@ class FaceDataController extends Controller
     }
 
     // ---------------------------------------------------------------
+    private function rejectMockGps(Request $request, ?Employee $employee): ?JsonResponse
+    {
+        $isMock   = $request->boolean('is_mock_location');
+        $accuracy = $request->filled('location_accuracy')
+            ? (float) $request->input('location_accuracy')
+            : null;
+        $zeroAccuracy = $accuracy !== null && $accuracy === 0.0;
+
+        if (!$isMock && !$zeroAccuracy) return null;
+
+        $detectedVia = $isMock ? 'is_mock_location' : 'zero_accuracy';
+
+        AuditLog::record('fake_gps.attempt', $request, [
+            'latitude'     => $request->input('latitude'),
+            'longitude'    => $request->input('longitude'),
+            'accuracy'     => $accuracy,
+            'detected_via' => $detectedVia,
+        ], $employee ? 'employee' : null, $employee?->id);
+
+        if ($employee) {
+            $notification = new FakeGpsDetected(
+                $employee,
+                $request->filled('latitude')  ? (float) $request->input('latitude')  : null,
+                $request->filled('longitude') ? (float) $request->input('longitude') : null,
+                $accuracy,
+                $detectedVia,
+            );
+            User::role(['admin', 'hr'])->each(fn($u) => $u->notify($notification));
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Fake GPS detected. Please disable mock location and try again.',
+        ], 422);
+    }
+
+    // ---------------------------------------------------------------
     private function validateGeofence(mixed $lat, mixed $lng): ?JsonResponse
     {
         $enabled = Setting::get('attendance.geofence_enabled', '0') === '1';
@@ -443,10 +482,9 @@ class FaceDataController extends Controller
             ], 422);
         }
 
-        // Reject mock/fake GPS
-        if ($request->boolean('is_mock_location')) {
-            return response()->json(['success' => false, 'message' => 'Fake GPS detected. Please disable mock location and try again.'], 422);
-        }
+        // Reject mock/fake GPS (use auth user's employee for audit log)
+        $mockReject = $this->rejectMockGps($request, $request->user()->employee);
+        if ($mockReject) return $mockReject;
 
         // Geofence check
         $geoError = $this->validateGeofence($request->input('latitude'), $request->input('longitude'));

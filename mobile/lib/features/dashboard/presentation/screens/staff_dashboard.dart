@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/router/app_routes.dart';
+import '../../../../../core/services/location_service.dart';
+import '../../../../../core/widgets/mock_gps_warning_dialog.dart';
 import '../../../attendance/data/models/attendance_policy_model.dart';
 import '../../../attendance/presentation/providers/attendance_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -309,14 +311,21 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
   }
 
   Future<void> _doCheckIn(BuildContext context) async {
+    // Capture messenger synchronously before any await
     final messenger = ScaffoldMessenger.of(context);
+    final location = await LocationService.getCurrentLocation();
+    if (!mounted) return;
+    if (location != null && location.isMocked) {
+      // ignore: use_build_context_synchronously
+      await showMockGpsWarningDialog(context);
+      return;
+    }
     final err = await ref.read(todayAttendanceProvider.notifier).checkIn();
     if (!mounted) return;
     if (err != null) {
       messenger.showSnackBar(SnackBar(content: Text(err)));
     } else {
-      final isPending =
-          ref.read(todayAttendanceProvider).value?.isPending == true;
+      final isPending = ref.read(todayAttendanceProvider).value?.isPending == true;
       messenger.showSnackBar(SnackBar(
         content: Text(isPending
             ? 'Check-in saved offline. Will sync when connected.'
@@ -327,14 +336,21 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
   }
 
   Future<void> _doCheckOut(BuildContext context) async {
+    // Capture messenger synchronously before any await
     final messenger = ScaffoldMessenger.of(context);
+    final location = await LocationService.getCurrentLocation();
+    if (!mounted) return;
+    if (location != null && location.isMocked) {
+      // ignore: use_build_context_synchronously
+      await showMockGpsWarningDialog(context);
+      return;
+    }
     final err = await ref.read(todayAttendanceProvider.notifier).checkOut();
     if (!mounted) return;
     if (err != null) {
       messenger.showSnackBar(SnackBar(content: Text(err)));
     } else {
-      final isPending =
-          ref.read(todayAttendanceProvider).value?.isPending == true;
+      final isPending = ref.read(todayAttendanceProvider).value?.isPending == true;
       messenger.showSnackBar(SnackBar(
         content: Text(isPending
             ? 'Check-out saved offline. Will sync when connected.'

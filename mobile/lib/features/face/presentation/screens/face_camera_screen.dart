@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/widgets/mock_gps_warning_dialog.dart';
 import '../../../../features/attendance/presentation/providers/attendance_provider.dart';
 import '../../data/datasources/face_remote_datasource.dart';
 
@@ -346,6 +347,25 @@ class _FaceCameraScreenState extends ConsumerState<FaceCameraScreen>
       if (mounted) setState(() => _captureStatus = _CaptureStatus.processing);
 
       final location = await LocationService.getCurrentLocation();
+
+      if (location != null && location.isMocked) {
+        if (!mounted) return;
+        await showMockGpsWarningDialog(context);
+        if (mounted) {
+          setState(() {
+            _captureStatus = _CaptureStatus.idle;
+            _faceCount     = 0;
+            _hadFaceBefore = false;
+            _livenessState = _LivenessState.waiting;
+            _headPoseOk    = true;
+          });
+          if (_controller != null && _controller!.value.isInitialized) {
+            _startDetection(_controller!);
+          }
+        }
+        return;
+      }
+
       final action   = widget.action == FaceAction.checkIn ? 'check_in' : 'check_out';
       final message  = await ref.read(faceRemoteDatasourceProvider).faceAttendance(
         imageBytes:       compressed,

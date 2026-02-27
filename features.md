@@ -19,7 +19,7 @@
 | Face Audit Log                                  | Medium              | -          | -                              | -        | Setiap event face (enroll/check-in/no_match/delete) dicatat di audit_logs |
 | APK Versioned Download                          | Low                 | Done       | -                              | -        | Halaman login tampil versi+tanggal APK; download filename = facehrm-v1.0.0-b71.apk |
 | GPS Attendance + Geofencing                     | High                | Done       | Done                           | -        | Lokasi dicatat di setiap check-in; geofence radius via Settings |
-| Anti-fake GPS detection                         | Medium-High         | -          | Done                           | -        | Deteksi isMocked (Android), backend reject jika mock=true |
+| Anti-fake GPS detection (Hardened)              | Medium-High         | -          | Done                           | -        | Mobile: hard-block dialog sebelum API call jika isMocked; Backend: reject `is_mock_location=true` + heuristik `accuracy==0.0`; AuditLog + notifikasi database ke admin/HR setiap percobaan |
 | Offline attendance + auto sync                  | Medium              | -          | Done                           | -        | Queue di shared_prefs, sync otomatis saat online, anti-duplikasi via 422 |
 | Dashboard Admin Mobile (full)                   | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
 | Dashboard HR Mobile (full)                      | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
