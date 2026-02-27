@@ -3,15 +3,13 @@ set -euo pipefail
 
 SERVER="${SERVER:-root@45.66.153.156}"
 REMOTE_DIR="${REMOTE_DIR:-/www/wwwroot/facehrm/web/public/app}"
-REMOTE_FILE="${REMOTE_FILE:-facehrm.apk}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
-APK_URL="${APK_URL:-https://hrm.kreasikaryaarjuna.co.id/app/facehrm.apk}"
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Windows warning ────────────────────────────────────────────────────────────
 if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" ]]; then
-  echo "⚠️  Windows detected — pkill tidak efektif di MSYS."
+  echo "WARNING: Windows detected -- pkill tidak efektif di MSYS."
   echo "    Gunakan deploy-apk.ps1 (PowerShell) untuk kill java/dart dengan benar."
 fi
 
@@ -20,6 +18,10 @@ VERSION_NAME=$(grep '^version:' "$ROOT_DIR/mobile/pubspec.yaml" \
   | sed 's/version: //' | cut -d'+' -f1 | tr -d '[:space:]')
 BUILD_NUM=$(git -C "$ROOT_DIR" rev-list --count HEAD)
 echo "==> Version: v$VERSION_NAME (build $BUILD_NUM)"
+
+# Versioned filename: facehrm-v1.0.0-b64.apk
+VERSIONED_FILE="facehrm-v${VERSION_NAME}-b${BUILD_NUM}.apk"
+STATIC_FILE="facehrm.apk"
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 cd "$ROOT_DIR/mobile"
@@ -37,7 +39,7 @@ pkill -f "adb"  >/dev/null 2>&1 || true
 echo "==> Clean build artifacts"
 rm -rf ./build ./android/.gradle
 
-echo "==> Build APK release (arm64 — ~40% lebih kecil dari fat APK)"
+echo "==> Build APK release (arm64 -- ~40% lebih kecil dari fat APK)"
 flutter build apk --release \
   --target-platform android-arm64 \
   --build-name="$VERSION_NAME" \
@@ -54,20 +56,28 @@ echo "==> APK size: $APK_SIZE"
 
 # ── Deploy ────────────────────────────────────────────────────────────────────
 STAMP="$(date +%Y%m%d-%H%M%S)"
-REMOTE_PATH="$REMOTE_DIR/$REMOTE_FILE"
-BACKUP_PATH="$REMOTE_DIR/${REMOTE_FILE}.bak-$STAMP"
+STATIC_PATH="$REMOTE_DIR/$STATIC_FILE"
+BACKUP_PATH="$REMOTE_DIR/${STATIC_FILE}.bak-$STAMP"
 
-echo "==> Backup existing APK (if any): $BACKUP_PATH"
+echo "==> Backup facehrm.apk lama (jika ada): $BACKUP_PATH"
 ssh -i "$SSH_KEY" "$SERVER" \
-  "if [ -f '$REMOTE_PATH' ]; then cp '$REMOTE_PATH' '$BACKUP_PATH'; fi"
+  "if [ -f '$STATIC_PATH' ]; then cp '$STATIC_PATH' '$BACKUP_PATH'; fi"
 
-echo "==> Upload APK baru (gunakan Ctrl+C untuk batal)"
-scp -i "$SSH_KEY" "$APK_PATH" "$SERVER:$REMOTE_PATH"
+echo "==> Upload as versioned: $VERSIONED_FILE"
+scp -i "$SSH_KEY" "$APK_PATH" "$SERVER:$REMOTE_DIR/$VERSIONED_FILE"
 
-echo "==> Write version.txt"
+echo "==> Update facehrm.apk (copy dari versioned, untuk backward compat)"
+ssh -i "$SSH_KEY" "$SERVER" \
+  "cp '$REMOTE_DIR/$VERSIONED_FILE' '$STATIC_PATH'"
+
+echo "==> Write version.txt (2 baris: version string + filename)"
 TODAY="$(date +%Y-%m-%d)"
 ssh -i "$SSH_KEY" "$SERVER" \
-  "echo 'v$VERSION_NAME (build $BUILD_NUM) — $TODAY' > '$REMOTE_DIR/version.txt'"
+  "printf 'v%s (build %s) - %s\n%s\n' '$VERSION_NAME' '$BUILD_NUM' '$TODAY' '$VERSIONED_FILE' > '$REMOTE_DIR/version.txt'"
+
+echo "==> Cleanup versioned APK lama (keep 3 terbaru)"
+ssh -i "$SSH_KEY" "$SERVER" \
+  "ls -t '$REMOTE_DIR'/facehrm-v*-b*.apk 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null; true"
 
 echo "==> Cleanup backup lebih dari 7 hari"
 ssh -i "$SSH_KEY" "$SERVER" \
@@ -75,14 +85,15 @@ ssh -i "$SSH_KEY" "$SERVER" \
 
 echo "==> Verifikasi file remote"
 ssh -i "$SSH_KEY" "$SERVER" \
-  "ls -lh '$REMOTE_PATH' && cat '$REMOTE_DIR/version.txt'"
+  "ls -lh '$REMOTE_DIR/$VERSIONED_FILE' '$STATIC_PATH' && echo '---' && cat '$REMOTE_DIR/version.txt'"
 
-echo "==> Verifikasi URL publik..."
+echo "==> Verifikasi URL publik (versioned)..."
+APK_URL="https://hrm.kreasikaryaarjuna.co.id/app/$VERSIONED_FILE"
 HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" -I --max-time 10 "$APK_URL")
 if (( HTTP_CODE < 200 || HTTP_CODE >= 400 )); then
-  echo "❌ APK tidak accessible di $APK_URL (HTTP $HTTP_CODE)" >&2
+  echo "APK tidak accessible di $APK_URL (HTTP $HTTP_CODE)" >&2
   exit 1
 fi
-echo "✅ APK accessible (HTTP $HTTP_CODE): $APK_URL"
+echo "OK APK accessible (HTTP $HTTP_CODE): $APK_URL"
 
-echo "✅ Deploy selesai: v$VERSION_NAME (build $BUILD_NUM)"
+echo "DONE Deploy selesai: v$VERSION_NAME (build $BUILD_NUM) -> $VERSIONED_FILE"

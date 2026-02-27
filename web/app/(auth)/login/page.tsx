@@ -3,37 +3,39 @@ import { LoginForm } from './login-form'
 export const dynamic = 'force-dynamic'
 
 // ── Fetch APK version from /app/version.txt written by deploy-apk.sh ─────────
-// Format on server: "v1.0.0 (build 47) — 2026-02-26"
-// Returns e.g. { version: 'v1.0.0 (build 47)', date: '27 Feb 2026' } or null
-async function getApkInfo(): Promise<{ version: string; date: string } | null> {
-  // Derive base URL from NEXT_PUBLIC_API_URL (remove /api/v1 suffix)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ''
+// Format: line 1 = "v1.0.0 (build 64) - 2026-02-27"
+//         line 2 = "facehrm-v1.0.0-b64.apk"  (versioned filename)
+// Returns { version, date, filename } or null
+async function getApkInfo(): Promise<{ version: string; date: string; filename: string } | null> {
+  const apiUrl  = process.env.NEXT_PUBLIC_API_URL ?? ''
   const baseUrl = apiUrl.replace(/\/api\/v1\/?$/, '')
   if (!baseUrl) return null
   try {
     const res = await fetch(`${baseUrl}/app/version.txt`, {
-      cache: 'no-store',
+      cache:  'no-store',
       signal: AbortSignal.timeout(3000),
     })
     if (!res.ok) return null
-    const text = (await res.text()).trim()
-    // "v1.0.0 (build 47) — 2026-02-26"
-    const parts = text.split('—')
-    const version = parts[0]?.trim() ?? ''
-    const rawDate = parts[1]?.trim() ?? ''
+    const lines    = (await res.text()).trim().split('\n').map(l => l.trim()).filter(Boolean)
+    const versionLine = lines[0] ?? ''
+    const filename    = lines[1] ?? 'facehrm.apk' // fallback to static name
+    if (!versionLine) return null
+
+    // "v1.0.0 (build 64) - 2026-02-27"
+    const dashIdx  = versionLine.lastIndexOf(' - ')
+    const version  = (dashIdx > 0 ? versionLine.slice(0, dashIdx) : versionLine).trim()
+    const rawDate  = dashIdx > 0 ? versionLine.slice(dashIdx + 3).trim() : ''
     let date = ''
     if (rawDate) {
       try {
         date = new Date(rawDate).toLocaleDateString('id-ID', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
+          day: 'numeric', month: 'short', year: 'numeric',
         })
       } catch {
         date = rawDate
       }
     }
-    return version ? { version, date } : null
+    return { version, date, filename }
   } catch {
     return null
   }
@@ -95,8 +97,8 @@ export default async function LoginPage() {
             )}
           </div>
           <a
-            href="/app/facehrm.apk"
-            download="FaceHRM.apk"
+            href={apkInfo ? `/app/${apkInfo.filename}` : '/app/facehrm.apk'}
+            download={apkInfo ? `FaceHRM-${apkInfo.filename.replace('facehrm-', '')}` : 'FaceHRM.apk'}
             className="shrink-0 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

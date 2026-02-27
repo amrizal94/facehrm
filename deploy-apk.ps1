@@ -1,9 +1,7 @@
 param(
   [string]$Server    = "root@45.66.153.156",
   [string]$RemoteDir = "/www/wwwroot/facehrm/web/public/app",
-  [string]$RemoteFile = "facehrm.apk",
-  [string]$SshKey    = "$env:USERPROFILE\.ssh\id_ed25519",
-  [string]$ApkUrl    = "https://hrm.kreasikaryaarjuna.co.id/app/facehrm.apk"
+  [string]$SshKey    = "$env:USERPROFILE\.ssh\id_ed25519"
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,9 +13,13 @@ if ([string]::IsNullOrWhiteSpace($root)) { $root = (Get-Location).Path }
 $pubspecLine = Get-Content (Join-Path $root "mobile\pubspec.yaml") |
                Where-Object { $_ -match "^version:" } |
                Select-Object -First 1
-$versionName = ($pubspecLine -replace "version:\s*", "").Trim().Split("+")[0]
-$buildNum    = (git -C $root rev-list --count HEAD).Trim()
+$versionName  = ($pubspecLine -replace "version:\s*", "").Trim().Split("+")[0]
+$buildNum     = (git -C $root rev-list --count HEAD).Trim()
 Write-Host "==> Version: v$versionName (build $buildNum)"
+
+# Versioned filename: facehrm-v1.0.0-b64.apk
+$versionedFile = "facehrm-v${versionName}-b${buildNum}.apk"
+$staticFile    = "facehrm.apk"
 
 # -- Build ---------------------------------------------------------------------
 Set-Location (Join-Path $root "mobile")
@@ -56,37 +58,45 @@ Write-Host ("==> APK size: {0:N1} MB" -f $apkSize)
 
 # -- Deploy --------------------------------------------------------------------
 $stamp      = Get-Date -Format "yyyyMMdd-HHmmss"
-$remotePath = "$RemoteDir/$RemoteFile"
-$backupPath = "$RemoteDir/$RemoteFile.bak-$stamp"
+$staticPath    = "$RemoteDir/$staticFile"
+$backupPath    = "$RemoteDir/${staticFile}.bak-$stamp"
+$versionedPath = "$RemoteDir/$versionedFile"
 
-Write-Host "==> Backup file lama (jika ada): $backupPath"
-ssh -i $SshKey $Server "if [ -f '$remotePath' ]; then cp '$remotePath' '$backupPath'; fi"
+Write-Host "==> Backup facehrm.apk lama (jika ada)"
+ssh -i $SshKey $Server "if [ -f '$staticPath' ]; then cp '$staticPath' '$backupPath'; fi"
 
-Write-Host "==> Upload APK baru (gunakan Ctrl+C untuk batal)"
-scp -i $SshKey $localApk "${Server}:${remotePath}"
+Write-Host "==> Upload as versioned: $versionedFile"
+scp -i $SshKey $localApk "${Server}:${versionedPath}"
 
-Write-Host "==> Write version.txt"
+Write-Host "==> Update facehrm.apk (copy dari versioned, untuk backward compat)"
+ssh -i $SshKey $Server "cp '$versionedPath' '$staticPath'"
+
+Write-Host "==> Write version.txt (2 baris: version string + filename)"
 $today       = Get-Date -Format "yyyy-MM-dd"
-$versionText = "v$versionName (build $buildNum) - $today"
-ssh -i $SshKey $Server "echo '$versionText' > '$RemoteDir/version.txt'"
+$versionLine = "v$versionName (build $buildNum) - $today"
+ssh -i $SshKey $Server "printf '%s\n%s\n' '$versionLine' '$versionedFile' > '$RemoteDir/version.txt'"
+
+Write-Host "==> Cleanup versioned APK lama (keep 3 terbaru)"
+ssh -i $SshKey $Server "ls -t '$RemoteDir'/facehrm-v*-b*.apk 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null; true"
 
 Write-Host "==> Cleanup backup lebih dari 7 hari"
 ssh -i $SshKey $Server "find '$RemoteDir' -name '*.bak-*' -mtime +7 -delete 2>/dev/null; true"
 
 Write-Host "==> Verifikasi file remote"
-ssh -i $SshKey $Server "ls -lh '$remotePath' && cat '$RemoteDir/version.txt'"
+ssh -i $SshKey $Server "ls -lh '$versionedPath' '$staticPath' && echo '---' && cat '$RemoteDir/version.txt'"
 
-Write-Host "==> Verifikasi URL publik..."
+Write-Host "==> Verifikasi URL publik (versioned)..."
+$apkUrl = "https://hrm.kreasikaryaarjuna.co.id/app/$versionedFile"
 try {
-  $response = Invoke-WebRequest -Uri $ApkUrl -Method Head `
+  $response = Invoke-WebRequest -Uri $apkUrl -Method Head `
                                 -TimeoutSec 10 -UseBasicParsing
   $httpCode = $response.StatusCode
 } catch {
   $httpCode = 0
 }
 if ($httpCode -lt 200 -or $httpCode -ge 400) {
-  throw "APK tidak accessible di $ApkUrl (HTTP $httpCode)"
+  throw "APK tidak accessible di $apkUrl (HTTP $httpCode)"
 }
-Write-Host "OK APK accessible (HTTP $httpCode): $ApkUrl"
+Write-Host "OK APK accessible (HTTP $httpCode): $apkUrl"
 
-Write-Host "DONE Deploy selesai: v$versionName (build $buildNum)"
+Write-Host "DONE Deploy selesai: v$versionName (build $buildNum) -> $versionedFile"
