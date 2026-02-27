@@ -7,7 +7,8 @@ class AppRoutes {
   static const String adminDashboard = '/dashboard/admin';
   static const String hrDashboard    = '/dashboard/hr';
   static const String staffDashboard = '/dashboard/staff';
-  static const String unauthorized   = '/unauthorized';
+  static const String unauthorized      = '/unauthorized';
+  static const String permissionSetup   = '/permission-setup';
 
   // Staff features
   static const String faceCheckin  = '/staff/face-checkin';

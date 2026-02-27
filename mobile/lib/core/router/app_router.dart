@@ -27,10 +27,12 @@ import '../../features/auth/presentation/screens/profile_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../constants/app_constants.dart';
+import '../../features/onboarding/presentation/screens/permission_setup_screen.dart';
 import 'app_routes.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authNotifierProvider);
+  final setupDone = ref.watch(permissionSetupDoneProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -48,7 +50,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // While login submit is in progress, stay on login (avoid flicker to splash).
       if (isSubmittingAuth && isLoginRoute) return null;
 
-      if (!isAuthenticated) return isLoginRoute ? null : AppRoutes.login;
+      if (!isAuthenticated) {
+        final isSetupRoute =
+            state.matchedLocation == AppRoutes.permissionSetup;
+        if (!setupDone) {
+          return isSetupRoute ? null : AppRoutes.permissionSetup;
+        }
+        return isLoginRoute ? null : AppRoutes.login;
+      }
       if (isLoginRoute || isSplashRoute) {
         if (authState case AuthAuthenticated(:final user)) {
           return _dashboardForRole(user.role);
@@ -57,8 +66,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: AppRoutes.splash, builder: (_, __) => const _SplashScreen()),
-      GoRoute(path: AppRoutes.login,  builder: (_, __) => const LoginScreen()),
+      GoRoute(path: AppRoutes.splash,          builder: (_, __) => const _SplashScreen()),
+      GoRoute(path: AppRoutes.login,           builder: (_, __) => const LoginScreen()),
+      GoRoute(path: AppRoutes.permissionSetup, builder: (_, __) => const PermissionSetupScreen()),
 
       // Admin
       GoRoute(
