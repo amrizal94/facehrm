@@ -5,10 +5,9 @@ namespace App\Notifications;
 use App\Models\Employee;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\FCM\FcmChannel;
-use NotificationChannels\FCM\FcmMessage;
-use NotificationChannels\FCM\Resources\AndroidConfig;
-use NotificationChannels\FCM\Resources\Notification as FcmNotification;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 
 class FakeGpsDetected extends Notification
 {
@@ -49,19 +48,16 @@ class FakeGpsDetected extends Notification
         $name = $this->employee->user?->name ?? $this->employee->employee_number;
 
         return FcmMessage::create()
-            ->setNotification(
+            ->notification(
                 FcmNotification::create()
-                    ->setTitle('Percobaan Fake GPS Terdeteksi')
-                    ->setBody("Karyawan {$name} mencoba absensi dengan GPS palsu (via {$this->detectedVia}).")
+                    ->title('Percobaan Fake GPS Terdeteksi')
+                    ->body("Karyawan {$name} mencoba absensi dengan GPS palsu (via {$this->detectedVia}).")
             )
-            ->setData([
+            ->data([
                 'type'          => 'fake_gps',
                 'employee_id'   => (string) $this->employee->id,
                 'employee_name' => $name,
                 'link'          => '/hr/attendance-records',
-            ])
-            ->setAndroidConfig(
-                AndroidConfig::create()->setPriority(AndroidConfig::PRIORITY_HIGH)
-            );
+            ]);
     }
 }

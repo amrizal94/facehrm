@@ -5,10 +5,9 @@ namespace App\Notifications;
 use App\Models\Task;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\FCM\FcmChannel;
-use NotificationChannels\FCM\FcmMessage;
-use NotificationChannels\FCM\Resources\AndroidConfig;
-use NotificationChannels\FCM\Resources\Notification as FcmNotification;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 
 class TaskAssigned extends Notification
 {
@@ -39,18 +38,15 @@ class TaskAssigned extends Notification
         $project = $this->task->project?->name ?? 'No Project';
 
         return FcmMessage::create()
-            ->setNotification(
+            ->notification(
                 FcmNotification::create()
-                    ->setTitle('New Task Assigned')
-                    ->setBody("You have been assigned: \"{$this->task->title}\" (Project: {$project})")
+                    ->title('New Task Assigned')
+                    ->body("You have been assigned: \"{$this->task->title}\" (Project: {$project})")
             )
-            ->setData([
+            ->data([
                 'type'    => 'task_assigned',
                 'task_id' => (string) $this->task->id,
                 'link'    => '/staff/tasks',
-            ])
-            ->setAndroidConfig(
-                AndroidConfig::create()->setPriority(AndroidConfig::PRIORITY_HIGH)
-            );
+            ]);
     }
 }

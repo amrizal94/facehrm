@@ -5,10 +5,9 @@ namespace App\Notifications;
 use App\Models\LeaveRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\FCM\FcmChannel;
-use NotificationChannels\FCM\FcmMessage;
-use NotificationChannels\FCM\Resources\AndroidConfig;
-use NotificationChannels\FCM\Resources\Notification as FcmNotification;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 
 class LeaveStatusChanged extends Notification
 {
@@ -70,17 +69,12 @@ class LeaveStatusChanged extends Notification
         };
 
         return FcmMessage::create()
-            ->setNotification(
-                FcmNotification::create()->setTitle($title)->setBody($body)
-            )
-            ->setData([
+            ->notification(FcmNotification::create()->title($title)->body($body))
+            ->data([
                 'type'       => 'leave_status',
                 'status'     => $status,
                 'request_id' => (string) $this->leaveRequest->id,
                 'link'       => '/staff/leave',
-            ])
-            ->setAndroidConfig(
-                AndroidConfig::create()->setPriority(AndroidConfig::PRIORITY_HIGH)
-            );
+            ]);
     }
 }

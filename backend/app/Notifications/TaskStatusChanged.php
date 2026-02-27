@@ -5,10 +5,9 @@ namespace App\Notifications;
 use App\Models\Task;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use NotificationChannels\FCM\FcmChannel;
-use NotificationChannels\FCM\FcmMessage;
-use NotificationChannels\FCM\Resources\AndroidConfig;
-use NotificationChannels\FCM\Resources\Notification as FcmNotification;
+use NotificationChannels\Fcm\FcmChannel;
+use NotificationChannels\Fcm\FcmMessage;
+use NotificationChannels\Fcm\Resources\Notification as FcmNotification;
 
 class TaskStatusChanged extends Notification
 {
@@ -35,18 +34,15 @@ class TaskStatusChanged extends Notification
     public function toFcm(object $notifiable): FcmMessage
     {
         return FcmMessage::create()
-            ->setNotification(
+            ->notification(
                 FcmNotification::create()
-                    ->setTitle('Task Cancelled')
-                    ->setBody("Task \"{$this->task->title}\" has been cancelled.")
+                    ->title('Task Cancelled')
+                    ->body("Task \"{$this->task->title}\" has been cancelled.")
             )
-            ->setData([
+            ->data([
                 'type'    => 'task_status',
                 'task_id' => (string) $this->task->id,
                 'link'    => '/staff/tasks',
-            ])
-            ->setAndroidConfig(
-                AndroidConfig::create()->setPriority(AndroidConfig::PRIORITY_HIGH)
-            );
+            ]);
     }
 }
