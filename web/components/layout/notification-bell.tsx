@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell, CheckCheck, CalendarDays, Timer, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -140,6 +141,16 @@ export function NotificationBell() {
               />
             ))
           )}
+        </div>
+
+        {/* Footer — View all */}
+        <div className="border-t px-4 py-2.5 text-center">
+          <Link
+            href="/notifications"
+            className="text-xs text-primary hover:underline font-medium"
+          >
+            View all notifications
+          </Link>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
