@@ -1,7 +1,9 @@
 param(
   [string]$Server    = "root@45.66.153.156",
   [string]$RemoteDir = "/www/wwwroot/facehrm/web/public/app",
-  [string]$RemoteFile = "facehrm.apk"
+  [string]$RemoteFile = "facehrm.apk",
+  [string]$SshKey    = "$env:USERPROFILE\.ssh\id_ed25519",
+  [string]$ApkUrl    = "https://hrm.kreasikaryaarjuna.co.id/app/facehrm.apk"
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,12 +22,27 @@ Write-Host "==> Version: v$versionName (build $buildNum)"
 # ── Build ─────────────────────────────────────────────────────────────────────
 Set-Location (Join-Path $root "mobile")
 
-Write-Host "==> Kill java.exe locks & clean build"
-taskkill /F /IM java.exe 2>$null | Out-Null
-Remove-Item -Recurse -Force .\build -ErrorAction SilentlyContinue
+Write-Host "==> Stop Gradle daemon (best effort)"
+Set-Location .\android
+if (Test-Path .\gradlew.bat) {
+  .\gradlew.bat --stop 2>$null | Out-Null
+} elseif (Test-Path .\gradlew) {
+  .\gradlew --stop 2>$null | Out-Null
+}
+Set-Location ..
 
-Write-Host "==> Build APK release"
+Write-Host "==> Kill lock-prone processes (java/dart/adb)"
+taskkill /F /IM java.exe 2>$null | Out-Null
+taskkill /F /IM dart.exe 2>$null | Out-Null
+taskkill /F /IM adb.exe  2>$null | Out-Null
+
+Write-Host "==> Clean build artifacts"
+Remove-Item -Recurse -Force .\build          -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force .\android\.gradle -ErrorAction SilentlyContinue
+
+Write-Host "==> Build APK release (arm64 — ~40% lebih kecil dari fat APK)"
 flutter build apk --release `
+  --target-platform android-arm64 `
   --build-name="$versionName" `
   --build-number="$buildNum"
 
@@ -34,23 +51,42 @@ if (!(Test-Path $localApk)) {
   throw "APK tidak ditemukan: $localApk"
 }
 
+$apkSize = (Get-Item $localApk).Length / 1MB
+Write-Host ("==> APK size: {0:N1} MB" -f $apkSize)
+
 # ── Deploy ────────────────────────────────────────────────────────────────────
 $stamp      = Get-Date -Format "yyyyMMdd-HHmmss"
 $remotePath = "$RemoteDir/$RemoteFile"
 $backupPath = "$RemoteDir/$RemoteFile.bak-$stamp"
 
 Write-Host "==> Backup file lama (jika ada): $backupPath"
-ssh $Server "if [ -f '$remotePath' ]; then cp '$remotePath' '$backupPath'; fi"
+ssh -i $SshKey $Server "if [ -f '$remotePath' ]; then cp '$remotePath' '$backupPath'; fi"
 
-Write-Host "==> Upload APK baru"
-scp $localApk "${Server}:${remotePath}"
+Write-Host "==> Upload APK baru (gunakan Ctrl+C untuk batal)"
+scp -i $SshKey $localApk "${Server}:${remotePath}"
 
 Write-Host "==> Write version.txt"
 $today       = Get-Date -Format "yyyy-MM-dd"
 $versionText = "v$versionName (build $buildNum) — $today"
-ssh $Server "echo '$versionText' > '$RemoteDir/version.txt'"
+ssh -i $SshKey $Server "echo '$versionText' > '$RemoteDir/version.txt'"
+
+Write-Host "==> Cleanup backup lebih dari 7 hari"
+ssh -i $SshKey $Server "find '$RemoteDir' -name '*.bak-*' -mtime +7 -delete 2>/dev/null || true"
 
 Write-Host "==> Verifikasi file remote"
-ssh $Server "ls -lh '$remotePath' && cat '$RemoteDir/version.txt'"
+ssh -i $SshKey $Server "ls -lh '$remotePath' && cat '$RemoteDir/version.txt'"
+
+Write-Host "==> Verifikasi URL publik..."
+try {
+  $response = Invoke-WebRequest -Uri $ApkUrl -Method Head `
+                                -TimeoutSec 10 -UseBasicParsing
+  $httpCode = $response.StatusCode
+} catch {
+  $httpCode = 0
+}
+if ($httpCode -lt 200 -or $httpCode -ge 400) {
+  throw "❌ APK tidak accessible di $ApkUrl (HTTP $httpCode)"
+}
+Write-Host "✅ APK accessible (HTTP $httpCode): $ApkUrl"
 
 Write-Host "✅ Deploy selesai: v$versionName (build $buildNum)"
