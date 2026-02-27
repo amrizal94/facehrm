@@ -32,9 +32,9 @@ if (Test-Path .\gradlew.bat) {
 Set-Location ..
 
 Write-Host "==> Kill lock-prone processes (java/dart/adb)"
-taskkill /F /IM java.exe 2>$null | Out-Null
-taskkill /F /IM dart.exe 2>$null | Out-Null
-taskkill /F /IM adb.exe  2>$null | Out-Null
+Get-Process -Name java -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name dart -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name adb  -ErrorAction SilentlyContinue | Stop-Process -Force
 
 Write-Host "==> Clean build artifacts"
 Remove-Item -Recurse -Force .\build          -ErrorAction SilentlyContinue
