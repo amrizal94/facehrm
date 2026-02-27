@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\AttendanceResource;
 use App\Http\Resources\FaceDataResource;
 use App\Models\AttendanceRecord;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\FaceData;
 use App\Models\Setting;
@@ -118,6 +119,11 @@ class FaceDataController extends Controller
             ]
         );
 
+        AuditLog::record('face.enroll', $request,
+            ['employee_id' => $validated['employee_id']],
+            'employee', $validated['employee_id']
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Face enrolled successfully.',
@@ -128,13 +134,20 @@ class FaceDataController extends Controller
     // ---------------------------------------------------------------
     // Admin/HR: delete face enrollment
     // ---------------------------------------------------------------
-    public function destroy(FaceData $faceData): JsonResponse
+    public function destroy(FaceData $faceData, Request $request): JsonResponse
     {
+        $employeeId = $faceData->employee_id;
+
         if ($faceData->image_path) {
             Storage::disk('public')->delete($faceData->image_path);
         }
 
         $faceData->delete();
+
+        AuditLog::record('face.delete', $request,
+            ['face_data_id' => $faceData->id],
+            'employee', $employeeId
+        );
 
         return response()->json(['success' => true, 'message' => 'Face data deleted.']);
     }
@@ -219,6 +232,9 @@ class FaceDataController extends Controller
         $identifyResult = $this->identifyDescriptor($validated['descriptor']);
 
         if (!$identifyResult) {
+            AuditLog::record('face.attendance.no_match', $request,
+                ['action' => $validated['action']]
+            );
             return response()->json([
                 'success' => false,
                 'message' => 'Face not recognized. Please try again or use manual check-in.',
@@ -246,6 +262,11 @@ class FaceDataController extends Controller
                 'is_mock_location' => $request->boolean('is_mock_location', false),
             ]);
 
+            AuditLog::record('face.attendance.check_in', $request,
+                ['confidence' => $identifyResult['confidence'], 'distance' => $identifyResult['distance']],
+                'employee', $employee->id
+            );
+
             return response()->json([
                 'success'    => true,
                 'message'    => "Welcome, {$employee->user->name}! Checked in at {$now->format('H:i')}.",
@@ -271,6 +292,11 @@ class FaceDataController extends Controller
             'check_out'  => $now,
             'work_hours' => $record->calculateWorkHours(),
         ]);
+
+        AuditLog::record('face.attendance.check_out', $request,
+            ['confidence' => $identifyResult['confidence'], 'distance' => $identifyResult['distance']],
+            'employee', $employee->id
+        );
 
         return response()->json([
             'success'    => true,
@@ -407,6 +433,9 @@ class FaceDataController extends Controller
         $identifyResult = $this->identifyDescriptor($extracted['descriptor']);
 
         if (!$identifyResult) {
+            AuditLog::record('face.attendance.no_match', $request,
+                ['action' => $validated['action'], 'via' => 'image']
+            );
             return response()->json([
                 'success' => false,
                 'message' => 'Face not recognized. Please try again or use manual check-in.',
@@ -424,11 +453,20 @@ class FaceDataController extends Controller
             }
 
             $record = AttendanceRecord::create([
-                'employee_id' => $employee->id,
-                'date'        => $today->toDateString(),
-                'check_in'    => $now,
-                'status'      => AttendanceRecord::resolveStatus($now),
+                'employee_id'      => $employee->id,
+                'date'             => $today->toDateString(),
+                'check_in'         => $now,
+                'status'           => AttendanceRecord::resolveStatus($now),
+                'latitude'         => $validated['latitude'] ?? null,
+                'longitude'        => $validated['longitude'] ?? null,
+                'location_accuracy'=> $validated['location_accuracy'] ?? null,
+                'is_mock_location' => $request->boolean('is_mock_location', false),
             ]);
+
+            AuditLog::record('face.attendance.check_in', $request,
+                ['confidence' => $identifyResult['confidence'], 'distance' => $identifyResult['distance'], 'via' => 'image'],
+                'employee', $employee->id
+            );
 
             return response()->json([
                 'success'    => true,
@@ -455,6 +493,11 @@ class FaceDataController extends Controller
             'check_out'  => $now,
             'work_hours' => $record->calculateWorkHours(),
         ]);
+
+        AuditLog::record('face.attendance.check_out', $request,
+            ['confidence' => $identifyResult['confidence'], 'distance' => $identifyResult['distance'], 'via' => 'image'],
+            'employee', $employee->id
+        );
 
         return response()->json([
             'success'    => true,
@@ -524,6 +567,11 @@ class FaceDataController extends Controller
             ]
         );
 
+        AuditLog::record('face.self_enroll', $request,
+            ['employee_id' => $employee->id],
+            'employee', $employee->id
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Wajah berhasil didaftarkan!',
@@ -561,6 +609,11 @@ class FaceDataController extends Controller
                 'enrolled_by' => $request->user()->id,
                 'enrolled_at' => now(),
             ]
+        );
+
+        AuditLog::record('face.enroll', $request,
+            ['employee_id' => $validated['employee_id'], 'via' => 'image'],
+            'employee', $validated['employee_id']
         );
 
         return response()->json([
