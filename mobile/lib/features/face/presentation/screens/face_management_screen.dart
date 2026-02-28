@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../data/models/face_enrollment_model.dart';
 import '../providers/face_admin_provider.dart';
 
@@ -44,6 +46,11 @@ class _FaceManagementScreenState extends ConsumerState<FaceManagementScreen> {
         backgroundColor: Colors.indigo.shade700,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Audit Log',
+            onPressed: () => context.push(AppRoutes.faceAuditLog),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.read(faceManagementProvider.notifier).load(),

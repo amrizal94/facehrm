@@ -32,6 +32,7 @@ import '../../features/announcement/presentation/screens/announcement_detail_scr
 import '../../features/announcement/presentation/screens/announcements_list_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
+import '../../features/face/presentation/screens/face_audit_log_screen.dart';
 import '../../features/face/presentation/screens/face_management_screen.dart';
 import '../../features/employee/presentation/screens/employee_list_screen.dart';
 import '../../features/employee/presentation/screens/employee_form_screen.dart';
@@ -161,6 +162,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.attendanceRecords, builder: (_, __) => const AttendanceRecordsScreen()),
       GoRoute(path: AppRoutes.reports,           builder: (_, __) => const ReportsScreen()),
       GoRoute(path: AppRoutes.faceManagement,    builder: (_, __) => const FaceManagementScreen()),
+      GoRoute(path: AppRoutes.faceAuditLog,      builder: (_, __) => const FaceAuditLogScreen()),
       GoRoute(path: AppRoutes.employeeList,      builder: (_, __) => const EmployeeListScreen()),
       GoRoute(
         path: AppRoutes.employeeForm,

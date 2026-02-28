@@ -1,5 +1,5 @@
 import { api as apiClient } from './api'
-import type { FaceAttendanceResult, FaceEnrollmentMeta, FaceEnrollmentStatus, IdentifyResult } from '@/types/face'
+import type { AuditLogEntry, AuditLogMeta, FaceAttendanceResult, FaceEnrollmentMeta, FaceEnrollmentStatus, IdentifyResult } from '@/types/face'
 
 export interface FaceListResponse {
   success: boolean
@@ -39,6 +39,30 @@ export async function deleteFaceData(faceDataId: number): Promise<{ success: boo
 
 export async function identifyFace(descriptor: number[]): Promise<{ success: boolean; data?: IdentifyResult; message?: string }> {
   const res = await apiClient.post('/face/identify', { descriptor })
+  return res.data
+}
+
+export interface AuditLogResponse {
+  success: boolean
+  data: AuditLogEntry[]
+  meta: AuditLogMeta
+}
+
+export async function fetchAuditLogs(params?: {
+  action?: string
+  from?: string
+  to?: string
+  page?: number
+  per_page?: number
+}): Promise<AuditLogResponse> {
+  const query = new URLSearchParams()
+  if (params?.action)    query.set('action', params.action)
+  if (params?.from)      query.set('from', params.from)
+  if (params?.to)        query.set('to', params.to)
+  if (params?.page)      query.set('page', String(params.page))
+  if (params?.per_page)  query.set('per_page', String(params.per_page))
+
+  const res = await apiClient.get<AuditLogResponse>(`/audit-logs?${query}`)
   return res.data
 }
 

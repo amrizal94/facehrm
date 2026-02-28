@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
 
 class AuditLog extends Model
@@ -25,6 +26,15 @@ class AuditLog extends Model
         'metadata'   => 'array',
         'created_at' => 'datetime',
     ];
+
+    // ---------------------------------------------------------------
+    // Relationships
+    // ---------------------------------------------------------------
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     // ---------------------------------------------------------------
     // Convenience: write an audit entry from within a controller

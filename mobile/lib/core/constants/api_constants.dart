@@ -59,6 +59,9 @@ class ApiConstants {
   // Announcements
   static const String announcements = '/announcements';
 
+  // Audit logs
+  static const String auditLogs = '/audit-logs';
+
   // Tasks & Projects
   static const String projects = '/projects';
   static const String tasks    = '/tasks';

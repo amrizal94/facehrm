@@ -5,6 +5,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/services/location_service.dart';
+import '../models/audit_log_model.dart';
 import '../models/face_enrollment_model.dart';
 
 class FaceRemoteDatasource {
@@ -149,6 +150,40 @@ class FaceRemoteDatasource {
   Future<void> deleteFaceData(int faceDataId) async {
     try {
       await _dio.delete('${ApiConstants.faceAdmin}/$faceDataId');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ── Audit logs ────────────────────────────────────────────────────────────
+
+  /// GET /audit-logs?action=...&from=...&to=...&page=N&per_page=20
+  Future<({List<AuditLogModel> items, int total, int lastPage})>
+      getAuditLogs({
+    int page = 1,
+    String action = 'face',
+    String? from,
+    String? to,
+  }) async {
+    try {
+      final params = <String, dynamic>{
+        'page':     page,
+        'per_page': 20,
+        'action':   action,
+      };
+      if (from != null) params['from'] = from;
+      if (to   != null) params['to']   = to;
+
+      final res  = await _dio.get(ApiConstants.auditLogs, queryParameters: params);
+      final body = res.data as Map<String, dynamic>;
+      final data = body['data'] as List;
+      final meta = body['meta'] as Map<String, dynamic>?;
+
+      return (
+        items:    data.map((e) => AuditLogModel.fromJson(e as Map<String, dynamic>)).toList(),
+        total:    meta?['total']     as int? ?? data.length,
+        lastPage: meta?['last_page'] as int? ?? 1,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }

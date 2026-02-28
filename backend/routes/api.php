@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
+use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\EmployeeController;
@@ -169,6 +170,9 @@ Route::prefix('v1')->group(function () {
             Route::post('announcements', [AnnouncementController::class, 'store']);
             Route::put('announcements/{announcement}', [AnnouncementController::class, 'update']);
             Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+            // Audit logs
+            Route::get('audit-logs', [AuditLogController::class, 'index']);
 
             // Payroll management
             Route::get('payroll/summary',               [PayrollController::class, 'summary']);
