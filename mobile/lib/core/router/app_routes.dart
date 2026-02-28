@@ -46,4 +46,9 @@ class AppRoutes {
   static const String employeeList         = '/hr/employees';
   static const String employeeForm         = '/hr/employees/form';
   static const String faceAuditLog         = '/hr/face-audit-log';
+
+  // Expenses
+  static const String myExpenses      = '/staff/expenses';
+  static const String submitExpense   = '/staff/expenses/submit';
+  static const String expenseApprovals = '/hr/expense-approvals';
 }

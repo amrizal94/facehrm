@@ -8,6 +8,7 @@ class PayslipModel {
   final double basicSalary;
   final double allowances;
   final double overtimePay;
+  final double reimbursement;
   final double grossSalary;
 
   // Deductions
@@ -43,6 +44,7 @@ class PayslipModel {
     required this.basicSalary,
     this.allowances = 0,
     this.overtimePay = 0,
+    this.reimbursement = 0,
     required this.grossSalary,
     this.absentDeduction = 0,
     this.taxDeduction = 0,
@@ -81,9 +83,10 @@ class PayslipModel {
       periodMonth:     json['period_month'] as int,
       periodLabel:     json['period_label'] as String?,
       basicSalary:     (json['basic_salary'] as num).toDouble(),
-      allowances:      (json['allowances'] as num?)?.toDouble() ?? 0,
-      overtimePay:     (json['overtime_pay'] as num?)?.toDouble() ?? 0,
-      grossSalary:     (json['gross_salary'] as num).toDouble(),
+      allowances:      (json['allowances']    as num?)?.toDouble() ?? 0,
+      overtimePay:     (json['overtime_pay']  as num?)?.toDouble() ?? 0,
+      reimbursement:   (json['reimbursement'] as num?)?.toDouble() ?? 0,
+      grossSalary:     (json['gross_salary']  as num).toDouble(),
       absentDeduction: absentDed,
       taxDeduction:    taxDed,
       bpjsDeduction:   bpjsDed,

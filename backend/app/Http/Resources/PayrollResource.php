@@ -19,6 +19,7 @@ class PayrollResource extends JsonResource
             'basic_salary'     => (float) $this->basic_salary,
             'allowances'       => (float) $this->allowances,
             'overtime_pay'     => (float) $this->overtime_pay,
+            'reimbursement'    => (float) ($this->reimbursement ?? 0),
             'gross_salary'     => (float) $this->gross_salary,
 
             // Deductions

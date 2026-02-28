@@ -247,6 +247,8 @@ class PayslipPdfService {
                   _salRow('Tunjangan',  _fmt(slip.allowances)),
                   _salRow('Lembur',     _fmt(slip.overtimePay)),
                   _salRow('Gaji Bruto', _fmt(slip.grossSalary), bold: true, separator: true),
+                  if (slip.reimbursement > 0)
+                    _salRow('Reimbursement', '+ ${_fmt(slip.reimbursement)}'),
                   _salRow('Potongan Alpha', '– ${_fmt(slip.absentDeduction)}'),
                   _salRow('Potongan Lain',  '– ${_fmt(slip.otherDeductions)}'),
                   _salRow('PPh21 (Pajak)',  '– ${_fmt(slip.taxDeduction)}'),

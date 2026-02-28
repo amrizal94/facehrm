@@ -295,6 +295,13 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                 onTap: () => context.push(AppRoutes.myOvertime),
               ),
               _MenuTile(
+                icon: Icons.receipt_long_outlined,
+                title: 'Expenses',
+                subtitle: 'Submit & track expense reimbursements',
+                color: Colors.deepOrange,
+                onTap: () => context.push(AppRoutes.myExpenses),
+              ),
+              _MenuTile(
                 icon: Icons.event_outlined,
                 title: 'Holidays',
                 subtitle: 'View public & company holidays',

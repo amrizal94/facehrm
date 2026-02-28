@@ -62,6 +62,10 @@ class ApiConstants {
   // Audit logs
   static const String auditLogs = '/audit-logs';
 
+  // Expenses
+  static const String expenses   = '/expenses';
+  static const String myExpenses = '/expenses/my';
+
   // Tasks & Projects
   static const String projects = '/projects';
   static const String tasks    = '/tasks';

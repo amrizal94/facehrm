@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
+use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\DepartmentController;
@@ -69,6 +70,11 @@ Route::prefix('v1')->group(function () {
 
         // Payroll — staff
         Route::get('payroll/my', [PayrollController::class, 'myPayslips']);
+
+        // Expenses — staff
+        Route::get('expenses/my', [ExpenseController::class, 'myExpenses']);
+        Route::post('expenses', [ExpenseController::class, 'store']);
+        Route::delete('expenses/{expense}', [ExpenseController::class, 'destroy']);
 
         // Tasks & Projects — all authenticated (read + staff update)
         Route::get('labels',              [LabelController::class, 'index']);
@@ -174,6 +180,12 @@ Route::prefix('v1')->group(function () {
 
             // Audit logs
             Route::get('audit-logs', [AuditLogController::class, 'index']);
+
+            // Expenses — admin|hr
+            Route::get('expenses', [ExpenseController::class, 'index']);
+            Route::get('expenses/{expense}', [ExpenseController::class, 'show']);
+            Route::post('expenses/{expense}/approve', [ExpenseController::class, 'approve']);
+            Route::post('expenses/{expense}/reject', [ExpenseController::class, 'reject']);
 
             // Payroll management
             Route::get('payroll/summary',               [PayrollController::class, 'summary']);

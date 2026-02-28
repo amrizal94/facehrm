@@ -17,6 +17,7 @@ class PayrollRecord extends Model
         'basic_salary',
         'allowances',
         'overtime_pay',
+        'reimbursement',
         'gross_salary',
         'absent_deduction',
         'other_deductions',
@@ -128,17 +129,25 @@ class PayrollRecord extends Model
         });
         $overtimePay = round($overtimePay, 2);
 
+        $reimbursement = \App\Models\Expense::where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereBetween('expense_date', [$startDate, $endDate])
+            ->sum('amount');
+        $reimbursement = round((float) $reimbursement, 2);
+
         $grossSalary   = $basicSalary + $overtimePay; // allowances added manually
         $taxRate       = (float) Setting::get('payroll.tax_rate', '5') / 100;
         $bpjsRate      = (float) Setting::get('payroll.bpjs_rate', '3') / 100;
         $taxDeduction  = round($grossSalary * $taxRate, 2);
         $bpjsDeduction = round($basicSalary * $bpjsRate, 2);
-        $netSalary     = max(0, $grossSalary - $absentDeduction - $taxDeduction - $bpjsDeduction);
+        // Reimbursement added after deductions (not taxed)
+        $netSalary = max(0, $grossSalary - $absentDeduction - $taxDeduction - $bpjsDeduction + $reimbursement);
 
         return [
             'basic_salary'     => $basicSalary,
             'allowances'       => 0,
             'overtime_pay'     => $overtimePay,
+            'reimbursement'    => $reimbursement,
             'gross_salary'     => $grossSalary,
             'absent_deduction' => $absentDeduction,
             'other_deductions' => 0,
@@ -174,6 +183,7 @@ class PayrollRecord extends Model
             - (float) $this->other_deductions
             - $this->tax_deduction
             - $this->bpjs_deduction
+            + (float) $this->reimbursement
         );
     }
 

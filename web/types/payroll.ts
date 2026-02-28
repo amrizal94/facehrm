@@ -10,6 +10,7 @@ export interface PayrollRecord {
   basic_salary: number
   allowances: number
   overtime_pay: number
+  reimbursement?: number
   gross_salary: number
 
   // Deductions

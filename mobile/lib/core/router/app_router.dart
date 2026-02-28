@@ -32,6 +32,9 @@ import '../../features/announcement/presentation/screens/announcement_detail_scr
 import '../../features/announcement/presentation/screens/announcements_list_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
+import '../../features/expense/presentation/screens/expense_approvals_screen.dart';
+import '../../features/expense/presentation/screens/my_expenses_screen.dart';
+import '../../features/expense/presentation/screens/submit_expense_screen.dart';
 import '../../features/face/presentation/screens/face_audit_log_screen.dart';
 import '../../features/face/presentation/screens/face_management_screen.dart';
 import '../../features/employee/presentation/screens/employee_list_screen.dart';
@@ -155,6 +158,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           announcement: state.extra as AnnouncementModel,
         ),
       ),
+
+      // Expense routes
+      GoRoute(path: AppRoutes.myExpenses,       builder: (_, __) => const MyExpensesScreen()),
+      GoRoute(path: AppRoutes.submitExpense,    builder: (_, __) => const SubmitExpenseScreen()),
+      GoRoute(path: AppRoutes.expenseApprovals, builder: (_, __) => const ExpenseApprovalsScreen()),
 
       // HR / Admin
       GoRoute(path: AppRoutes.leaveApprovals,    builder: (_, __) => const LeaveApprovalsScreen()),
