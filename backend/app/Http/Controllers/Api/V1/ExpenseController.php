@@ -245,7 +245,7 @@ class ExpenseController extends Controller
             'category'         => $expense->category,
             'description'      => $expense->description,
             'receipt_url'      => $expense->receipt_path
-                ? url('storage/' . $expense->receipt_path)
+                ? secure_url('storage/' . $expense->receipt_path)
                 : null,
             'status'           => $expense->status,
             'rejection_reason' => $expense->rejection_reason,
