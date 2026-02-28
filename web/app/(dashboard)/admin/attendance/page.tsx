@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, Clock, UserX, AlertCircle, Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from 'lucide-react'
+import { Users, Clock, UserX, AlertCircle, Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, QrCode } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,6 +35,7 @@ import { useAttendance, useAttendanceSummary, useDeleteAttendance } from '@/hook
 import { useDepartments } from '@/hooks/use-employees'
 import { EditAttendanceDialog } from './edit-attendance-dialog'
 import { AddAttendanceDialog } from './add-attendance-dialog'
+import { QrSessionDialog } from './qr-session-dialog'
 import type { AttendanceFilters, AttendanceRecord } from '@/types/attendance'
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
@@ -49,6 +50,7 @@ const METHOD_STYLES: Record<string, { label: string; className: string }> = {
   face:   { label: 'Face',   className: 'bg-emerald-100 text-emerald-700' },
   manual: { label: 'Manual', className: 'bg-slate-100 text-slate-600' },
   admin:  { label: 'Admin',  className: 'bg-indigo-100 text-indigo-700' },
+  qr:     { label: 'QR',     className: 'bg-amber-100 text-amber-700' },
 }
 
 function formatTime(iso: string | null): string {
@@ -86,6 +88,7 @@ export default function AdminAttendancePage() {
   })
   const [search, setSearch]             = useState('')
   const [addOpen, setAddOpen]           = useState(false)
+  const [qrOpen, setQrOpen]             = useState(false)
   const [editRecord, setEditRecord]     = useState<AttendanceRecord | null>(null)
   const [deleteRecord, setDeleteRecord] = useState<AttendanceRecord | null>(null)
 
@@ -111,10 +114,16 @@ export default function AdminAttendancePage() {
             <h1 className="text-2xl font-bold tracking-tight">Attendance</h1>
             <p className="text-muted-foreground text-sm mt-0.5">Monitor daily attendance records</p>
           </div>
-          <Button onClick={() => setAddOpen(true)} className="shrink-0">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Entry
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setQrOpen(true)}>
+              <QrCode className="w-4 h-4 mr-2" />
+              Generate QR
+            </Button>
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Entry
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -274,6 +283,9 @@ export default function AdminAttendancePage() {
           </div>
         )}
       </div>
+
+      {/* QR Session Dialog */}
+      <QrSessionDialog open={qrOpen} onOpenChange={setQrOpen} />
 
       {/* Add Entry Dialog */}
       <AddAttendanceDialog

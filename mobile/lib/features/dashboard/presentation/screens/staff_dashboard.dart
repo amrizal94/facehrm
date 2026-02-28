@@ -260,6 +260,13 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
               const SizedBox(height: 8),
 
               _MenuTile(
+                icon: Icons.qr_code_scanner,
+                title: 'Scan QR Absensi',
+                subtitle: 'Scan QR code untuk absensi masuk/pulang',
+                color: Colors.blue,
+                onTap: () => context.push(AppRoutes.qrScan),
+              ),
+              _MenuTile(
                 icon: Icons.schedule_outlined,
                 title: 'Jadwal Kerja',
                 subtitle: shiftAsync.asData?.value?.name ?? 'Belum diatur',

@@ -21,6 +21,8 @@ class ApiConstants {
   static const String attendanceMy       = '/attendance/my';
   static const String attendancePolicy   = '/attendance/policy';
   static const String attendance         = '/attendance';
+  static const String attendanceQrScan   = '/attendance/qr-scan';
+  static const String attendanceQrSessions = '/attendance/qr-sessions';
 
   // Leave
   static const String leaveTypes = '/leave-types';

@@ -7,6 +7,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/services/location_service.dart';
 import '../models/attendance_policy_model.dart';
 import '../models/attendance_record_model.dart';
+import '../models/qr_session_model.dart';
 
 final attendanceRemoteDataSourceProvider = Provider<AttendanceRemoteDataSource>(
   (ref) => AttendanceRemoteDataSource(ref.watch(dioClientProvider)),
@@ -175,6 +176,70 @@ class AttendanceRemoteDataSource {
   Future<void> deleteAttendance(int id) async {
     try {
       await _dio.delete('${ApiConstants.attendance}/$id');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ── QR Attendance ──────────────────────────────────────────────────────────
+
+  /// POST /attendance/qr-scan — staff scans QR token
+  Future<AttendanceRecordModel> scanQr({
+    required String token,
+    LocationResult? location,
+  }) async {
+    try {
+      final body = <String, dynamic>{'token': token};
+      if (location != null) {
+        body['latitude']          = location.latitude;
+        body['longitude']         = location.longitude;
+        body['location_accuracy'] = location.accuracy;
+        body['is_mock_location']  = location.isMocked;
+      }
+      final res = await _dio.post(ApiConstants.attendanceQrScan, data: body);
+      return AttendanceRecordModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// POST /attendance/qr-sessions — admin/HR generate QR session
+  Future<QrSessionModel> generateQrSession({
+    required String type,
+    required String date,
+    required String validFrom,
+    required String validUntil,
+  }) async {
+    try {
+      final res = await _dio.post(ApiConstants.attendanceQrSessions, data: {
+        'type':        type,
+        'date':        date,
+        'valid_from':  validFrom,
+        'valid_until': validUntil,
+      });
+      return QrSessionModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// GET /attendance/qr-sessions — admin/HR list sessions
+  Future<List<QrSessionModel>> getQrSessions({String? date}) async {
+    try {
+      final q = <String, dynamic>{};
+      if (date != null) q['date'] = date;
+      final res = await _dio.get(ApiConstants.attendanceQrSessions, queryParameters: q);
+      final list = res.data['data'] as List;
+      return list.map((e) => QrSessionModel.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// POST /attendance/qr-sessions/{id}/deactivate
+  Future<void> deactivateQrSession(int id) async {
+    try {
+      await _dio.post('${ApiConstants.attendanceQrSessions}/$id/deactivate');
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }

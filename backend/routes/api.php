@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
+use App\Http\Controllers\Api\V1\QrAttendanceController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AttendanceController;
@@ -45,6 +46,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/today',      [AttendanceController::class, 'today']);
             Route::get('/my',         [AttendanceController::class, 'myAttendance']);
             Route::get('/policy',     [AttendanceController::class, 'policy']);
+            Route::post('/qr-scan',   [QrAttendanceController::class, 'scan']);
         });
 
         // Leave — staff
@@ -126,8 +128,11 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('shifts',      ShiftController::class);
             Route::patch('employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive']);
 
-            // Attendance management
-            Route::get('attendance/summary',  [AttendanceController::class, 'summary']);
+            // Attendance management — specific routes BEFORE apiResource to avoid param conflicts
+            Route::get('attendance/summary',                                   [AttendanceController::class, 'summary']);
+            Route::get('attendance/qr-sessions',                               [QrAttendanceController::class, 'index']);
+            Route::post('attendance/qr-sessions',                              [QrAttendanceController::class, 'generate']);
+            Route::post('attendance/qr-sessions/{session}/deactivate',        [QrAttendanceController::class, 'deactivate']);
             Route::apiResource('attendance',  AttendanceController::class);
 
             // Leave management

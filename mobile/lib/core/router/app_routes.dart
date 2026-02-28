@@ -51,4 +51,8 @@ class AppRoutes {
   static const String myExpenses      = '/staff/expenses';
   static const String submitExpense   = '/staff/expenses/submit';
   static const String expenseApprovals = '/hr/expense-approvals';
+
+  // QR Attendance
+  static const String qrScan      = '/staff/qr-scan';
+  static const String qrGenerator = '/hr/qr-generator';
 }

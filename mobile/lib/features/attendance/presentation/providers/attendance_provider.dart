@@ -4,9 +4,11 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/connectivity_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../data/datasources/attendance_remote_datasource.dart';
+import '../../data/datasources/attendance_remote_datasource.dart';
 import '../../data/models/attendance_policy_model.dart';
 import '../../data/models/attendance_record_model.dart';
 import '../../data/models/pending_attendance_action.dart';
+import '../../data/models/qr_session_model.dart';
 import '../../data/repositories/attendance_repository.dart';
 
 // ── Attendance policy (check-in method) ───────────────────────────────────────
@@ -201,6 +203,21 @@ class TodayAttendanceNotifier extends AsyncNotifier<AttendanceRecordModel?> {
     return null;
   }
 
+  // ── QR scan ─────────────────────────────────────────────────────────────────
+
+  Future<String?> scanQr(String token) async {
+    try {
+      final location = await LocationService.getCurrentLocation();
+      final ds = ref.read(attendanceRemoteDataSourceProvider);
+      final record = await ds.scanQr(token: token, location: location);
+      state = AsyncData(record);
+      return null;
+    } catch (e) {
+      await _refreshTodayBestEffort();
+      return _humanizeError(e);
+    }
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   Future<void> _refreshTodayBestEffort() async {
@@ -317,3 +334,51 @@ class AdminAttendanceCorrectionNotifier extends Notifier<void> {
 final adminAttendanceCorrectionProvider =
     NotifierProvider<AdminAttendanceCorrectionNotifier, void>(
         AdminAttendanceCorrectionNotifier.new);
+
+// ── QR Session management (admin/HR) ─────────────────────────────────────────
+
+class QrSessionNotifier extends AsyncNotifier<List<QrSessionModel>> {
+  @override
+  Future<List<QrSessionModel>> build() {
+    final today = DateTime.now();
+    final dateStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    return ref.read(attendanceRemoteDataSourceProvider).getQrSessions(date: dateStr);
+  }
+
+  Future<QrSessionModel?> generate({
+    required String type,
+    required String date,
+    required String validFrom,
+    required String validUntil,
+  }) async {
+    try {
+      final session = await ref.read(attendanceRemoteDataSourceProvider).generateQrSession(
+            type: type,
+            date: date,
+            validFrom: validFrom,
+            validUntil: validUntil,
+          );
+      // Prepend to list
+      final current = state.value ?? [];
+      state = AsyncData([session, ...current]);
+      return session;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> deactivate(int id) async {
+    try {
+      await ref.read(attendanceRemoteDataSourceProvider).deactivateQrSession(id);
+      // Update is_active in list — rebuild from server
+      ref.invalidateSelf();
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+}
+
+final qrSessionProvider =
+    AsyncNotifierProvider<QrSessionNotifier, List<QrSessionModel>>(QrSessionNotifier.new);
