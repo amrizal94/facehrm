@@ -32,6 +32,8 @@ import '../../features/announcement/presentation/screens/announcement_detail_scr
 import '../../features/announcement/presentation/screens/announcements_list_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
+import '../../features/face/presentation/screens/face_management_screen.dart';
+import '../../features/employee/presentation/screens/employee_list_screen.dart';
 import '../constants/app_constants.dart';
 import '../../features/onboarding/presentation/screens/permission_setup_screen.dart';
 import 'app_routes.dart';
@@ -157,6 +159,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.overtimeApprovals, builder: (_, __) => const OvertimeApprovalsScreen()),
       GoRoute(path: AppRoutes.attendanceRecords, builder: (_, __) => const AttendanceRecordsScreen()),
       GoRoute(path: AppRoutes.reports,           builder: (_, __) => const ReportsScreen()),
+      GoRoute(path: AppRoutes.faceManagement,    builder: (_, __) => const FaceManagementScreen()),
+      GoRoute(path: AppRoutes.employeeList,      builder: (_, __) => const EmployeeListScreen()),
 
       GoRoute(path: AppRoutes.unauthorized, builder: (_, __) => const _UnauthorizedScreen()),
     ],

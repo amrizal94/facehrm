@@ -43,6 +43,10 @@ class ApiConstants {
   static const String faceAttendanceImage = '/face/attendance-image';
   static const String faceMe              = '/face/me';
   static const String faceSelfEnroll      = '/face/self-enroll-image';
+  static const String faceAdmin           = '/face';
+
+  // Employees
+  static const String employees = '/employees';
 
   // Payroll (staff)
   static const String payrollMy = '/payroll/my';

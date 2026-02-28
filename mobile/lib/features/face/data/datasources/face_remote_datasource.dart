@@ -5,6 +5,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/services/location_service.dart';
+import '../models/face_enrollment_model.dart';
 
 class FaceRemoteDatasource {
   final Dio _dio;
@@ -111,6 +112,44 @@ class FaceRemoteDatasource {
       if (e.type == DioExceptionType.connectionError) {
         throw const ApiException(message: 'Koneksi gagal. Periksa jaringan dan coba lagi.');
       }
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ── Admin: list face enrollments ─────────────────────────────────────────
+
+  /// GET /face?page=N&search=...
+  Future<({List<FaceEnrollmentModel> items, int total, int lastPage})>
+      getFaceEnrollments({int page = 1, String? search, String? enrolled}) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'per_page': 20};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      if (enrolled != null) params['enrolled'] = enrolled;
+
+      final res = await _dio.get(ApiConstants.faceAdmin, queryParameters: params);
+      final body = res.data as Map<String, dynamic>;
+      final data = body['data'] as List;
+      final meta = body['meta'] as Map<String, dynamic>?;
+
+      return (
+        items: data
+            .map((e) => FaceEnrollmentModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        total: meta?['total'] as int? ?? data.length,
+        lastPage: meta?['last_page'] as int? ?? 1,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ── Admin: delete face data ───────────────────────────────────────────────
+
+  /// DELETE /face/{faceDataId}
+  Future<void> deleteFaceData(int faceDataId) async {
+    try {
+      await _dio.delete('${ApiConstants.faceAdmin}/$faceDataId');
+    } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
   }

@@ -42,4 +42,6 @@ class AppRoutes {
   static const String overtimeApprovals    = '/hr/overtime-approvals';
   static const String attendanceRecords    = '/hr/attendance-records';
   static const String reports              = '/hr/reports';
+  static const String faceManagement       = '/hr/face-management';
+  static const String employeeList         = '/hr/employees';
 }
