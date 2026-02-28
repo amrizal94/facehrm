@@ -5,7 +5,7 @@
 | Leave Management                                | High                | Done       | Done                           | -        | - |
 | Overtime Management                             | Medium-High         | Done       | Done                           | -        | - |
 | Payslip (employee view)                         | Medium-High         | Done       | Done                           | -        | - |
-| Holidays                                        | Medium              | Done       | Done                           | -        | - |
+| Holidays                                        | Medium              | Done       | Done                           | -        | Admin CRUD + staff read-only (/staff/holidays) |
 | Notifications (in-app)                          | Medium              | Done       | Done                           | -        | Bell dropdown + /notifications page (filter All/Leave/Overtime/General) |
 | Reports (attendance, leave, payroll + CSV)      | High                | Done       | Done                           | -        | Admin/HR: 4 tab (Attendance, Leave, Payroll, Overtime) + filter year/month |
 | Face Recognition Attendance                     | Medium-High         | Done       | Done                           | -        | Admin enroll + staff check-in/out |
@@ -23,10 +23,11 @@
 | Offline attendance + auto sync                  | Medium              | -          | Done                           | -        | Queue di shared_prefs, sync otomatis saat online, anti-duplikasi via 422 |
 | Dashboard Admin Mobile (full)                   | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
 | Dashboard HR Mobile (full)                      | High                | Done       | Done                           | -        | Stats grid, Leave/Overtime/Attendance tiles, notification bell |
-| Shift / Schedule / Break advanced setup         | Medium              | Gap        | Gap                            | P2       | - |
+| Profile page (all roles)                        | Medium              | Done       | Done                           | -        | Admin/HR via /admin/settings; staff via /staff/profile; edit name/phone + change password |
+| Shift & Schedule Management                     | Medium              | Done       | Done                           | -        | Admin CRUD shifts (time, tolerance, work days); assign per employee; late detection vs shift start; /my-shift endpoint; staff /staff/shift page + dashboard card |
+| Push Notifications (FCM)                        | Medium              | -          | Done                           | -        | laravel-notification-channels/fcm backend; PushNotificationService mobile; background handler; token register/clear on login/logout; tap-to-navigate |
+| Announcement Broadcast                          | Medium              | Done       | Done                           | -        | Admin/HR buat pengumuman (kategori, prioritas, target role); broadcast FCM + in-app notif; web /admin/announcements CRUD + /staff/announcements read-only + LatestAnnouncements panel; mobile list+detail screen, tile di semua dashboard |
 | QR Attendance                                   | Medium              | Gap        | Gap                            | P2       | - |
 | Expense / Accounts                              | Medium              | Gap        | Gap                            | P2       | - |
 | Communication Suite (meeting/conference)        | Medium              | Gap        | Gap                            | P2       | - |
 | Multi-branch / multi-company                    | Medium              | Gap        | Gap                            | P2       | - |
-| Push Notifications (FCM)                        | Medium              | Gap        | Gap                            | P2       | In-app notif sudah ada, push belum |
-| Profile page mobile                             | Medium              | Done       | Done                           | -        | All roles — view info, edit name/phone, change password |
