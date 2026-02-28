@@ -9,7 +9,7 @@
 | Notifications (in-app)                          | Medium              | Done       | Done                           | -        | Bell dropdown + /notifications page (filter All/Leave/Overtime/General) |
 | Reports (attendance, leave, payroll + CSV)      | High                | Done       | Done                           | -        | Admin/HR: 4 tab (Attendance, Leave, Payroll, Overtime) + filter year/month |
 | Face Recognition Attendance                     | Medium-High         | Done       | Done                           | -        | Admin enroll + staff check-in/out |
-| Face Self-Enrollment                            | Medium              | -          | Done                           | -        | Staff daftar wajah sendiri via mobile |
+| Face Self-Enrollment                            | Medium              | Done       | Done                           | -        | Staff daftar wajah sendiri; Web: /staff/face-enroll (status banner, FaceCamera, preview, save) via POST /face/self-enroll; Mobile: FaceSelfEnrollScreen (image upload + liveness) |
 | Task & Project Management                       | Medium-High         | Done       | Done                           | -        | Admin/HR CRUD; staff view+checklist |
 | Admin delete face data                          | Medium              | Done       | Done                           | -        | Web: tombol delete per baris di /admin/face; Mobile: FaceManagementScreen (search+filter enrolled, delete+confirm, optimistic update) — Admin & HR dashboard tile |
 | Liveness / Anti-spoof                           | Medium              | -          | Done                           | -        | Blink detection (MLKit classification) + head pose gate; backend enforce liveness_verified |
