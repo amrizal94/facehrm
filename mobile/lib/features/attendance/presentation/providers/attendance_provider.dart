@@ -250,3 +250,70 @@ final allAttendanceProvider = FutureProvider.family<
         status: params.status,
       );
 });
+
+// ── Admin attendance correction ───────────────────────────────────────────────
+
+class AdminAttendanceCorrectionNotifier extends Notifier<void> {
+  @override
+  void build() {}
+
+  Future<String?> create({
+    required int employeeId,
+    required String date,
+    required String checkIn,
+    String? checkOut,
+    required String status,
+    String? notes,
+  }) async {
+    try {
+      await ref.read(attendanceRepositoryProvider).createAttendance(
+            employeeId: employeeId,
+            date: date,
+            checkIn: checkIn,
+            checkOut: checkOut,
+            status: status,
+            notes: notes,
+          );
+      ref.invalidate(allAttendanceProvider);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+
+  Future<String?> update({
+    required int id,
+    String? checkIn,
+    String? checkOut,
+    required String status,
+    String? notes,
+  }) async {
+    try {
+      await ref.read(attendanceRepositoryProvider).updateAttendance(
+            id: id,
+            checkIn: checkIn,
+            checkOut: checkOut,
+            status: status,
+            notes: notes,
+          );
+      ref.invalidate(allAttendanceProvider);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+
+  Future<String?> delete(int id) async {
+    try {
+      await ref.read(attendanceRepositoryProvider).deleteAttendance(id);
+      ref.invalidate(allAttendanceProvider);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+}
+
+final adminAttendanceCorrectionProvider =
+    NotifierProvider<AdminAttendanceCorrectionNotifier, void>(
+        AdminAttendanceCorrectionNotifier.new);

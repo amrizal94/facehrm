@@ -17,11 +17,12 @@ class EmployeeRemoteDataSource {
   /// GET /employees?page=N&search=...
   Future<({List<EmployeeModel> items, int total, int lastPage})> getEmployees({
     int page = 1,
+    int perPage = 20,
     String? search,
     String? departmentId,
   }) async {
     try {
-      final params = <String, dynamic>{'page': page, 'per_page': 20};
+      final params = <String, dynamic>{'page': page, 'per_page': perPage};
       if (search != null && search.isNotEmpty) params['search'] = search;
       if (departmentId != null) params['department_id'] = departmentId;
 

@@ -13,9 +13,10 @@ class EmployeeRepository {
 
   Future<({List<EmployeeModel> items, int total, int lastPage})> getEmployees({
     int page = 1,
+    int perPage = 20,
     String? search,
     String? departmentId,
-  }) => _ds.getEmployees(page: page, search: search, departmentId: departmentId);
+  }) => _ds.getEmployees(page: page, perPage: perPage, search: search, departmentId: departmentId);
 
   Future<Map<String, dynamic>> getEmployee(int id) => _ds.getEmployee(id);
 

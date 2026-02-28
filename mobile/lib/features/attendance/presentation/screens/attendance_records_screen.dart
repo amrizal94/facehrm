@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/attendance_record_model.dart';
 import '../providers/attendance_provider.dart';
+import 'attendance_form_screen.dart';
 
 class AttendanceRecordsScreen extends ConsumerStatefulWidget {
   const AttendanceRecordsScreen({super.key});
@@ -21,6 +22,55 @@ class _AttendanceRecordsScreenState
       '${_selectedDate.year}-'
       '${_selectedDate.month.toString().padLeft(2, '0')}-'
       '${_selectedDate.day.toString().padLeft(2, '0')}';
+
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AttendanceRecordModel record,
+    AllAttendanceParams params,
+  ) {
+    final messenger = ScaffoldMessenger.of(context);
+    showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Record'),
+        content: Text(
+          'Hapus record kehadiran ${record.employeeName ?? ''} '
+          'tanggal ${record.date}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style:
+                ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    ).then((confirmed) async {
+      if (confirmed != true) return;
+      final error = await ref
+          .read(adminAttendanceCorrectionProvider.notifier)
+          .delete(record.id);
+      if (error != null) {
+        messenger.showSnackBar(SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.red,
+        ));
+      } else {
+        ref.invalidate(allAttendanceProvider(params));
+        messenger.showSnackBar(const SnackBar(
+          content: Text('Record dihapus.'),
+          backgroundColor: Colors.teal,
+        ));
+      }
+    });
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -48,6 +98,22 @@ class _AttendanceRecordsScreenState
             onPressed: () => ref.invalidate(allAttendanceProvider(params)),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        tooltip: 'Tambah Record',
+        onPressed: () async {
+          final result = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => const AttendanceFormScreen(),
+            ),
+          );
+          if (result == true) {
+            ref.invalidate(allAttendanceProvider(params));
+          }
+        },
+        child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
@@ -199,7 +265,23 @@ class _AttendanceRecordsScreenState
                         ],
                       ),
                       const SizedBox(height: 10),
-                      ...records.map((r) => _AttendanceRecordTile(record: r)),
+                      ...records.map((r) => _AttendanceRecordTile(
+                            record: r,
+                            onTap: () async {
+                              final result =
+                                  await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      AttendanceFormScreen(record: r),
+                                ),
+                              );
+                              if (result == true) {
+                                ref.invalidate(allAttendanceProvider(params));
+                              }
+                            },
+                            onLongPress: () =>
+                                _confirmDelete(context, ref, r, params),
+                          )),
                     ],
                   );
                 },
@@ -239,7 +321,13 @@ class _SummaryChip extends StatelessWidget {
 
 class _AttendanceRecordTile extends StatelessWidget {
   final AttendanceRecordModel record;
-  const _AttendanceRecordTile({required this.record});
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  const _AttendanceRecordTile({
+    required this.record,
+    this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -254,6 +342,8 @@ class _AttendanceRecordTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: onTap,
+        onLongPress: onLongPress,
         leading: CircleAvatar(
           backgroundColor: statusColor.withValues(alpha: 0.15),
           child: Text(

@@ -125,4 +125,58 @@ class AttendanceRemoteDataSource {
       throw ApiException.fromDioError(e);
     }
   }
+
+  /// POST /attendance  (admin create)
+  Future<AttendanceRecordModel> createAttendance({
+    required int employeeId,
+    required String date,
+    required String checkIn,
+    String? checkOut,
+    required String status,
+    String? notes,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'employee_id': employeeId,
+        'date': date,
+        'check_in': checkIn,
+        'status': status,
+      };
+      if (checkOut != null) body['check_out'] = checkOut;
+      if (notes != null && notes.isNotEmpty) body['notes'] = notes;
+      final res = await _dio.post(ApiConstants.attendance, data: body);
+      return AttendanceRecordModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// PUT /attendance/{id}  (admin update)
+  Future<AttendanceRecordModel> updateAttendance({
+    required int id,
+    String? checkIn,
+    String? checkOut,
+    required String status,
+    String? notes,
+  }) async {
+    try {
+      final body = <String, dynamic>{'status': status};
+      if (checkIn != null) body['check_in'] = checkIn;
+      if (checkOut != null) body['check_out'] = checkOut;
+      if (notes != null) body['notes'] = notes;
+      final res = await _dio.put('${ApiConstants.attendance}/$id', data: body);
+      return AttendanceRecordModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// DELETE /attendance/{id}  (admin delete)
+  Future<void> deleteAttendance(int id) async {
+    try {
+      await _dio.delete('${ApiConstants.attendance}/$id');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }

@@ -67,6 +67,40 @@ class AttendanceRepository {
         perPage: perPage,
       );
 
+  Future<AttendanceRecordModel> createAttendance({
+    required int employeeId,
+    required String date,
+    required String checkIn,
+    String? checkOut,
+    required String status,
+    String? notes,
+  }) =>
+      _ds.createAttendance(
+        employeeId: employeeId,
+        date: date,
+        checkIn: checkIn,
+        checkOut: checkOut,
+        status: status,
+        notes: notes,
+      );
+
+  Future<AttendanceRecordModel> updateAttendance({
+    required int id,
+    String? checkIn,
+    String? checkOut,
+    required String status,
+    String? notes,
+  }) =>
+      _ds.updateAttendance(
+        id: id,
+        checkIn: checkIn,
+        checkOut: checkOut,
+        status: status,
+        notes: notes,
+      );
+
+  Future<void> deleteAttendance(int id) => _ds.deleteAttendance(id);
+
   // ── Local queue helpers ────────────────────────────────────────────────────
   Future<void> enqueueAction(PendingAttendanceAction action) =>
       _localDs.enqueue(action);
