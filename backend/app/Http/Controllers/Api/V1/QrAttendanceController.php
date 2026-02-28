@@ -54,6 +54,7 @@ class QrAttendanceController extends Controller
             ...$validated,
             'token'      => (string) Str::uuid(),
             'created_by' => $request->user()->id,
+            'is_active'  => true,
         ]);
 
         $session->load('createdBy:id,name');
