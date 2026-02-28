@@ -58,11 +58,14 @@ const _sentinel = Object();
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
-class FaceManagementNotifier extends StateNotifier<FaceManagementState> {
-  final FaceAdminRepository _repo;
-  FaceManagementNotifier(this._repo) : super(const FaceManagementState()) {
-    load();
+class FaceManagementNotifier extends Notifier<FaceManagementState> {
+  @override
+  FaceManagementState build() {
+    Future.microtask(load);
+    return const FaceManagementState();
   }
+
+  FaceAdminRepository get _repo => ref.read(faceAdminRepositoryProvider);
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true, currentPage: 1);
@@ -125,16 +128,16 @@ class FaceManagementNotifier extends StateNotifier<FaceManagementState> {
         items: state.items
             .map((e) => e.faceDataId == faceDataId
                 ? FaceEnrollmentModel(
-                    employeeId:    e.employeeId,
+                    employeeId:     e.employeeId,
                     employeeNumber: e.employeeNumber,
-                    position:      e.position,
-                    userName:      e.userName,
-                    userIsActive:  e.userIsActive,
+                    position:       e.position,
+                    userName:       e.userName,
+                    userIsActive:   e.userIsActive,
                     departmentName: e.departmentName,
-                    isEnrolled:    false,
-                    faceDataId:    null,
-                    enrolledAt:    null,
-                    imageUrl:      null,
+                    isEnrolled:     false,
+                    faceDataId:     null,
+                    enrolledAt:     null,
+                    imageUrl:       null,
                     enrolledByName: null,
                   )
                 : e)
@@ -148,6 +151,6 @@ class FaceManagementNotifier extends StateNotifier<FaceManagementState> {
 }
 
 final faceManagementProvider =
-    StateNotifierProvider<FaceManagementNotifier, FaceManagementState>(
-  (ref) => FaceManagementNotifier(ref.watch(faceAdminRepositoryProvider)),
+    NotifierProvider<FaceManagementNotifier, FaceManagementState>(
+  FaceManagementNotifier.new,
 );

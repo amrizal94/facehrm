@@ -54,11 +54,14 @@ class EmployeeListState {
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
-class EmployeeListNotifier extends StateNotifier<EmployeeListState> {
-  final EmployeeRepository _repo;
-  EmployeeListNotifier(this._repo) : super(const EmployeeListState()) {
-    load();
+class EmployeeListNotifier extends Notifier<EmployeeListState> {
+  @override
+  EmployeeListState build() {
+    Future.microtask(load);
+    return const EmployeeListState();
   }
+
+  EmployeeRepository get _repo => ref.read(employeeRepositoryProvider);
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true, currentPage: 1);
@@ -126,6 +129,6 @@ class EmployeeListNotifier extends StateNotifier<EmployeeListState> {
 }
 
 final employeeListProvider =
-    StateNotifierProvider<EmployeeListNotifier, EmployeeListState>(
-  (ref) => EmployeeListNotifier(ref.watch(employeeRepositoryProvider)),
+    NotifierProvider<EmployeeListNotifier, EmployeeListState>(
+  EmployeeListNotifier.new,
 );
