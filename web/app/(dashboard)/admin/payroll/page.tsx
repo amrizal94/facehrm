@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   Wallet, TrendingDown, Banknote, FileText,
   Zap, CheckCheck, CreditCard, Search,
-  ChevronLeft, ChevronRight, Pencil, Eye, Trash2, Download,
+  ChevronLeft, ChevronRight, Pencil, Eye, Trash2, Download, Printer,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,8 +26,10 @@ import {
   useGeneratePayroll, useMarkAllPaid, useMarkPayrollPaid, usePayrolls, usePayrollSummary,
 } from '@/hooks/use-payroll'
 import { useDepartments } from '@/hooks/use-employees'
+import { useSettings } from '@/hooks/use-settings'
 import { PayslipDetailDialog } from '@/components/payroll/payslip-detail-dialog'
 import { EditPayrollDialog } from './edit-payroll-dialog'
+import { printPayslip, printPayslips } from '@/lib/payslip-pdf'
 import type { PayrollFilters, PayrollRecord } from '@/types/payroll'
 
 const MONTHS = [
@@ -111,11 +113,20 @@ export default function AdminPayrollPage() {
   const [viewRecord, setViewRecord]     = useState<PayrollRecord | null>(null)
   const [editRecord, setEditRecord]     = useState<PayrollRecord | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PayrollRecord | null>(null)
-  const [isExporting, setIsExporting]   = useState(false)
+  const [isExporting, setIsExporting]     = useState(false)
+  const [isPrintingAll, setIsPrintingAll] = useState(false)
 
   const { data, isLoading }    = usePayrolls(filters)
   const { data: summary }      = usePayrollSummary(year, month)
   const { data: deptData }     = useDepartments()
+  const { data: settingsData } = useSettings()
+
+  const company = {
+    name:    settingsData?.data.company['company.name']    || 'FaceHRM',
+    address: settingsData?.data.company['company.address'] || undefined,
+    phone:   settingsData?.data.company['company.phone']   || undefined,
+    email:   settingsData?.data.company['company.email']   || undefined,
+  }
 
   const generateMutation  = useGeneratePayroll()
   const finalizeOne       = useFinalizePayroll()
@@ -127,6 +138,20 @@ export default function AdminPayrollPage() {
   const records     = data?.data ?? []
   const meta        = data?.meta
   const departments = deptData?.data ?? []
+
+  async function handlePrintAll() {
+    setIsPrintingAll(true)
+    try {
+      const res = await api.get('/payroll', { params: { year, month, per_page: 9999 } })
+      const all: PayrollRecord[] = res.data?.data ?? []
+      if (all.length === 0) { alert('Tidak ada data payroll untuk periode ini.'); return }
+      printPayslips(all, company, `${MONTHS[month - 1]} ${year}`)
+    } catch {
+      alert('Gagal mengambil data. Coba lagi.')
+    } finally {
+      setIsPrintingAll(false)
+    }
+  }
 
   async function handleExportCsv() {
     setIsExporting(true)
@@ -163,6 +188,14 @@ export default function AdminPayrollPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={handlePrintAll}
+              disabled={isPrintingAll}
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              {isPrintingAll ? 'Menyiapkan…' : 'Print All'}
+            </Button>
             <Button
               variant="outline"
               onClick={handleExportCsv}
@@ -326,6 +359,11 @@ export default function AdminPayrollPage() {
                         <Button variant="ghost" size="icon" className="h-7 w-7"
                           onClick={() => setViewRecord(rec)}>
                           <Eye className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7"
+                          title="Print payslip"
+                          onClick={() => printPayslip(rec, company)}>
+                          <Printer className="w-3.5 h-3.5" />
                         </Button>
                         {rec.status === 'draft' && (
                           <>
