@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Clock, CalendarDays, Receipt, ScanFace, Timer,
-  LogIn, LogOut, ChevronRight, CheckCircle2, AlarmClock, Megaphone,
+  LogIn, LogOut, ChevronRight, CheckCircle2, AlarmClock, Megaphone, ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -454,7 +454,8 @@ export default function StaffDashboardPage() {
                   { href: '/staff/leave',      icon: CalendarDays, label: 'My Leave',           color: 'text-orange-600' },
                   { href: '/staff/overtime',   icon: Timer,        label: 'My Overtime',        color: 'text-blue-600' },
                   { href: '/staff/payslip',    icon: Receipt,      label: 'My Payslips',        color: 'text-purple-600' },
-                  { href: '/staff/shift',      icon: AlarmClock,   label: 'My Shift',           color: 'text-indigo-600' },
+                  { href: '/staff/shift',       icon: AlarmClock,    label: 'My Shift',           color: 'text-indigo-600' },
+                  { href: '/staff/face-enroll', icon: ShieldCheck,   label: 'Daftarkan Wajah',    color: 'text-teal-600' },
                 ].map(item => (
                   <Link
                     key={item.href}

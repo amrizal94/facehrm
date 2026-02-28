@@ -1,5 +1,5 @@
 import { api as apiClient } from './api'
-import type { AuditLogEntry, AuditLogMeta, FaceAttendanceResult, FaceEnrollmentMeta, FaceEnrollmentStatus, IdentifyResult } from '@/types/face'
+import type { AuditLogEntry, AuditLogMeta, FaceAttendanceResult, FaceEnrollmentMeta, FaceEnrollmentStatus, FaceMyStatus, IdentifyResult } from '@/types/face'
 
 export interface FaceListResponse {
   success: boolean
@@ -34,6 +34,19 @@ export async function enrollFace(data: {
 
 export async function deleteFaceData(faceDataId: number): Promise<{ success: boolean; message: string }> {
   const res = await apiClient.delete(`/face/${faceDataId}`)
+  return res.data
+}
+
+export async function fetchMyFaceStatus(): Promise<{ success: boolean; data: FaceMyStatus }> {
+  const res = await apiClient.get('/face/me')
+  return res.data
+}
+
+export async function selfEnrollFace(data: {
+  descriptor: number[]
+  snapshot?: string | null
+}): Promise<{ success: boolean; message: string; data: { enrolled: boolean } }> {
+  const res = await apiClient.post('/face/self-enroll', data)
   return res.data
 }
 

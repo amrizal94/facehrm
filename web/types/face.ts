@@ -36,6 +36,11 @@ export interface IdentifyResult {
   distance: number
 }
 
+export interface FaceMyStatus {
+  enrolled: boolean
+  enrolled_at: string | null
+}
+
 export interface AuditLogEntry {
   id: number
   action: string

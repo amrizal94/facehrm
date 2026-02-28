@@ -85,6 +85,7 @@ Route::prefix('v1')->group(function () {
             Route::post('face/attendance',       [FaceDataController::class, 'faceAttendance']);
             Route::post('face/attendance-image', [FaceDataController::class, 'faceAttendanceImage']);
             Route::post('face/self-enroll-image',[FaceDataController::class, 'selfEnrollImage']);
+            Route::post('face/self-enroll',      [FaceDataController::class, 'selfEnroll']);
         });
         // Face — enrollment status for current user
         Route::get('face/me', [FaceDataController::class, 'myStatus']);

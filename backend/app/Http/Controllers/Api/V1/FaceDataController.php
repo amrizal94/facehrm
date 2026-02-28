@@ -599,6 +599,60 @@ class FaceDataController extends Controller
     }
 
     // ---------------------------------------------------------------
+    // All authenticated: self-enroll own face via descriptor (web/browser)
+    // POST /face/self-enroll  { descriptor: [...128], snapshot?: base64 }
+    // ---------------------------------------------------------------
+    public function selfEnroll(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'descriptor'   => ['required', 'array', 'size:128'],
+            'descriptor.*' => ['required', 'numeric', 'between:-2,2'],
+            'snapshot'     => ['nullable', 'string'],
+        ]);
+
+        $employee = $request->user()->employee;
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee profile not found.'], 404);
+        }
+
+        $imagePath = null;
+
+        if (!empty($validated['snapshot'])) {
+            $base64    = preg_replace('/^data:image\/\w+;base64,/', '', $validated['snapshot']);
+            $imageData = base64_decode($base64);
+
+            if ($imageData !== false) {
+                $filename  = 'faces/employee_' . $employee->id . '_' . time() . '.jpg';
+                Storage::disk('public')->put($filename, $imageData);
+                $imagePath = $filename;
+            }
+        }
+
+        FaceData::updateOrCreate(
+            ['employee_id' => $employee->id],
+            [
+                'descriptor'  => $validated['descriptor'],
+                'image_path'  => $imagePath,
+                'is_active'   => true,
+                'enrolled_by' => $request->user()->id,
+                'enrolled_at' => now(),
+            ]
+        );
+
+        AuditLog::record('face.self_enroll', $request,
+            ['employee_id' => $employee->id],
+            'employee', $employee->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Wajah berhasil didaftarkan!',
+            'data'    => ['enrolled' => true],
+        ], 201);
+    }
+
+    // ---------------------------------------------------------------
     // All authenticated: self-enroll own face via image
     // POST /face/self-enroll-image  { image: file }
     // ---------------------------------------------------------------

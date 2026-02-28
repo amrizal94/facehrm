@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { deleteFaceData, enrollFace, faceAttendance, fetchAuditLogs, fetchFaceEnrollments, identifyFace } from '@/lib/face-data-api'
+import { deleteFaceData, enrollFace, faceAttendance, fetchAuditLogs, fetchFaceEnrollments, fetchMyFaceStatus, identifyFace, selfEnrollFace } from '@/lib/face-data-api'
 
 export function useFaceEnrollments(params?: { page?: number; search?: string; enrolled?: boolean }) {
   return useQuery({
@@ -26,6 +26,21 @@ export function useDeleteFaceData() {
 
 export function useIdentifyFace() {
   return useMutation({ mutationFn: identifyFace })
+}
+
+export function useMyFaceStatus() {
+  return useQuery({
+    queryKey: ['face-my-status'],
+    queryFn: fetchMyFaceStatus,
+  })
+}
+
+export function useSelfEnrollFace() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: selfEnrollFace,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['face-my-status'] }),
+  })
 }
 
 export function useAuditLogs(params?: { action?: string; from?: string; to?: string; page?: number }) {
