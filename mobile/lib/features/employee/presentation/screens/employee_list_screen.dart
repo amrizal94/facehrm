@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../data/models/employee_model.dart';
 import '../providers/employee_provider.dart';
 
@@ -49,6 +51,12 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
             onPressed: () => ref.read(employeeListProvider.notifier).load(),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        onPressed: () => _navigateToForm(),
+        child: const Icon(Icons.person_add_outlined),
       ),
       body: Column(
         children: [
@@ -163,6 +171,7 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
                               employee: emp,
                               isToggling: state.toggling.contains(emp.id),
                               onToggle: () => _confirmToggle(context, emp),
+                              onEdit: () => _navigateToForm(employeeId: emp.id),
                             );
                           },
                         ),
@@ -171,6 +180,16 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _navigateToForm({int? employeeId}) async {
+    final result = await context.push<bool>(
+      AppRoutes.employeeForm,
+      extra: employeeId,
+    );
+    if (result == true && mounted) {
+      ref.read(employeeListProvider.notifier).load();
+    }
   }
 
   Future<void> _confirmToggle(BuildContext context, EmployeeModel emp) async {
@@ -244,11 +263,13 @@ class _EmployeeTile extends StatelessWidget {
   final EmployeeModel employee;
   final bool isToggling;
   final VoidCallback onToggle;
+  final VoidCallback onEdit;
 
   const _EmployeeTile({
     required this.employee,
     required this.isToggling,
     required this.onToggle,
+    required this.onEdit,
   });
 
   @override
@@ -302,6 +323,14 @@ class _EmployeeTile extends StatelessWidget {
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Edit button
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    onPressed: onEdit,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    tooltip: 'Edit',
+                  ),
                   // Status badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -42,6 +42,74 @@ class EmployeeRemoteDataSource {
     }
   }
 
+  /// GET /employees/{id}
+  Future<Map<String, dynamic>> getEmployee(int id) async {
+    try {
+      final res = await _dio.get('${ApiConstants.employees}/$id');
+      return res.data['data'] as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// POST /employees
+  Future<EmployeeModel> createEmployee(Map<String, dynamic> data) async {
+    try {
+      final res = await _dio.post(ApiConstants.employees, data: data);
+      return EmployeeModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// PUT /employees/{id}
+  Future<EmployeeModel> updateEmployee(int id, Map<String, dynamic> data) async {
+    try {
+      final res = await _dio.put('${ApiConstants.employees}/$id', data: data);
+      return EmployeeModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// GET /departments?per_page=100
+  Future<List<({int id, String name})>> getDepartments() async {
+    try {
+      final res = await _dio.get(
+        ApiConstants.departments,
+        queryParameters: {'per_page': 100},
+      );
+      final data = res.data['data'] as List;
+      return data
+          .map((e) => (id: e['id'] as int, name: e['name'] as String))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// GET /shifts?per_page=100
+  Future<List<({int id, String name, String checkInTime, String checkOutTime})>>
+      getShifts() async {
+    try {
+      final res = await _dio.get(
+        ApiConstants.shifts,
+        queryParameters: {'per_page': 100},
+      );
+      final data = res.data['data'] as List;
+      return data
+          .map((e) => (
+                id:           e['id'] as int,
+                name:         e['name'] as String,
+                checkInTime:  e['check_in_time']  as String? ?? '',
+                checkOutTime: e['check_out_time'] as String? ?? '',
+              ))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   /// PATCH /employees/{id}/toggle-active
   Future<EmployeeModel> toggleActive(int employeeId) async {
     try {

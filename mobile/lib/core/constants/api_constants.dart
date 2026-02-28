@@ -46,7 +46,9 @@ class ApiConstants {
   static const String faceAdmin           = '/face';
 
   // Employees
-  static const String employees = '/employees';
+  static const String employees   = '/employees';
+  static const String departments = '/departments';
+  static const String shifts      = '/shifts';
 
   // Payroll (staff)
   static const String payrollMy = '/payroll/my';

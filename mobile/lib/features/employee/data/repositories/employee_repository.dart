@@ -17,6 +17,20 @@ class EmployeeRepository {
     String? departmentId,
   }) => _ds.getEmployees(page: page, search: search, departmentId: departmentId);
 
+  Future<Map<String, dynamic>> getEmployee(int id) => _ds.getEmployee(id);
+
+  Future<EmployeeModel> createEmployee(Map<String, dynamic> data) =>
+      _ds.createEmployee(data);
+
+  Future<EmployeeModel> updateEmployee(int id, Map<String, dynamic> data) =>
+      _ds.updateEmployee(id, data);
+
+  Future<List<({int id, String name})>> getDepartments() =>
+      _ds.getDepartments();
+
+  Future<List<({int id, String name, String checkInTime, String checkOutTime})>>
+      getShifts() => _ds.getShifts();
+
   Future<EmployeeModel> toggleActive(int employeeId) =>
       _ds.toggleActive(employeeId);
 }

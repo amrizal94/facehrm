@@ -107,6 +107,30 @@ class EmployeeListNotifier extends Notifier<EmployeeListState> {
   }
 
   /// Returns null on success, error message on failure.
+  Future<String?> createEmployee(Map<String, dynamic> data) async {
+    try {
+      final created = await _repo.createEmployee(data);
+      state = state.copyWith(items: [created, ...state.items]);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+
+  /// Returns null on success, error message on failure.
+  Future<String?> updateEmployee(int id, Map<String, dynamic> data) async {
+    try {
+      final updated = await _repo.updateEmployee(id, data);
+      state = state.copyWith(
+        items: state.items.map((e) => e.id == id ? updated : e).toList(),
+      );
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+
+  /// Returns null on success, error message on failure.
   Future<String?> toggleActive(int employeeId) async {
     state = state.copyWith(toggling: {...state.toggling, employeeId});
     try {
@@ -131,4 +155,14 @@ class EmployeeListNotifier extends Notifier<EmployeeListState> {
 final employeeListProvider =
     NotifierProvider<EmployeeListNotifier, EmployeeListState>(
   EmployeeListNotifier.new,
+);
+
+final departmentsForFormProvider =
+    FutureProvider<List<({int id, String name})>>(
+  (ref) => ref.read(employeeRepositoryProvider).getDepartments(),
+);
+
+final shiftsForFormProvider =
+    FutureProvider<List<({int id, String name, String checkInTime, String checkOutTime})>>(
+  (ref) => ref.read(employeeRepositoryProvider).getShifts(),
 );
