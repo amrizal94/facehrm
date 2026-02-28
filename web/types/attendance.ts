@@ -8,7 +8,7 @@ export interface AttendanceRecord {
   status: AttendanceStatus
   work_hours: string | null
   notes: string | null
-  check_in_method?: 'face' | 'manual' | null
+  check_in_method?: 'face' | 'manual' | 'admin' | null
   employee?: {
     id: number
     employee_number: string

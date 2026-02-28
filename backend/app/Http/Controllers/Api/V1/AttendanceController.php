@@ -80,15 +80,16 @@ class AttendanceController extends Controller
                 'date'        => $validated['date'],
             ],
             [
-                'check_in'  => $validated['check_in'],
-                'check_out' => $validated['check_out'] ?? null,
-                'status'    => $validated['status'] ?? AttendanceRecord::resolveStatus(
+                'check_in'        => $validated['check_in'],
+                'check_out'       => $validated['check_out'] ?? null,
+                'status'          => $validated['status'] ?? AttendanceRecord::resolveStatus(
                     Carbon::parse($validated['check_in'])
                 ),
-                'work_hours' => isset($validated['check_out'])
+                'work_hours'      => isset($validated['check_out'])
                     ? $this->calcHours($validated['check_in'], $validated['check_out'])
                     : null,
-                'notes' => $validated['notes'] ?? null,
+                'notes'           => $validated['notes'] ?? null,
+                'check_in_method' => 'admin',
             ]
         );
 

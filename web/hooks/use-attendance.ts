@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import {
   checkIn,
   checkOut,
+  createAttendance,
   deleteAttendance,
   fetchAttendance,
   fetchAttendanceSummary,
@@ -67,6 +68,19 @@ export function useCheckOut() {
       qc.invalidateQueries({ queryKey: ['my-attendance'] })
       qc.invalidateQueries({ queryKey: ['attendance-summary'] })
       toast.success(`Checked out at ${formatTime(data.check_out)}`)
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  })
+}
+
+export function useCreateAttendance() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Parameters<typeof createAttendance>[0]) => createAttendance(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['attendance'] })
+      qc.invalidateQueries({ queryKey: ['attendance-summary'] })
+      toast.success('Attendance record added.')
     },
     onError: (err: unknown) => toast.error(getErrorMessage(err)),
   })

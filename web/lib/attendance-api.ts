@@ -43,6 +43,18 @@ export async function checkOut(): Promise<AttendanceRecord> {
   return res.data.data
 }
 
+export async function createAttendance(data: {
+  employee_id: number
+  date: string
+  check_in: string
+  check_out?: string
+  status?: string
+  notes?: string
+}): Promise<AttendanceRecord> {
+  const res = await api.post('/attendance', data)
+  return res.data.data
+}
+
 export async function updateAttendance(
   id: number,
   data: { check_in?: string; check_out?: string; status?: string; notes?: string }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, Clock, UserX, AlertCircle, Search, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { Users, Clock, UserX, AlertCircle, Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -34,6 +34,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { useAttendance, useAttendanceSummary, useDeleteAttendance } from '@/hooks/use-attendance'
 import { useDepartments } from '@/hooks/use-employees'
 import { EditAttendanceDialog } from './edit-attendance-dialog'
+import { AddAttendanceDialog } from './add-attendance-dialog'
 import type { AttendanceFilters, AttendanceRecord } from '@/types/attendance'
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
@@ -47,6 +48,7 @@ const STATUS_STYLES: Record<string, { label: string; className: string }> = {
 const METHOD_STYLES: Record<string, { label: string; className: string }> = {
   face:   { label: 'Face',   className: 'bg-emerald-100 text-emerald-700' },
   manual: { label: 'Manual', className: 'bg-slate-100 text-slate-600' },
+  admin:  { label: 'Admin',  className: 'bg-indigo-100 text-indigo-700' },
 }
 
 function formatTime(iso: string | null): string {
@@ -83,6 +85,7 @@ export default function AdminAttendancePage() {
     per_page: 20,
   })
   const [search, setSearch]             = useState('')
+  const [addOpen, setAddOpen]           = useState(false)
   const [editRecord, setEditRecord]     = useState<AttendanceRecord | null>(null)
   const [deleteRecord, setDeleteRecord] = useState<AttendanceRecord | null>(null)
 
@@ -103,9 +106,15 @@ export default function AdminAttendancePage() {
     <DashboardLayout title="Attendance" allowedRoles={['admin', 'hr']}>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Attendance</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Monitor daily attendance records</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Attendance</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">Monitor daily attendance records</p>
+          </div>
+          <Button onClick={() => setAddOpen(true)} className="shrink-0">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Entry
+          </Button>
         </div>
 
         {/* Summary Cards */}
@@ -265,6 +274,13 @@ export default function AdminAttendancePage() {
           </div>
         )}
       </div>
+
+      {/* Add Entry Dialog */}
+      <AddAttendanceDialog
+        open={addOpen}
+        defaultDate={filters.date}
+        onOpenChange={setAddOpen}
+      />
 
       {/* Edit Dialog */}
       <EditAttendanceDialog
