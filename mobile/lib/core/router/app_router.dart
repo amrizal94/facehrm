@@ -27,6 +27,9 @@ import '../../features/payslip/presentation/screens/payslip_list_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/auth/presentation/screens/profile_screen.dart';
 import '../../features/shift/presentation/screens/my_shift_screen.dart';
+import '../../features/announcement/data/models/announcement_model.dart';
+import '../../features/announcement/presentation/screens/announcement_detail_screen.dart';
+import '../../features/announcement/presentation/screens/announcements_list_screen.dart';
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../constants/app_constants.dart';
@@ -141,6 +144,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => TaskDetailScreen(taskId: state.extra as int),
       ),
       GoRoute(path: AppRoutes.profile,       builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: AppRoutes.announcements, builder: (_, __) => const AnnouncementsListScreen()),
+      GoRoute(
+        path: AppRoutes.announcementDetail,
+        builder: (_, state) => AnnouncementDetailScreen(
+          announcement: state.extra as AnnouncementModel,
+        ),
+      ),
 
       // HR / Admin
       GoRoute(path: AppRoutes.leaveApprovals,    builder: (_, __) => const LeaveApprovalsScreen()),

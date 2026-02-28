@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\ProfileController;
+use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\EmployeeController;
@@ -87,6 +88,10 @@ Route::prefix('v1')->group(function () {
         // Face — enrollment status for current user
         Route::get('face/me', [FaceDataController::class, 'myStatus']);
 
+        // Announcements — all authenticated (read), admin|hr (write)
+        Route::get('announcements', [AnnouncementController::class, 'index']);
+        Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
+
         // Shifts — any authenticated user can view their own shift
         Route::get('my-shift', [ShiftController::class, 'myShift']);
 
@@ -159,6 +164,11 @@ Route::prefix('v1')->group(function () {
             Route::post('face/enroll',            [FaceDataController::class, 'enroll']);
             Route::post('face/enroll-image',      [FaceDataController::class, 'enrollImage']);
             Route::delete('face/{faceData}',      [FaceDataController::class, 'destroy']);
+
+            // Announcements management
+            Route::post('announcements', [AnnouncementController::class, 'store']);
+            Route::put('announcements/{announcement}', [AnnouncementController::class, 'update']);
+            Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy']);
 
             // Payroll management
             Route::get('payroll/summary',               [PayrollController::class, 'summary']);

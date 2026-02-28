@@ -33,6 +33,10 @@ class AppRoutes {
   // Profile (all roles)
   static const String profile = '/profile';
 
+  // Announcements (all roles)
+  static const String announcements       = '/announcements';
+  static const String announcementDetail  = '/announcements/detail';
+
   // HR / Admin
   static const String leaveApprovals       = '/hr/leave-approvals';
   static const String overtimeApprovals    = '/hr/overtime-approvals';

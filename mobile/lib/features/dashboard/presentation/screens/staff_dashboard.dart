@@ -309,6 +309,13 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                 onTap: () => context.push(AppRoutes.myTasks),
               ),
               _MenuTile(
+                icon: Icons.campaign_outlined,
+                title: 'Announcements',
+                subtitle: 'Company announcements & updates',
+                color: Colors.purple,
+                onTap: () => context.push(AppRoutes.announcements),
+              ),
+              _MenuTile(
                 icon: Icons.notifications_outlined,
                 title: 'Notifications',
                 subtitle: 'View your notifications',

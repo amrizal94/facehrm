@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, CalendarDays, CheckCheck, Info, Timer } from 'lucide-react'
+import { Bell, CalendarDays, CheckCheck, Info, Megaphone, Timer } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,18 +18,21 @@ import type { AppNotification } from '@/types/notification'
 const TYPE_ICON: Record<string, React.ElementType> = {
   leave_status:    CalendarDays,
   overtime_status: Timer,
+  announcement:    Megaphone,
   general:         Info,
 }
 
 const TYPE_COLOR: Record<string, string> = {
   leave_status:    'bg-orange-100 text-orange-600',
   overtime_status: 'bg-blue-100 text-blue-600',
+  announcement:    'bg-violet-100 text-violet-600',
   general:         'bg-slate-100 text-slate-600',
 }
 
 const TYPE_LABEL: Record<string, string> = {
   leave_status:    'Leave',
   overtime_status: 'Overtime',
+  announcement:    'Announcement',
   general:         'General',
 }
 
@@ -47,12 +50,13 @@ function fmtTime(iso: string) {
 }
 
 // ── Filter types ─────────────────────────────────────────────────────────────
-type FilterType = 'all' | 'leave_status' | 'overtime_status' | 'general'
+type FilterType = 'all' | 'leave_status' | 'overtime_status' | 'announcement' | 'general'
 
 const FILTERS: { key: FilterType; label: string }[] = [
   { key: 'all',            label: 'All' },
   { key: 'leave_status',   label: 'Leave' },
   { key: 'overtime_status', label: 'Overtime' },
+  { key: 'announcement',   label: 'Announcements' },
   { key: 'general',        label: 'General' },
 ]
 

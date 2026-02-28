@@ -21,6 +21,7 @@ import {
   Bell,
   AlarmClock,
   UserCircle,
+  Megaphone,
 } from 'lucide-react'
 
 interface NavItem {
@@ -48,7 +49,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,       roles: ['admin', 'hr'] },
   { label: 'Projects',    href: '/admin/projects',   icon: FolderKanban,    roles: ['admin', 'hr'] },
   { label: 'Settings',    href: '/admin/settings',   icon: Settings,        roles: ['admin'] },
+  { label: 'Announcements', href: '/admin/announcements', icon: Megaphone,  roles: ['admin', 'hr'] },
   { label: 'My Tasks',      href: '/staff/tasks',      icon: CheckSquare,     roles: ['staff'] },
+  { label: 'Announcements', href: '/staff/announcements', icon: Megaphone,  roles: ['staff'] },
   { label: 'My Shift',     href: '/staff/shift',      icon: AlarmClock,      roles: ['staff'] },
   { label: 'Holidays',     href: '/staff/holidays',   icon: CalendarDays,    roles: ['staff'] },
   { label: 'My Profile',   href: '/staff/profile',    icon: UserCircle,      roles: ['staff', 'hr', 'admin'] },

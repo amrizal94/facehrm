@@ -50,6 +50,9 @@ class ApiConstants {
   // Shifts
   static const String myShift = '/my-shift';
 
+  // Announcements
+  static const String announcements = '/announcements';
+
   // Tasks & Projects
   static const String projects = '/projects';
   static const String tasks    = '/tasks';

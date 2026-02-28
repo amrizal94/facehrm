@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Clock, CalendarDays, Receipt, ScanFace, Timer,
-  LogIn, LogOut, ChevronRight, CheckCircle2, AlarmClock,
+  LogIn, LogOut, ChevronRight, CheckCircle2, AlarmClock, Megaphone,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,6 +19,7 @@ import { useLeaveQuota, useMyLeaves } from '@/hooks/use-leave'
 import { useMyOvertimes } from '@/hooks/use-overtime'
 import { useMyPayslips } from '@/hooks/use-payroll'
 import { useMyShift } from '@/hooks/use-shifts'
+import { useAnnouncements } from '@/hooks/use-announcements'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -328,6 +329,34 @@ function RecentAttendance() {
   )
 }
 
+// ─── Latest Announcements Panel ──────────────────────────────────────────────
+
+function LatestAnnouncements() {
+  const { data: list = [] } = useAnnouncements({ limit: 3 })
+  if (list.length === 0) return null
+  return (
+    <div className="rounded-xl border bg-card p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-sm flex items-center gap-1.5">
+          <Megaphone className="w-3.5 h-3.5" />
+          Announcements
+        </h3>
+        <Link href="/staff/announcements" className="text-xs text-primary hover:underline">
+          View all
+        </Link>
+      </div>
+      <div className="space-y-2">
+        {list.map(a => (
+          <div key={a.id} className="py-2 border-b last:border-0">
+            <p className="text-sm font-medium truncate">{a.title}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{a.content}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function StaffDashboardPage() {
@@ -414,6 +443,7 @@ export default function StaffDashboardPage() {
           {/* Right sidebar */}
           <div className="space-y-5">
             <LeaveQuotaPanel />
+            <LatestAnnouncements />
 
             {/* Quick nav */}
             <div className="rounded-xl border bg-card p-5">

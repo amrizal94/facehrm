@@ -127,6 +127,7 @@ class PushNotificationService {
         '/staff/leave'           => AppRoutes.myLeaves,
         '/staff/overtime'        => AppRoutes.myOvertime,
         '/hr/attendance-records' => AppRoutes.attendanceRecords,
+        '/announcements'         => AppRoutes.announcements,
         _                        => AppRoutes.notifications,
       };
 
