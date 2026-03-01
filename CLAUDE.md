@@ -44,13 +44,13 @@
 ## Feature Status (what's done)
 
 ### Web ✅
-Auth/RBAC, Employee Mgmt (+ activation toggle), Attendance, Leave, Payroll, Face Recognition (enroll+delete+audit-log tabs), Reports, Settings (company+attendance+payroll policy), Admin Dashboard, HR Dashboard, Tasks & Projects, Shifts, Announcements (CRUD+broadcast), Expense/Reimbursement (staff /staff/expenses, admin /admin/expenses)
+Auth/RBAC, Employee Mgmt (+ activation toggle), Attendance, Leave, Payroll, Face Recognition (enroll+delete+audit-log tabs), Reports, Settings (company+attendance+payroll policy), Admin Dashboard, HR Dashboard, Manager Dashboard, Tasks & Projects, Shifts, Announcements (CRUD+broadcast), Expense/Reimbursement (staff /staff/expenses, admin /admin/expenses — tabs: Approvals + Expense Types), QR Attendance (QrSessionDialog di /admin/attendance), Meetings CRUD+RSVP (/admin/meetings, /staff/meetings)
 
 ### Mobile ✅
-Auth, Dashboard (all 3 roles), Attendance (face+manual+offline sync), Face Self-Enroll, Leave, Payslip (+ PDF share), Overtime, Holidays, Notifications, Tasks, Announcements, My Shift, Face Data Management (admin/hr), Employee Account Activation (admin/hr), Employee Create/Edit, Face Audit Log (/hr/face-audit-log), Expense/Reimbursement (staff /staff/expenses + submit, admin/hr /hr/expense-approvals)
+Auth, Dashboard (all 4 roles — staff/admin/hr/manager/director), Attendance (face+manual+offline sync), Face Self-Enroll, Leave, Payslip (+ PDF share), Overtime, Holidays, Notifications, Tasks, Announcements, My Shift, Face Data Management (admin/hr), Employee Account Activation (admin/hr), Employee Create/Edit, Face Audit Log (/hr/face-audit-log), Expense/Reimbursement (MyExpensesScreen summary card + API-driven types + SubmitExpenseScreen + ExpenseApprovalsScreen — live pending badge), QR Attendance (/staff/qr-scan + /hr/qr-generator), Meetings (/meetings + /meetings/detail), Force Password Change (/change-password)
 
 ### Gaps (P2)
-QR Attendance, Communication Suite, Multi-branch
+Multi-branch
 
 ## Key Mobile Files
 - Routes: `mobile/lib/core/router/app_routes.dart`
