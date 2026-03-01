@@ -49,22 +49,11 @@ export default async function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Logo & Title */}
         <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
-            <svg
-              className="w-9 h-9 text-primary-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z"
-              />
-            </svg>
+          <div className="mx-auto w-16 h-16 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Artech HRM" className="w-16 h-16 object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">FaceHRM</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Artech HRM</h1>
           <p className="text-slate-500 text-sm">Human Resource Management System</p>
         </div>
 
@@ -98,7 +87,7 @@ export default async function LoginPage() {
           </div>
           <a
             href={apkInfo ? `/app/${apkInfo.filename}` : '/app/facehrm.apk'}
-            download={apkInfo ? `FaceHRM-${apkInfo.filename.replace('facehrm-', '')}` : 'FaceHRM.apk'}
+            download={apkInfo ? `ArtechHRM-${apkInfo.filename.replace('facehrm-', '')}` : 'ArtechHRM.apk'}
             className="shrink-0 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,7 +97,7 @@ export default async function LoginPage() {
           </a>
         </div>
 
-        <p className="text-center text-xs text-slate-400">v1.0.0 &copy; 2026 FaceHRM</p>
+        <p className="text-center text-xs text-slate-400">v1.0.0 &copy; 2026 Artech HRM</p>
       </div>
     </div>
   )

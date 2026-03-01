@@ -39,7 +39,7 @@ class FaceHRMApp extends ConsumerWidget {
     });
 
     return MaterialApp.router(
-      title: 'FaceHRM',
+      title: 'Artech HRM',
       theme: AppTheme.lightTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,

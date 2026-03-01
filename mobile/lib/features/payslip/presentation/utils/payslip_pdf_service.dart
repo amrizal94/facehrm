@@ -114,7 +114,7 @@ class PayslipPdfService {
   // ── Main PDF builder ─────────────────────────────────────────────────────────
   static Future<Uint8List> generate(
     PayslipModel slip, {
-    String companyName = 'FaceHRM',
+    String companyName = 'Artech HRM',
   }) async {
     final doc = pw.Document();
     final periodStr = slip.periodLabel ?? '${_monthName(slip.periodMonth)} ${slip.periodYear}';

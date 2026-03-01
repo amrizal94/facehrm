@@ -11,7 +11,7 @@ class SettingSeeder extends Seeder
     {
         $defaults = [
             // Company
-            ['key' => 'company.name',    'value' => 'FaceHRM Company',   'group' => 'company'],
+            ['key' => 'company.name',    'value' => 'Artech HRM',   'group' => 'company'],
             ['key' => 'company.address', 'value' => '',                  'group' => 'company'],
             ['key' => 'company.phone',   'value' => '',                  'group' => 'company'],
             ['key' => 'company.email',   'value' => 'info@facehrm.com',  'group' => 'company'],

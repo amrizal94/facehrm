@@ -231,8 +231,7 @@ class _SplashScreenState extends ConsumerState<_SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.face_retouching_natural, size: 80,
-                color: Theme.of(context).colorScheme.primary),
+            Image.asset('assets/images/logo.png', width: 80, height: 80),
             const SizedBox(height: 16),
             Text(AppConstants.appName,
                 style: Theme.of(context)

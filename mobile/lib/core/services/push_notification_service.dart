@@ -22,7 +22,7 @@ class PushNotificationService {
       FlutterLocalNotificationsPlugin();
 
   static const String _channelId   = 'facehrm_notifications';
-  static const String _channelName = 'FaceHRM Notifications';
+  static const String _channelName = 'Artech HRM Notifications';
 
   /// Call once from main() after Firebase.initializeApp().
   static Future<void> initialize() async {

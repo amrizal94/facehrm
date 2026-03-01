@@ -122,7 +122,7 @@ export default function AdminPayrollPage() {
   const { data: settingsData } = useSettings()
 
   const company = {
-    name:    settingsData?.data.company['company.name']    || 'FaceHRM',
+    name:    settingsData?.data.company['company.name']    || 'Artech HRM',
     address: settingsData?.data.company['company.address'] || undefined,
     phone:   settingsData?.data.company['company.phone']   || undefined,
     email:   settingsData?.data.company['company.email']   || undefined,

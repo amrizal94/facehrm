@@ -1,7 +1,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'FaceHRM';
+  static const String appName = 'Artech HRM';
 
   // Roles
   static const String roleAdmin = 'admin';

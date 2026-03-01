@@ -27,18 +27,10 @@ class LoginScreen extends ConsumerWidget {
                   const SizedBox(height: 60),
 
                   // Logo
-                  Container(
+                  Image.asset(
+                    'assets/images/logo.png',
                     width: 100,
                     height: 100,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.face_retouching_natural,
-                      size: 56,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
                   ),
 
                   const SizedBox(height: 24),

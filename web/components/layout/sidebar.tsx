@@ -97,10 +97,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-700">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <ScanFace className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">FaceHRM</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Artech HRM" className="w-8 h-8 rounded-lg object-contain" />
+          <span className="text-lg font-bold tracking-tight">Artech HRM</span>
         </div>
 
         {/* Nav */}
