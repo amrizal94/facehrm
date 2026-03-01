@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
     v == null ? '—' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v)
 
   return (
-    <DashboardLayout title="Admin Dashboard" allowedRoles={['admin']}>
+    <DashboardLayout title="Admin Dashboard" allowedRoles={['admin', 'director']}>
       <div className="space-y-6">
 
         {/* ── 6 Stat Cards ── */}

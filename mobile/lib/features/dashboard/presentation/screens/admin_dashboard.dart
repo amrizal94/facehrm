@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notifications/presentation/providers/notification_provider.dart';
 import '../../../reports/data/models/reports_overview_model.dart';
@@ -102,8 +103,11 @@ class AdminDashboardScreen extends ConsumerWidget {
                                   color: Colors.red.shade700,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Text('ADMIN',
-                                    style: TextStyle(
+                                child: Text(
+                                    user?.role == AppConstants.roleDirector
+                                        ? 'DIRECTOR'
+                                        : 'ADMIN',
+                                    style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold)),

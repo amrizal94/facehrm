@@ -113,7 +113,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const AdminDashboardScreen(),
         redirect: (context, state) {
           final as = ProviderScope.containerOf(context).read(authNotifierProvider);
-          if (as is AuthAuthenticated && as.user.role != AppConstants.roleAdmin) {
+          if (as is AuthAuthenticated &&
+            as.user.role != AppConstants.roleAdmin &&
+            as.user.role != AppConstants.roleDirector) {
             return AppRoutes.unauthorized;
           }
           return null;
@@ -234,10 +236,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 });
 
 String _dashboardForRole(String role) => switch (role) {
-      AppConstants.roleAdmin   => AppRoutes.adminDashboard,
-      AppConstants.roleHR      => AppRoutes.hrDashboard,
-      AppConstants.roleManager => AppRoutes.managerDashboard,
-      _                        => AppRoutes.staffDashboard,
+      AppConstants.roleAdmin    => AppRoutes.adminDashboard,
+      AppConstants.roleDirector => AppRoutes.adminDashboard,
+      AppConstants.roleHR       => AppRoutes.hrDashboard,
+      AppConstants.roleManager  => AppRoutes.managerDashboard,
+      _                         => AppRoutes.staffDashboard,
     };
 
 // ── Splash ────────────────────────────────────────────────────────────────────

@@ -88,7 +88,7 @@ export default function EmployeesPage() {
   }
 
   return (
-    <DashboardLayout title="Employees" allowedRoles={['admin', 'hr', 'manager']}>
+    <DashboardLayout title="Employees" allowedRoles={['admin', 'hr', 'manager', 'director']}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

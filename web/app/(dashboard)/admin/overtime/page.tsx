@@ -76,7 +76,7 @@ export default function AdminOvertimePage() {
   }
 
   return (
-    <DashboardLayout title="Overtime Management" allowedRoles={['admin', 'hr', 'manager']}>
+    <DashboardLayout title="Overtime Management" allowedRoles={['admin', 'hr', 'manager', 'director']}>
       <div className="space-y-6">
         {/* Header */}
         <div>

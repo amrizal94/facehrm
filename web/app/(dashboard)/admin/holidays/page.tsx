@@ -173,7 +173,7 @@ export default function AdminHolidaysPage() {
   }
 
   return (
-    <DashboardLayout title="Holiday Calendar" allowedRoles={['admin', 'hr', 'manager']}>
+    <DashboardLayout title="Holiday Calendar" allowedRoles={['admin', 'hr', 'manager', 'director']}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

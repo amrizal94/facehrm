@@ -86,7 +86,7 @@ export default function ProjectTasksPage() {
   }
 
   return (
-    <DashboardLayout title={project?.name ?? 'Tasks'} allowedRoles={['admin', 'hr', 'manager']}>
+    <DashboardLayout title={project?.name ?? 'Tasks'} allowedRoles={['admin', 'hr', 'manager', 'director']}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => router.push('/admin/projects')}>

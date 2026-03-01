@@ -446,7 +446,7 @@ function PayrollPolicyTab() {
 
 export default function AdminSettingsPage() {
   return (
-    <DashboardLayout title="Settings" allowedRoles={['admin']}>
+    <DashboardLayout title="Settings" allowedRoles={['admin', 'director']}>
       <div className="max-w-2xl space-y-6">
         <Tabs defaultValue="profile">
           <TabsList className="grid grid-cols-4 w-full">

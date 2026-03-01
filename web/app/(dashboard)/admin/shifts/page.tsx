@@ -67,7 +67,7 @@ export default function ShiftsPage() {
   }
 
   return (
-    <DashboardLayout title="Shifts" allowedRoles={['admin', 'hr']}>
+    <DashboardLayout title="Shifts" allowedRoles={['admin', 'hr', 'director']}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

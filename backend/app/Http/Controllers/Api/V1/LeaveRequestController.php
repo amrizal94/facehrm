@@ -137,7 +137,7 @@ class LeaveRequestController extends Controller
     public function destroy(Request $request, LeaveRequest $leaveRequest): JsonResponse
     {
         $employee = Employee::where('user_id', $request->user()->id)->first();
-        $isAdmin  = $request->user()->hasRole(['admin', 'hr', 'manager']);
+        $isAdmin  = $request->user()->hasRole(['admin', 'hr', 'manager', 'director']);
 
         if (!$isAdmin && $leaveRequest->employee_id !== $employee?->id) {
             return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);

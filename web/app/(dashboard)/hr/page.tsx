@@ -89,7 +89,7 @@ export default function HRDashboardPage() {
   const skeleton = isLoading ? '—' : undefined
 
   return (
-    <DashboardLayout title="HR Dashboard" allowedRoles={['hr', 'admin']}>
+    <DashboardLayout title="HR Dashboard" allowedRoles={['hr', 'admin', 'director']}>
       <div className="space-y-6">
 
         {/* Stat Cards */}

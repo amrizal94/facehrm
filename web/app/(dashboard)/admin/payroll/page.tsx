@@ -177,7 +177,7 @@ export default function AdminPayrollPage() {
   }
 
   return (
-    <DashboardLayout title="Payroll" allowedRoles={['admin', 'hr']}>
+    <DashboardLayout title="Payroll" allowedRoles={['admin', 'hr', 'director']}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">

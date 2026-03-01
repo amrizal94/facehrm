@@ -106,7 +106,7 @@ export default function AdminAttendancePage() {
   }
 
   return (
-    <DashboardLayout title="Attendance" allowedRoles={['admin', 'hr', 'manager']}>
+    <DashboardLayout title="Attendance" allowedRoles={['admin', 'hr', 'manager', 'director']}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">

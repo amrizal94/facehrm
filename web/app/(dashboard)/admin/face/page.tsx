@@ -44,7 +44,7 @@ export default function AdminFacePage() {
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 
   return (
-    <DashboardLayout title="Face Management" allowedRoles={['admin', 'hr', 'manager']}>
+    <DashboardLayout title="Face Management" allowedRoles={['admin', 'hr', 'manager', 'director']}>
       <Tabs defaultValue="enrollment">
         <TabsList className="mb-6">
           <TabsTrigger value="enrollment">Enrollment</TabsTrigger>

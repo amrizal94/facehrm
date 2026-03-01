@@ -114,7 +114,7 @@ Route::prefix('v1')->group(function () {
         Route::get('my-shift', [ShiftController::class, 'myShift']);
 
         // Admin, HR & Manager (everything except payroll and settings)
-        Route::middleware('role:admin|hr|manager')->group(function () {
+        Route::middleware('role:admin|hr|manager|director')->group(function () {
             // Labels
             Route::post('labels',           [LabelController::class, 'store']);
             Route::put('labels/{label}',    [LabelController::class, 'update']);
@@ -204,7 +204,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Admin & HR only (payroll + settings)
-        Route::middleware('role:admin|hr')->group(function () {
+        Route::middleware('role:admin|hr|director')->group(function () {
             // Settings
             Route::get('settings',  [SettingController::class, 'index']);
             Route::put('settings',  [SettingController::class, 'update']);
