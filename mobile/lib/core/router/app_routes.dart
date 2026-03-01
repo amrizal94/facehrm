@@ -55,4 +55,8 @@ class AppRoutes {
   // QR Attendance
   static const String qrScan      = '/staff/qr-scan';
   static const String qrGenerator = '/hr/qr-generator';
+
+  // Meetings (all roles)
+  static const String meetings      = '/meetings';
+  static const String meetingDetail = '/meetings/detail';
 }

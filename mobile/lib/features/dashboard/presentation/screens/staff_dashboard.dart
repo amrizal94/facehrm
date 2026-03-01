@@ -330,6 +330,13 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                 onTap: () => context.push(AppRoutes.announcements),
               ),
               _MenuTile(
+                icon: Icons.video_call_outlined,
+                title: 'Meetings',
+                subtitle: 'View upcoming meetings & RSVP',
+                color: Colors.blue.shade700,
+                onTap: () => context.push(AppRoutes.meetings),
+              ),
+              _MenuTile(
                 icon: Icons.notifications_outlined,
                 title: 'Notifications',
                 subtitle: 'View your notifications',

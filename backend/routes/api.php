@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\AnnouncementController;
+use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\QrAttendanceController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\AuditLogController;
@@ -102,6 +103,12 @@ Route::prefix('v1')->group(function () {
         Route::get('announcements', [AnnouncementController::class, 'index']);
         Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
 
+        // Meetings — specific routes BEFORE parameterized /{meeting}
+        Route::get('meetings/my', [MeetingController::class, 'my']);
+        Route::get('meetings',    [MeetingController::class, 'index']);
+        Route::get('meetings/{meeting}',       [MeetingController::class, 'show']);
+        Route::post('meetings/{meeting}/rsvp', [MeetingController::class, 'rsvp']);
+
         // Shifts — any authenticated user can view their own shift
         Route::get('my-shift', [ShiftController::class, 'myShift']);
 
@@ -182,6 +189,12 @@ Route::prefix('v1')->group(function () {
             Route::post('announcements', [AnnouncementController::class, 'store']);
             Route::put('announcements/{announcement}', [AnnouncementController::class, 'update']);
             Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+            // Meetings management (admin|hr)
+            Route::post('meetings',              [MeetingController::class, 'store']);
+            Route::put('meetings/{meeting}',     [MeetingController::class, 'update']);
+            Route::delete('meetings/{meeting}',  [MeetingController::class, 'destroy']);
+            Route::get('meetings/{meeting}/rsvps', [MeetingController::class, 'rsvpList']);
 
             // Audit logs
             Route::get('audit-logs', [AuditLogController::class, 'index']);

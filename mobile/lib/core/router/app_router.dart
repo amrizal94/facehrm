@@ -41,6 +41,9 @@ import '../../features/face/presentation/screens/face_audit_log_screen.dart';
 import '../../features/face/presentation/screens/face_management_screen.dart';
 import '../../features/employee/presentation/screens/employee_list_screen.dart';
 import '../../features/employee/presentation/screens/employee_form_screen.dart';
+import '../../features/meeting/data/models/meeting_model.dart';
+import '../../features/meeting/presentation/screens/meeting_detail_screen.dart';
+import '../../features/meeting/presentation/screens/meetings_screen.dart';
 import '../constants/app_constants.dart';
 import '../../features/onboarding/presentation/screens/permission_setup_screen.dart';
 import 'app_routes.dart';
@@ -159,6 +162,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => AnnouncementDetailScreen(
           announcement: state.extra as AnnouncementModel,
         ),
+      ),
+
+      // Meeting routes (all roles)
+      GoRoute(path: AppRoutes.meetings,      builder: (_, __) => const MeetingsScreen()),
+      GoRoute(
+        path: AppRoutes.meetingDetail,
+        builder: (_, state) => MeetingDetailScreen(meeting: state.extra as MeetingModel),
       ),
 
       // Expense routes
