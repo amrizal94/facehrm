@@ -10,11 +10,12 @@ class DepartmentSeeder extends Seeder
     public function run(): void
     {
         $departments = [
-            ['name' => 'Human Resources',    'code' => 'HR',  'description' => 'Manages recruitment, employee relations, and HR policies.'],
-            ['name' => 'Information Technology', 'code' => 'IT', 'description' => 'Handles all technology infrastructure and software development.'],
-            ['name' => 'Finance & Accounting', 'code' => 'FIN', 'description' => 'Manages financial planning, accounting, and budgeting.'],
-            ['name' => 'Operations',          'code' => 'OPS', 'description' => 'Oversees day-to-day operational activities.'],
-            ['name' => 'Marketing',           'code' => 'MKT', 'description' => 'Manages brand, campaigns, and market growth.'],
+            ['name' => 'Administration',    'code' => 'ADM',  'description' => 'Handles administrative operations and office management.'],
+            ['name' => 'Technical Support', 'code' => 'TSP',  'description' => 'Provides technical support and troubleshooting services.'],
+            ['name' => 'NOC',               'code' => 'NOC',  'description' => 'Network Operations Center — monitors and manages network infrastructure.'],
+            ['name' => 'Programmer',        'code' => 'PROG', 'description' => 'Software development and programming team.'],
+            ['name' => 'Human Resource',    'code' => 'HR',   'description' => 'Manages recruitment, employee relations, and HR policies.'],
+            ['name' => 'Manager',           'code' => 'MGR',  'description' => 'Management team overseeing operations and staff.'],
         ];
 
         foreach ($departments as $data) {
