@@ -101,6 +101,23 @@ class LeaveRequestController extends Controller
             ], 422);
         }
 
+        // Quota check
+        $leaveType = \App\Models\LeaveType::findOrFail($validated['leave_type_id']);
+        $year      = $start->year;
+        $usedDays  = LeaveRequest::where('employee_id', $employee->id)
+            ->where('leave_type_id', $validated['leave_type_id'])
+            ->whereYear('start_date', $year)
+            ->whereIn('status', ['approved', 'pending'])
+            ->sum('total_days');
+
+        $remaining = max(0, $leaveType->max_days_per_year - (int) $usedDays);
+        if ($totalDays > $remaining) {
+            return response()->json([
+                'success' => false,
+                'message' => "Insufficient leave quota. Remaining: {$remaining} day(s), requested: {$totalDays} day(s).",
+            ], 422);
+        }
+
         $leaveRequest = LeaveRequest::create([
             'employee_id'   => $employee->id,
             'leave_type_id' => $validated['leave_type_id'],

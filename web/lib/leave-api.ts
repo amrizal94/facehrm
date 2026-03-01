@@ -51,3 +51,11 @@ export async function rejectLeave(id: number, rejection_reason: string): Promise
   const res = await api.post(`/leave/${id}/reject`, { rejection_reason })
   return res.data.data
 }
+
+export async function updateLeaveType(
+  id: number,
+  data: { max_days_per_year: number; is_active: boolean }
+): Promise<LeaveType> {
+  const res = await api.put(`/leave-types/${id}`, data)
+  return res.data.data
+}

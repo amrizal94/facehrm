@@ -11,6 +11,7 @@ import {
   fetchLeaveTypes,
   fetchMyLeaves,
   rejectLeave,
+  updateLeaveType,
 } from '@/lib/leave-api'
 import type { ApplyLeaveData, LeaveFilters } from '@/types/leave'
 
@@ -88,6 +89,19 @@ export function useRejectLeave() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['leaves'] })
       toast.success('Leave request rejected.')
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  })
+}
+
+export function useUpdateLeaveType() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { max_days_per_year: number; is_active: boolean } }) =>
+      updateLeaveType(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leave-types'] })
+      toast.success('Leave type updated.')
     },
     onError: (err: unknown) => toast.error(getErrorMessage(err)),
   })
