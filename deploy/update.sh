@@ -58,6 +58,26 @@ $NPM run build
 cp -r .next/static .next/standalone/.next/static
 cp -r public .next/standalone/public
 
+# Pastikan Nginx dapat serve public/ files langsung (logo, favicon, dll.)
+# Next.js standalone server.js TIDAK serve public/ — semua route diredirect ke /login
+# File ini idempotent: tidak berubah jika sudah ada
+NGINX_EXT_DIR="/www/server/panel/vhost/nginx/extension/hrm.kreasikaryaarjuna.co.id"
+STATIC_CONF="$NGINX_EXT_DIR/static-assets.conf"
+if [ ! -f "$STATIC_CONF" ]; then
+    mkdir -p "$NGINX_EXT_DIR"
+    cat > "$STATIC_CONF" << 'NGINX_EOF'
+# Serve Next.js public/ static assets directly (bypass Next.js 307 redirect)
+location ~* ^/(logo\.png|favicon\.ico|icon\.png|.*\.svg|.*\.webp)$ {
+    root /www/wwwroot/facehrm/web/.next/standalone/public;
+    expires 30d;
+    add_header Cache-Control "public, max-age=2592000";
+    add_header X-Content-Type-Options "nosniff";
+    try_files $uri =404;
+}
+NGINX_EOF
+    nginx -s reload
+fi
+
 # ── 4. Restart PM2 ───────────────────────────────────────────────
 echo "[4/4] Restart PM2..."
 pm2 restart facehrm-web
