@@ -10,6 +10,7 @@ class EmployeeModel {
   final bool isActive;
   final String? departmentName;
   final String? shiftName;
+  final String? userRole;
 
   const EmployeeModel({
     required this.id,
@@ -23,6 +24,7 @@ class EmployeeModel {
     required this.isActive,
     this.departmentName,
     this.shiftName,
+    this.userRole,
   });
 
   factory EmployeeModel.fromJson(Map<String, dynamic> j) {
@@ -42,6 +44,7 @@ class EmployeeModel {
       isActive:       user?['is_active'] as bool? ?? true,
       departmentName: dept?['name'] as String?,
       shiftName:      shift?['name'] as String?,
+      userRole:       user?['role'] as String?,
     );
   }
 
@@ -58,6 +61,7 @@ class EmployeeModel {
       isActive:       isActive ?? this.isActive,
       departmentName: departmentName,
       shiftName:      shiftName,
+      userRole:       userRole,
     );
   }
 }

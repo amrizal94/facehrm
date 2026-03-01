@@ -35,6 +35,7 @@ class EmployeeResource extends JsonResource
                 'phone'     => $this->user->phone,
                 'avatar'    => $this->user->avatar,
                 'is_active' => $this->user->is_active,
+                'role'      => $this->user->role_name,
             ]),
             'department'              => $this->whenLoaded('department', fn() => [
                 'id'   => $this->department?->id,

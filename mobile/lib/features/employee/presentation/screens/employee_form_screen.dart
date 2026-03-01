@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/employee_repository.dart';
 import '../providers/employee_provider.dart';
 
@@ -36,6 +37,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   int?      _shiftId;
   String?   _employmentType;
   String?   _status;
+  String    _role = 'staff';
   DateTime? _joinDate;
 
   bool _obscurePassword = true;
@@ -97,6 +99,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
         _shiftId        = data['shift_id']      as int?;
         _employmentType = data['employment_type'] as String?;
         _status         = data['status']          as String?;
+        _role           = (data['user'] as Map<String, dynamic>?)?['role'] as String? ?? 'staff';
 
         final jd = data['join_date'] as String?;
         if (jd != null && jd.isNotEmpty) {
@@ -147,6 +150,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       if (_departmentId != null) 'department_id': _departmentId,
       if (_shiftId != null)      'shift_id':      _shiftId,
       if (!_isEdit)              'password':      _passwordCtrl.text,
+      'role': _role,
     };
 
     final String? error;
@@ -192,6 +196,19 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     final departments = ref.watch(departmentsForFormProvider);
     final shifts      = ref.watch(shiftsForFormProvider);
 
+    final authState   = ref.read(authNotifierProvider);
+    final isDirector  = authState is AuthAuthenticated && authState.user.isDirector;
+    final availableRoles = isDirector
+        ? ['staff', 'hr', 'manager', 'admin', 'director']
+        : ['staff', 'hr', 'manager'];
+    const roleLabels  = {
+      'staff':    'Staff',
+      'hr':       'HR',
+      'manager':  'Manager',
+      'admin':    'Admin',
+      'director': 'Director',
+    };
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEdit ? 'Edit Karyawan' : 'Tambah Karyawan'),
@@ -232,6 +249,18 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       controller: _phoneCtrl,
                       label: 'Nomor HP',
                       keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDropdown<String>(
+                      label: 'Role *',
+                      value: _role,
+                      items: availableRoles
+                          .map((r) => DropdownMenuItem(
+                                value: r,
+                                child: Text(roleLabels[r] ?? r),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _role = v ?? 'staff'),
                     ),
                     if (!_isEdit) ...[
                       const SizedBox(height: 12),

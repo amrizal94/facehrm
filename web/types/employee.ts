@@ -39,6 +39,7 @@ export interface Employee {
     phone?: string | null
     avatar?: string | null
     is_active: boolean
+    role?: string
   }
   department?: {
     id: number
@@ -90,6 +91,7 @@ export interface CreateEmployeeData {
   bank_account_number?: string | null
   tax_id?: string | null
   national_id?: string | null
+  role?: string
 }
 
 export type UpdateEmployeeData = Omit<CreateEmployeeData, 'password'>

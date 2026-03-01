@@ -42,6 +42,7 @@ class UpdateEmployeeRequest extends FormRequest
             'bank_account_number'     => ['nullable', 'string', 'max:50'],
             'tax_id'                  => ['nullable', 'string', 'max:50'],
             'national_id'             => ['nullable', 'string', 'max:50'],
+            'role'                    => ['nullable', 'string', 'in:staff,hr,manager,admin,director'],
         ];
     }
 }

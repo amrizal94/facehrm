@@ -73,7 +73,15 @@ class EmployeeController extends Controller
                 'must_change_password'=> true,
             ]);
 
-            $user->assignRole('staff');
+            $requestedRole = $validated['role'] ?? 'staff';
+            if (in_array($requestedRole, ['admin', 'director']) && ! $request->user()->hasRole('director')) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only directors can assign admin or director roles.',
+                ], 403);
+            }
+            $user->assignRole($requestedRole);
 
             // Create employee record
             $employee = Employee::create([
@@ -131,6 +139,19 @@ class EmployeeController extends Controller
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
             ]);
+
+            // Update role if provided (director-only guard for admin/director roles)
+            if (isset($validated['role'])) {
+                $requestedRole = $validated['role'];
+                if (in_array($requestedRole, ['admin', 'director']) && ! $request->user()->hasRole('director')) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Only directors can assign admin or director roles.',
+                    ], 403);
+                }
+                $employee->user->syncRoles([$requestedRole]);
+            }
 
             // Update employee record
             $employee->update([

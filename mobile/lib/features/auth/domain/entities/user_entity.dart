@@ -23,4 +23,5 @@ class UserEntity {
   bool get isHR => role == 'hr';
   bool get isStaff => role == 'staff';
   bool get isManager => role == 'manager';
+  bool get isDirector => role == 'director';
 }

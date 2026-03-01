@@ -25,6 +25,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useCreateEmployee, useDepartments, useUpdateEmployee } from '@/hooks/use-employees'
 import { useShifts } from '@/hooks/use-shifts'
+import { useAuthStore } from '@/store/auth-store'
 import type { Department, Employee } from '@/types/employee'
 import type { Shift } from '@/types/shift'
 
@@ -51,6 +52,7 @@ const schema = z.object({
   bank_account_number: z.string().optional(),
   tax_id: z.string().optional(),
   national_id: z.string().optional(),
+  role: z.enum(['staff', 'hr', 'manager', 'admin', 'director']),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -61,8 +63,21 @@ interface Props {
   employee?: Employee | null
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  staff: 'Staff',
+  hr: 'HR',
+  manager: 'Manager',
+  admin: 'Admin',
+  director: 'Director',
+}
+
 export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
   const isEdit = !!employee
+  const currentUser = useAuthStore((s) => s.user)
+  const availableRoles = currentUser?.role === 'director'
+    ? ['staff', 'hr', 'manager', 'admin', 'director']
+    : ['staff', 'hr', 'manager']
+
   const { data: deptData } = useDepartments()
   const departments: Department[] = deptData?.data ?? []
   const { data: shiftsData } = useShifts({ is_active: true, per_page: 100 })
@@ -84,6 +99,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
     defaultValues: {
       employment_type: 'full_time',
       status: 'active',
+      role: 'staff',
     },
   })
 
@@ -113,6 +129,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
           bank_account_number: employee.bank_account_number ?? '',
           tax_id: employee.tax_id ?? '',
           national_id: employee.national_id ?? '',
+          role: (employee.user.role as FormValues['role']) ?? 'staff',
         })
       } else {
         reset({
@@ -121,6 +138,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
           department_id: '',
           shift_id: 'none',
           gender: '',
+          role: 'staff',
         })
       }
     }
@@ -149,6 +167,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
       bank_account_number: values.bank_account_number || null,
       tax_id: values.tax_id || null,
       national_id: values.national_id || null,
+      role: values.role,
     }
 
     if (isEdit && employee) {
@@ -193,6 +212,20 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: Props) {
                 <div className="space-y-1.5">
                   <Label htmlFor="phone">Phone</Label>
                   <Input id="phone" {...register('phone')} placeholder="+62..." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Role <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={watch('role') || 'staff'}
+                    onValueChange={(v) => setValue('role', v as FormValues['role'])}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {availableRoles.map((r) => (
+                        <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 {!isEdit && (
                   <div className="space-y-1.5">
