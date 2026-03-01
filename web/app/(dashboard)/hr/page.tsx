@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Users, Clock, CalendarDays, CheckCircle, AlertTriangle,
-  UserCheck, Receipt, Timer, BarChart3,
+  UserCheck, Receipt, Timer, BarChart3, FileText,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
@@ -16,12 +16,13 @@ import { useAttendanceSummary } from '@/hooks/use-attendance'
 import { useOvertimeSummary } from '@/hooks/use-overtime'
 
 const QUICK_ACTIONS = [
-  { label: 'Employees',  href: '/admin/employees',  icon: Users,       color: 'text-blue-600',   bg: 'bg-blue-50' },
-  { label: 'Attendance', href: '/admin/attendance', icon: Clock,       color: 'text-green-600',  bg: 'bg-green-50' },
-  { label: 'Leave',      href: '/admin/leave',      icon: CalendarDays,color: 'text-orange-600', bg: 'bg-orange-50' },
-  { label: 'Overtime',   href: '/admin/overtime',   icon: Timer,       color: 'text-indigo-600', bg: 'bg-indigo-50' },
-  { label: 'Payroll',    href: '/admin/payroll',    icon: Receipt,     color: 'text-purple-600', bg: 'bg-purple-50' },
-  { label: 'Reports',    href: '/admin/reports',    icon: BarChart3,   color: 'text-teal-600',   bg: 'bg-teal-50' },
+  { label: 'Employees',  href: '/admin/employees',  icon: Users,       color: 'text-blue-600',      bg: 'bg-blue-50' },
+  { label: 'Attendance', href: '/admin/attendance', icon: Clock,       color: 'text-green-600',     bg: 'bg-green-50' },
+  { label: 'Leave',      href: '/admin/leave',      icon: CalendarDays,color: 'text-orange-600',    bg: 'bg-orange-50' },
+  { label: 'Overtime',   href: '/admin/overtime',   icon: Timer,       color: 'text-indigo-600',    bg: 'bg-indigo-50' },
+  { label: 'Payroll',    href: '/admin/payroll',    icon: Receipt,     color: 'text-purple-600',    bg: 'bg-purple-50' },
+  { label: 'Expenses',   href: '/admin/expenses',   icon: FileText,    color: 'text-rose-600',      bg: 'bg-rose-50' },
+  { label: 'Reports',    href: '/admin/reports',    icon: BarChart3,   color: 'text-teal-600',      bg: 'bg-teal-50' },
 ]
 
 function AttendanceSummaryCard() {
@@ -158,7 +159,7 @@ export default function HRDashboardPage() {
         {/* Quick actions */}
         <Card className="p-5">
           <h3 className="font-semibold text-sm mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             {QUICK_ACTIONS.map((a) => (
               <Link
                 key={a.href}

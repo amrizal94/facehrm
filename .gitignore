@@ -23,6 +23,11 @@ desktop.ini
 # ── Staging secrets ───────────────────────────────────────────────
 docker/.env.staging
 
+# ── Local credential notes (never commit) ─────────────────────────
+credentials.md
+credentials.txt
+credentials.json
+
 # ── JVM crash logs ────────────────────────────────────────────────
 hs_err_pid*.log
 replay_pid*.log
