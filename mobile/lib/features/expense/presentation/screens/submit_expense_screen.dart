@@ -143,10 +143,10 @@ class _SubmitExpenseScreenState extends ConsumerState<SubmitExpenseScreen> {
 
                 // Category — from API
                 typesAsync.when(
-                  loading: () => const DropdownButtonFormField<int>(
-                    items: [],
+                  loading: () => DropdownButtonFormField<int>(
+                    items: const [],
                     onChanged: null,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Category',
                       border: OutlineInputBorder(),
                     ),
