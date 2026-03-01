@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\QrAttendanceController;
 use App\Http\Controllers\Api\V1\ExpenseController;
+use App\Http\Controllers\Api\V1\ExpenseTypeController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\DepartmentController;
@@ -74,6 +75,9 @@ Route::prefix('v1')->group(function () {
 
         // Payroll — staff
         Route::get('payroll/my', [PayrollController::class, 'myPayslips']);
+
+        // Expense types — all authenticated (read-only)
+        Route::get('expense-types', [ExpenseTypeController::class, 'index']);
 
         // Expenses — staff
         Route::get('expenses/my', [ExpenseController::class, 'myExpenses']);
@@ -201,6 +205,11 @@ Route::prefix('v1')->group(function () {
             Route::get('expenses/{expense}', [ExpenseController::class, 'show']);
             Route::post('expenses/{expense}/approve', [ExpenseController::class, 'approve']);
             Route::post('expenses/{expense}/reject', [ExpenseController::class, 'reject']);
+
+            // Expense types management (write)
+            Route::post('expense-types', [ExpenseTypeController::class, 'store']);
+            Route::put('expense-types/{expenseType}', [ExpenseTypeController::class, 'update']);
+            Route::delete('expense-types/{expenseType}', [ExpenseTypeController::class, 'destroy']);
         });
 
         // Admin & HR only (payroll + settings)

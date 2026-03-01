@@ -229,8 +229,16 @@ class ManagerDashboardScreen extends ConsumerWidget {
                 _MenuTile(
                   icon: Icons.receipt_long_outlined,
                   title: 'Expense Approvals',
-                  subtitle: 'Review & approve employee expense claims',
-                  badge: 0,
+                  subtitle: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingExpenses > 0
+                        ? '${s.pendingExpenses} pending claim${s.pendingExpenses > 1 ? 's' : ''}'
+                        : 'Review & approve employee expense claims',
+                    orElse: () => 'Review & approve employee expense claims',
+                  ),
+                  badge: overviewAsync.maybeWhen(
+                    data: (s) => s.pendingExpenses,
+                    orElse: () => 0,
+                  ),
                   color: Colors.deepOrange,
                   onTap: () => context.push(AppRoutes.expenseApprovals),
                 ),

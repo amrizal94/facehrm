@@ -9,6 +9,7 @@ class Expense extends Model
 {
     protected $fillable = [
         'employee_id',
+        'expense_type_id',
         'expense_date',
         'amount',
         'category',
@@ -37,6 +38,11 @@ class Expense extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function expenseType(): BelongsTo
+    {
+        return $this->belongsTo(ExpenseType::class);
     }
 
     public function isPending(): bool

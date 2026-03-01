@@ -35,6 +35,41 @@ class MyExpensesScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          // Summary card
+          expAsync.maybeWhen(
+            data: (expenses) {
+              final now     = DateTime.now();
+              final monthPfx = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+              final pending  = expenses.where((e) => e.status == 'pending').length;
+              final approved = expenses.where((e) => e.status == 'approved').length;
+              final totalMonth = expenses
+                  .where((e) => e.expenseDate.startsWith(monthPfx))
+                  .fold(0.0, (sum, e) => sum + e.amount);
+              final fmtAmount = 'Rp ${totalMonth.toStringAsFixed(0).replaceAllMapped(
+                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+              return Container(
+                margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.indigo.shade100),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _SummaryItem(label: 'Pending',  value: '$pending',  color: Colors.orange),
+                    _SummaryDivider(),
+                    _SummaryItem(label: 'Approved', value: '$approved', color: Colors.green),
+                    _SummaryDivider(),
+                    _SummaryItem(label: 'Bulan Ini', value: fmtAmount,  color: Colors.indigo),
+                  ],
+                ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
+
           // Filter chips
           SizedBox(
             height: 50,
@@ -132,6 +167,33 @@ class MyExpensesScreen extends ConsumerWidget {
   }
 }
 
+class _SummaryItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color  color;
+  const _SummaryItem({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(value,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: color),
+            overflow: TextOverflow.ellipsis),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+      ],
+    );
+  }
+}
+
+class _SummaryDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(height: 30, width: 1, color: Colors.indigo.shade100);
+  }
+}
+
 class _ExpenseTile extends StatelessWidget {
   final ExpenseModel expense;
   final void Function(int id) onDelete;
@@ -170,7 +232,7 @@ class _ExpenseTile extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                expense.category[0].toUpperCase() + expense.category.substring(1),
+                expense.displayCategory,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),

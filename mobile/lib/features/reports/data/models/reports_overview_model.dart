@@ -6,6 +6,7 @@ class ReportsOverviewModel {
   final int onLeaveToday;
   final int pendingLeaves;
   final int pendingOvertimes;
+  final int pendingExpenses;
 
   const ReportsOverviewModel({
     required this.totalEmployees,
@@ -15,17 +16,19 @@ class ReportsOverviewModel {
     required this.onLeaveToday,
     required this.pendingLeaves,
     required this.pendingOvertimes,
+    required this.pendingExpenses,
   });
 
   factory ReportsOverviewModel.fromJson(Map<String, dynamic> json) =>
       ReportsOverviewModel(
-        totalEmployees: _toInt(json['total_employees']),
-        presentToday: _toInt(json['present_today']),
-        lateToday: _toInt(json['late_today']),
-        absentToday: _toInt(json['absent_today']),
-        onLeaveToday: _toInt(json['on_leave_today']),
-        pendingLeaves: _toInt(json['pending_leaves']),
+        totalEmployees:   _toInt(json['total_employees']),
+        presentToday:     _toInt(json['present_today']),
+        lateToday:        _toInt(json['late_today']),
+        absentToday:      _toInt(json['absent_today']),
+        onLeaveToday:     _toInt(json['on_leave_today']),
+        pendingLeaves:    _toInt(json['pending_leaves']),
         pendingOvertimes: _toInt(json['pending_overtimes']),
+        pendingExpenses:  _toInt(json['pending_expenses']),
       );
 
   static int _toInt(dynamic v) {

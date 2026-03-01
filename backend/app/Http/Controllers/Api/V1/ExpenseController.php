@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Expense;
+use App\Models\ExpenseType;
 use App\Notifications\ExpenseStatusChanged;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class ExpenseController extends Controller
 {
@@ -25,7 +25,7 @@ class ExpenseController extends Controller
         }
 
         $query = Expense::where('employee_id', $employee->id)
-            ->with('approvedBy:id,name');
+            ->with(['approvedBy:id,name', 'expenseType']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
@@ -58,25 +58,28 @@ class ExpenseController extends Controller
         }
 
         $validated = $request->validate([
-            'expense_date' => ['required', 'date'],
-            'amount'       => ['required', 'numeric', 'min:1'],
-            'category'     => ['required', Rule::in(['transport', 'meal', 'accommodation', 'supplies', 'communication', 'other'])],
-            'description'  => ['required', 'string', 'max:1000'],
-            'receipt'      => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'expense_date'    => ['required', 'date'],
+            'amount'          => ['required', 'numeric', 'min:1'],
+            'expense_type_id' => ['required', 'integer', 'exists:expense_types,id'],
+            'description'     => ['required', 'string', 'max:1000'],
+            'receipt'         => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
+
+        $expenseType = ExpenseType::findOrFail($validated['expense_type_id']);
 
         $file     = $request->file('receipt');
         $filename = 'receipts/emp_' . $employee->id . '_' . time() . '.' . $file->extension();
         Storage::disk('public')->put($filename, file_get_contents($file->getRealPath()));
 
         $expense = Expense::create([
-            'employee_id'  => $employee->id,
-            'expense_date' => $validated['expense_date'],
-            'amount'       => $validated['amount'],
-            'category'     => $validated['category'],
-            'description'  => $validated['description'],
-            'receipt_path' => $filename,
-            'status'       => 'pending',
+            'employee_id'     => $employee->id,
+            'expense_type_id' => $expenseType->id,
+            'expense_date'    => $validated['expense_date'],
+            'amount'          => $validated['amount'],
+            'category'        => $expenseType->code,  // backward compat
+            'description'     => $validated['description'],
+            'receipt_path'    => $filename,
+            'status'          => 'pending',
         ]);
 
         return response()->json([
@@ -115,7 +118,7 @@ class ExpenseController extends Controller
     // ---------------------------------------------------------------
     public function index(Request $request): JsonResponse
     {
-        $query = Expense::with(['employee.user', 'employee.department', 'approvedBy:id,name']);
+        $query = Expense::with(['employee.user', 'employee.department', 'approvedBy:id,name', 'expenseType']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
@@ -164,7 +167,7 @@ class ExpenseController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => $this->formatOne($expense->load(['employee.user', 'employee.department', 'approvedBy:id,name'])),
+            'data'    => $this->formatOne($expense->load(['employee.user', 'employee.department', 'approvedBy:id,name', 'expenseType'])),
         ]);
     }
 
@@ -192,7 +195,7 @@ class ExpenseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Expense approved.',
-            'data'    => $this->formatOne($expense->load(['employee.user', 'employee.department', 'approvedBy:id,name'])),
+            'data'    => $this->formatOne($expense->load(['employee.user', 'employee.department', 'approvedBy:id,name', 'expenseType'])),
         ]);
     }
 
@@ -225,7 +228,7 @@ class ExpenseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Expense rejected.',
-            'data'    => $this->formatOne($expense->load(['employee.user', 'employee.department', 'approvedBy:id,name'])),
+            'data'    => $this->formatOne($expense->load(['employee.user', 'employee.department', 'approvedBy:id,name', 'expenseType'])),
         ]);
     }
 
@@ -237,12 +240,14 @@ class ExpenseController extends Controller
         $emp  = $expense->employee;
         $user = $emp?->user;
         $dept = $emp?->department;
+        $et   = $expense->expenseType;
 
         return [
             'id'               => $expense->id,
             'expense_date'     => $expense->expense_date?->toDateString(),
             'amount'           => (float) $expense->amount,
             'category'         => $expense->category,
+            'expense_type'     => $et ? ['id' => $et->id, 'name' => $et->name, 'code' => $et->code] : null,
             'description'      => $expense->description,
             'receipt_url'      => $expense->receipt_path
                 ? secure_url('storage/' . $expense->receipt_path)

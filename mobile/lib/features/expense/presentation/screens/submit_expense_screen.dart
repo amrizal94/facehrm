@@ -3,15 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/expense_provider.dart';
-
-const _categories = [
-  ('transport',     'Transport'),
-  ('meal',          'Meal'),
-  ('accommodation', 'Accommodation'),
-  ('supplies',      'Supplies'),
-  ('communication', 'Communication'),
-  ('other',         'Other'),
-];
+import '../providers/expense_type_provider.dart';
 
 class SubmitExpenseScreen extends ConsumerStatefulWidget {
   const SubmitExpenseScreen({super.key});
@@ -25,9 +17,9 @@ class _SubmitExpenseScreenState extends ConsumerState<SubmitExpenseScreen> {
   final _amountCtrl = TextEditingController();
   final _descCtrl   = TextEditingController();
 
-  String  _date       = '';
-  String  _category   = '';
-  bool    _submitting = false;
+  String  _date          = '';
+  int?    _expenseTypeId;
+  bool    _submitting    = false;
 
   List<int>? _fileBytes;
   String?    _fileName;
@@ -66,12 +58,12 @@ class _SubmitExpenseScreenState extends ConsumerState<SubmitExpenseScreen> {
     setState(() => _submitting = true);
 
     final err = await ref.read(myExpenseProvider.notifier).submit(
-          expenseDate: _date,
-          amount:      double.tryParse(_amountCtrl.text) ?? 0,
-          category:    _category,
-          description: _descCtrl.text.trim(),
-          fileBytes:   _fileBytes!,
-          filename:    _fileName!,
+          expenseDate:   _date,
+          amount:        double.tryParse(_amountCtrl.text) ?? 0,
+          expenseTypeId: _expenseTypeId!,
+          description:   _descCtrl.text.trim(),
+          fileBytes:     _fileBytes!,
+          filename:      _fileName!,
         );
 
     if (!mounted) return;
@@ -89,6 +81,8 @@ class _SubmitExpenseScreenState extends ConsumerState<SubmitExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final typesAsync = ref.watch(expenseTypesProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Submit Expense'),
@@ -147,18 +141,38 @@ class _SubmitExpenseScreenState extends ConsumerState<SubmitExpenseScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Category
-                DropdownButtonFormField<String>(
-                  value: _category.isEmpty ? null : _category,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    border: OutlineInputBorder(),
+                // Category — from API
+                typesAsync.when(
+                  loading: () => const DropdownButtonFormField<int>(
+                    items: [],
+                    onChanged: null,
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                  items: _categories
-                      .map((c) => DropdownMenuItem(value: c.$1, child: Text(c.$2)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _category = v ?? ''),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Select a category' : null,
+                  error: (_, __) => DropdownButtonFormField<int>(
+                    value: _expenseTypeId,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [],
+                    onChanged: null,
+                    hint: const Text('Failed to load categories'),
+                  ),
+                  data: (types) => DropdownButtonFormField<int>(
+                    value: _expenseTypeId,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: types
+                        .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _expenseTypeId = v),
+                    validator: (v) => v == null ? 'Select a category' : null,
+                  ),
                 ),
                 const SizedBox(height: 12),
 

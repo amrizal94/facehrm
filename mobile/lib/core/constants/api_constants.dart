@@ -66,8 +66,9 @@ class ApiConstants {
   static const String auditLogs = '/audit-logs';
 
   // Expenses
-  static const String expenses   = '/expenses';
-  static const String myExpenses = '/expenses/my';
+  static const String expenses     = '/expenses';
+  static const String myExpenses   = '/expenses/my';
+  static const String expenseTypes = '/expense-types';
 
   // Meetings
   static const String meetings   = '/meetings';

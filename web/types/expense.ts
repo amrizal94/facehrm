@@ -1,11 +1,20 @@
 export type ExpenseStatus   = 'pending' | 'approved' | 'rejected'
 export type ExpenseCategory = 'transport' | 'meal' | 'accommodation' | 'supplies' | 'communication' | 'other'
 
+export interface ExpenseType {
+  id: number
+  name: string
+  code: string
+  description: string | null
+  is_active: boolean
+}
+
 export interface Expense {
   id: number
   expense_date: string
   amount: number
-  category: ExpenseCategory
+  category: string
+  expense_type: ExpenseType | null
   description: string
   receipt_url: string | null
   status: ExpenseStatus

@@ -2,10 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../datasources/expense_remote_datasource.dart';
 import '../models/expense_model.dart';
+import '../models/expense_type_model.dart';
 
 class ExpenseRepository {
   final ExpenseRemoteDatasource _ds;
   ExpenseRepository(this._ds);
+
+  Future<List<ExpenseTypeModel>> getExpenseTypes() => _ds.getExpenseTypes();
 
   Future<List<ExpenseModel>> getMyExpenses({String? status, int page = 1}) =>
       _ds.getMyExpenses(status: status, page: page);
@@ -13,18 +16,18 @@ class ExpenseRepository {
   Future<ExpenseModel> submitExpense({
     required String expenseDate,
     required double amount,
-    required String category,
+    required int expenseTypeId,
     required String description,
     required List<int> fileBytes,
     required String filename,
   }) =>
       _ds.submitExpense(
-        expenseDate: expenseDate,
-        amount:      amount,
-        category:    category,
-        description: description,
-        fileBytes:   fileBytes,
-        filename:    filename,
+        expenseDate:    expenseDate,
+        amount:         amount,
+        expenseTypeId:  expenseTypeId,
+        description:    description,
+        fileBytes:      fileBytes,
+        filename:       filename,
       );
 
   Future<void> deleteExpense(int id) => _ds.deleteExpense(id);

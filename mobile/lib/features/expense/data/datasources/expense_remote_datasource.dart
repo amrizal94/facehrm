@@ -5,10 +5,22 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/expense_model.dart';
+import '../models/expense_type_model.dart';
 
 class ExpenseRemoteDatasource {
   final Dio _dio;
   ExpenseRemoteDatasource(this._dio);
+
+  Future<List<ExpenseTypeModel>> getExpenseTypes() async {
+    try {
+      final res  = await _dio.get(ApiConstants.expenseTypes);
+      final body = res.data as Map<String, dynamic>;
+      final data = body['data'] as List;
+      return data.map((e) => ExpenseTypeModel.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 
   Future<List<ExpenseModel>> getMyExpenses({String? status, int page = 1}) async {
     try {
@@ -27,18 +39,18 @@ class ExpenseRemoteDatasource {
   Future<ExpenseModel> submitExpense({
     required String expenseDate,
     required double amount,
-    required String category,
+    required int expenseTypeId,
     required String description,
     required List<int> fileBytes,
     required String filename,
   }) async {
     try {
       final formData = FormData.fromMap({
-        'expense_date': expenseDate,
-        'amount':       amount.toStringAsFixed(0),
-        'category':     category,
-        'description':  description,
-        'receipt':      MultipartFile.fromBytes(fileBytes, filename: filename),
+        'expense_date':    expenseDate,
+        'amount':          amount.toStringAsFixed(0),
+        'expense_type_id': expenseTypeId.toString(),
+        'description':     description,
+        'receipt':         MultipartFile.fromBytes(fileBytes, filename: filename),
       });
 
       final res  = await _dio.post(ApiConstants.expenses, data: formData);

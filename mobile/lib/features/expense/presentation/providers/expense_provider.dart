@@ -15,19 +15,19 @@ class MyExpenseNotifier extends AsyncNotifier<List<ExpenseModel>> {
   Future<String?> submit({
     required String expenseDate,
     required double amount,
-    required String category,
+    required int expenseTypeId,
     required String description,
     required List<int> fileBytes,
     required String filename,
   }) async {
     try {
       await ref.read(expenseRepositoryProvider).submitExpense(
-            expenseDate: expenseDate,
-            amount:      amount,
-            category:    category,
-            description: description,
-            fileBytes:   fileBytes,
-            filename:    filename,
+            expenseDate:   expenseDate,
+            amount:        amount,
+            expenseTypeId: expenseTypeId,
+            description:   description,
+            fileBytes:     fileBytes,
+            filename:      filename,
           );
       ref.invalidateSelf();
       return null;

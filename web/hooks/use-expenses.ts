@@ -6,9 +6,11 @@ import {
   approveExpense,
   deleteExpense,
   fetchExpenses,
+  fetchExpenseTypes,
   fetchMyExpenses,
   rejectExpense,
   submitExpense,
+  updateExpenseType,
 } from '@/lib/expense-api'
 import type { ExpenseFilters } from '@/types/expense'
 
@@ -75,6 +77,27 @@ export function useRejectExpense() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses'] })
       toast.success('Expense rejected.')
+    },
+    onError: (err: unknown) => toast.error(getMsg(err)),
+  })
+}
+
+export function useExpenseTypes(includeInactive = false) {
+  return useQuery({
+    queryKey: ['expense-types', includeInactive],
+    queryFn: () => fetchExpenseTypes(includeInactive),
+    staleTime: 10 * 60 * 1000,
+  })
+}
+
+export function useUpdateExpenseType() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof updateExpenseType>[1] }) =>
+      updateExpenseType(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expense-types'] })
+      toast.success('Expense type updated.')
     },
     onError: (err: unknown) => toast.error(getMsg(err)),
   })

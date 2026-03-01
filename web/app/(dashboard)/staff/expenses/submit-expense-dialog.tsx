@@ -18,16 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useSubmitExpense } from '@/hooks/use-expenses'
-
-const CATEGORIES = [
-  { value: 'transport',      label: 'Transport' },
-  { value: 'meal',           label: 'Meal' },
-  { value: 'accommodation',  label: 'Accommodation' },
-  { value: 'supplies',       label: 'Supplies' },
-  { value: 'communication',  label: 'Communication' },
-  { value: 'other',          label: 'Other' },
-]
+import { useSubmitExpense, useExpenseTypes } from '@/hooks/use-expenses'
 
 interface Props {
   open: boolean
@@ -39,15 +30,17 @@ export function SubmitExpenseDialog({ open, onOpenChange }: Props) {
   const fileRef    = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState('')
 
+  const { data: expenseTypes = [], isLoading: typesLoading } = useExpenseTypes()
+
   const [form, setForm] = useState({
-    expense_date: '',
-    amount:       '',
-    category:     '',
-    description:  '',
+    expense_date:    '',
+    amount:          '',
+    expense_type_id: '',
+    description:     '',
   })
 
   function reset() {
-    setForm({ expense_date: '', amount: '', category: '', description: '' })
+    setForm({ expense_date: '', amount: '', expense_type_id: '', description: '' })
     setFileName('')
     if (fileRef.current) fileRef.current.value = ''
   }
@@ -58,11 +51,11 @@ export function SubmitExpenseDialog({ open, onOpenChange }: Props) {
     if (!file) return
 
     const fd = new FormData()
-    fd.append('expense_date', form.expense_date)
-    fd.append('amount',       form.amount)
-    fd.append('category',     form.category)
-    fd.append('description',  form.description)
-    fd.append('receipt',      file)
+    fd.append('expense_date',    form.expense_date)
+    fd.append('amount',          form.amount)
+    fd.append('expense_type_id', form.expense_type_id)
+    fd.append('description',     form.description)
+    fd.append('receipt',         file)
 
     mutation.mutate(fd, {
       onSuccess: () => {
@@ -107,15 +100,16 @@ export function SubmitExpenseDialog({ open, onOpenChange }: Props) {
             <Label>Category</Label>
             <Select
               required
-              value={form.category}
-              onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
+              value={form.expense_type_id}
+              onValueChange={(v) => setForm((f) => ({ ...f, expense_type_id: v }))}
+              disabled={typesLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder={typesLoading ? 'Loading…' : 'Select category'} />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                {expenseTypes.map((t) => (
+                  <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -157,7 +151,7 @@ export function SubmitExpenseDialog({ open, onOpenChange }: Props) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending || !form.category}>
+            <Button type="submit" disabled={mutation.isPending || !form.expense_type_id}>
               {mutation.isPending ? 'Submitting…' : 'Submit'}
             </Button>
           </div>

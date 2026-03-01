@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Expense;
 use App\Models\FaceData;
 use App\Models\LeaveRequest;
 use App\Models\OvertimeRequest;
@@ -43,8 +44,10 @@ class ReportController extends Controller
             ->groupBy('status')
             ->pluck('cnt', 'status');
 
-        // Pending leaves
-        $pendingLeaves = LeaveRequest::where('status', 'pending')->count();
+        // Pending leaves, overtimes, expenses
+        $pendingLeaves    = LeaveRequest::where('status', 'pending')->count();
+        $pendingOvertimes = OvertimeRequest::where('status', 'pending')->count();
+        $pendingExpenses  = Expense::where('status', 'pending')->count();
 
         // This month payroll totals
         $payrollSummary = PayrollRecord::where('period_year', $year)
@@ -67,7 +70,9 @@ class ReportController extends Controller
                     'absent'   => (int) ($monthRecords['absent'] ?? 0),
                     'on_leave' => (int) ($monthRecords['on_leave'] ?? 0),
                 ],
-                'pending_leaves' => $pendingLeaves,
+                'pending_leaves'    => $pendingLeaves,
+                'pending_overtimes' => $pendingOvertimes,
+                'pending_expenses'  => $pendingExpenses,
                 'payroll' => [
                     'total_records' => (int) ($payrollSummary->total ?? 0),
                     'total_gross'   => (float) ($payrollSummary->total_gross ?? 0),
