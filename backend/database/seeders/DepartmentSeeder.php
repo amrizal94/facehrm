@@ -16,6 +16,7 @@ class DepartmentSeeder extends Seeder
             ['name' => 'Programmer',        'code' => 'PROG', 'description' => 'Software development and programming team.'],
             ['name' => 'Human Resource',    'code' => 'HR',   'description' => 'Manages recruitment, employee relations, and HR policies.'],
             ['name' => 'Manager',           'code' => 'MGR',  'description' => 'Management team overseeing operations and staff.'],
+            ['name' => 'Director',          'code' => 'DIR',  'description' => 'Executive leadership and overall company direction.'],
         ];
 
         foreach ($departments as $data) {
