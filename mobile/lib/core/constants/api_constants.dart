@@ -11,8 +11,9 @@ class ApiConstants {
   static const String login    = '/auth/login';
   static const String logout   = '/auth/logout';
   static const String me       = '/auth/me';
-  static const String profile  = '/auth/profile';
-  static const String fcmToken = '/auth/fcm-token';
+  static const String profile         = '/auth/profile';
+  static const String changePassword  = '/auth/change-password';
+  static const String fcmToken        = '/auth/fcm-token';
 
   // Attendance
   static const String attendanceCheckIn  = '/attendance/check-in';

@@ -59,6 +59,30 @@ class ProfileController extends Controller
         ]);
     }
 
+    /**
+     * Force-change password on first login.
+     * Does not require current password — user is already authenticated.
+     * Clears the must_change_password flag on success.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'password'             => $request->string('password'),
+            'must_change_password' => false,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password changed successfully.',
+            'data'    => ['user' => new UserResource($user->fresh())],
+        ]);
+    }
+
     public function updateFcmToken(Request $request): JsonResponse
     {
         $validated = $request->validate(['fcm_token' => ['nullable', 'string', 'max:255']]);

@@ -60,4 +60,7 @@ class AppRoutes {
   // Meetings (all roles)
   static const String meetings      = '/meetings';
   static const String meetingDetail = '/meetings/detail';
+
+  // Force password change
+  static const String changePassword = '/change-password';
 }

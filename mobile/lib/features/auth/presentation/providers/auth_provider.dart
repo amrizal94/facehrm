@@ -96,6 +96,22 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<String?> changePassword({
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final updated = await ref.read(authRepositoryProvider).changePassword(
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+      state = AuthAuthenticated(updated);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+
   void clearError() {
     if (state is AuthError) state = const AuthUnauthenticated();
   }

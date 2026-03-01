@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PayrollResource;
 use App\Models\Employee;
 use App\Models\PayrollRecord;
+use App\Notifications\PayrollPaid;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -208,6 +209,8 @@ class PayrollController extends Controller
         }
 
         $payroll->update(['status' => 'paid', 'paid_at' => now()]);
+        $payroll->load('employee.user');
+        optional($payroll->employee?->user)->notify(new PayrollPaid($payroll));
 
         return response()->json([
             'success' => true,
@@ -226,10 +229,18 @@ class PayrollController extends Controller
             'month' => ['required', 'integer', 'min:1', 'max:12'],
         ]);
 
-        $count = PayrollRecord::where('period_year', $validated['year'])
+        $records = PayrollRecord::where('period_year', $validated['year'])
             ->where('period_month', $validated['month'])
             ->where('status', 'finalized')
-            ->update(['status' => 'paid', 'paid_at' => now()]);
+            ->with('employee.user')
+            ->get();
+
+        $count = 0;
+        foreach ($records as $record) {
+            $record->update(['status' => 'paid', 'paid_at' => now()]);
+            optional($record->employee?->user)->notify(new PayrollPaid($record));
+            $count++;
+        }
 
         return response()->json([
             'success' => true,

@@ -8,6 +8,7 @@ export interface User {
   phone?: string
   avatar?: string
   is_active: boolean
+  must_change_password: boolean
 }
 
 export interface AuthResponse {

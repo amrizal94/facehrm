@@ -6,6 +6,7 @@ class UserModel {
   final String? phone;
   final String? avatar;
   final bool isActive;
+  final bool mustChangePassword;
 
   const UserModel({
     required this.id,
@@ -15,6 +16,7 @@ class UserModel {
     this.phone,
     this.avatar,
     this.isActive = true,
+    this.mustChangePassword = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -25,6 +27,7 @@ class UserModel {
         phone: json['phone'] as String?,
         avatar: json['avatar'] as String?,
         isActive: json['is_active'] as bool? ?? true,
+        mustChangePassword: json['must_change_password'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -35,5 +38,6 @@ class UserModel {
         if (phone != null) 'phone': phone,
         if (avatar != null) 'avatar': avatar,
         'is_active': isActive,
+        'must_change_password': mustChangePassword,
       };
 }

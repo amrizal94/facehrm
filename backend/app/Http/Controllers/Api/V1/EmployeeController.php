@@ -65,11 +65,12 @@ class EmployeeController extends Controller
         try {
             // Create user account
             $user = User::create([
-                'name'      => $validated['name'],
-                'email'     => $validated['email'],
-                'phone'     => $validated['phone'] ?? null,
-                'password'  => Hash::make($validated['password'] ?? $validated['employee_number']),
-                'is_active' => false,
+                'name'                => $validated['name'],
+                'email'               => $validated['email'],
+                'phone'               => $validated['phone'] ?? null,
+                'password'            => Hash::make($validated['password'] ?? $validated['employee_number']),
+                'is_active'           => false,
+                'must_change_password'=> true,
             ]);
 
             $user->assignRole('staff');

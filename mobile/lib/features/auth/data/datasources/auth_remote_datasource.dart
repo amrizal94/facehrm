@@ -72,4 +72,19 @@ class AuthRemoteDataSource {
       throw ApiException.fromDioError(e);
     }
   }
+
+  Future<UserModel> changePassword({
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final res = await _dio.post(ApiConstants.changePassword, data: {
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      });
+      return UserModel.fromJson(res.data['data']['user'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }

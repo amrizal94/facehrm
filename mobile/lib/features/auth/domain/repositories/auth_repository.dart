@@ -24,4 +24,10 @@ abstract class AuthRepository {
     String? password,
     String? passwordConfirmation,
   });
+
+  /// Force-change password (first login). Returns updated user.
+  Future<UserEntity> changePassword({
+    required String password,
+    required String passwordConfirmation,
+  });
 }

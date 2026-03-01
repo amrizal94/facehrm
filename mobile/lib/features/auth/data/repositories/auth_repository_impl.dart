@@ -82,6 +82,19 @@ class AuthRepositoryImpl implements AuthRepository {
     return _toEntity(user);
   }
 
+  @override
+  Future<UserEntity> changePassword({
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final user = await _dataSource.changePassword(
+      password: password,
+      passwordConfirmation: passwordConfirmation,
+    );
+    await _storage.saveUser(user.toJson());
+    return _toEntity(user);
+  }
+
   UserEntity _toEntity(UserModel m) => UserEntity(
         id: m.id,
         name: m.name,
@@ -90,5 +103,6 @@ class AuthRepositoryImpl implements AuthRepository {
         phone: m.phone,
         avatar: m.avatar,
         isActive: m.isActive,
+        mustChangePassword: m.mustChangePassword,
       );
 }

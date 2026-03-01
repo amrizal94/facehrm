@@ -6,6 +6,7 @@ class UserEntity {
   final String? phone;
   final String? avatar;
   final bool isActive;
+  final bool mustChangePassword;
 
   const UserEntity({
     required this.id,
@@ -15,9 +16,11 @@ class UserEntity {
     this.phone,
     this.avatar,
     this.isActive = true,
+    this.mustChangePassword = false,
   });
 
   bool get isAdmin => role == 'admin';
   bool get isHR => role == 'hr';
   bool get isStaff => role == 'staff';
+  bool get isManager => role == 'manager';
 }

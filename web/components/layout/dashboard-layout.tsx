@@ -24,6 +24,12 @@ export function DashboardLayout({ children, title, allowedRoles }: DashboardLayo
   }, [isError, router])
 
   useEffect(() => {
+    if (user?.must_change_password) {
+      router.push('/change-password')
+    }
+  }, [user, router])
+
+  useEffect(() => {
     if (user && allowedRoles && !allowedRoles.includes(user.role)) {
       router.push('/unauthorized')
     }

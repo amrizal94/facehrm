@@ -24,6 +24,7 @@ class User extends Authenticatable
         'phone',
         'avatar',
         'is_active',
+        'must_change_password',
         'fcm_token',
         'fcm_token_updated_at',
     ];
@@ -49,6 +50,7 @@ class User extends Authenticatable
             'email_verified_at'    => 'datetime',
             'password'             => 'hashed',
             'is_active'            => 'boolean',
+            'must_change_password' => 'boolean',
             'fcm_token_updated_at' => 'datetime',
         ];
     }

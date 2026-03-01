@@ -45,6 +45,7 @@ import '../../features/employee/presentation/screens/employee_form_screen.dart';
 import '../../features/meeting/data/models/meeting_model.dart';
 import '../../features/meeting/presentation/screens/meeting_detail_screen.dart';
 import '../../features/meeting/presentation/screens/meetings_screen.dart';
+import '../../features/auth/presentation/screens/change_password_screen.dart';
 import '../constants/app_constants.dart';
 import '../../features/onboarding/presentation/screens/permission_setup_screen.dart';
 import 'app_routes.dart';
@@ -80,6 +81,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         }
         return isLoginRoute ? null : AppRoutes.login;
       }
+
+      // Force password change before accessing any other screen
+      if (authState case AuthAuthenticated(:final user)) {
+        final isChangePasswordRoute =
+            state.matchedLocation == AppRoutes.changePassword;
+        if (user.mustChangePassword && !isChangePasswordRoute) {
+          return AppRoutes.changePassword;
+        }
+        if (!user.mustChangePassword && isChangePasswordRoute) {
+          return _dashboardForRole(user.role);
+        }
+      }
+
       if (isLoginRoute || isSplashRoute) {
         if (authState case AuthAuthenticated(:final user)) {
           return _dashboardForRole(user.role);
@@ -91,6 +105,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.splash,          builder: (_, __) => const _SplashScreen()),
       GoRoute(path: AppRoutes.login,           builder: (_, __) => const LoginScreen()),
       GoRoute(path: AppRoutes.permissionSetup, builder: (_, __) => const PermissionSetupScreen()),
+      GoRoute(path: AppRoutes.changePassword,  builder: (_, __) => const ChangePasswordScreen()),
 
       // Admin
       GoRoute(
