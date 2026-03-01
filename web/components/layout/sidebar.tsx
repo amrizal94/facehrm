@@ -35,27 +35,28 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',   href: '/admin',            icon: LayoutDashboard, roles: ['admin'] },
   { label: 'Dashboard',   href: '/hr',               icon: LayoutDashboard, roles: ['hr'] },
   { label: 'Dashboard',   href: '/staff',             icon: LayoutDashboard, roles: ['staff'] },
-  { label: 'Employees',   href: '/admin/employees',  icon: Users,           roles: ['admin', 'hr'] },
-  { label: 'Attendance',  href: '/admin/attendance', icon: Clock,           roles: ['admin', 'hr'] },
+  { label: 'Dashboard',   href: '/manager',           icon: LayoutDashboard, roles: ['manager'] },
+  { label: 'Employees',   href: '/admin/employees',  icon: Users,           roles: ['admin', 'hr', 'manager'] },
+  { label: 'Attendance',  href: '/admin/attendance', icon: Clock,           roles: ['admin', 'hr', 'manager'] },
   { label: 'My Attendance', href: '/staff/attendance', icon: Clock,         roles: ['staff'] },
-  { label: 'Leave',       href: '/admin/leave',      icon: CalendarDays,    roles: ['admin', 'hr'] },
+  { label: 'Leave',       href: '/admin/leave',      icon: CalendarDays,    roles: ['admin', 'hr', 'manager'] },
   { label: 'My Leave',    href: '/staff/leave',      icon: CalendarDays,    roles: ['staff'] },
-  { label: 'Overtime',    href: '/admin/overtime',   icon: Timer,           roles: ['admin', 'hr'] },
+  { label: 'Overtime',    href: '/admin/overtime',   icon: Timer,           roles: ['admin', 'hr', 'manager'] },
   { label: 'My Overtime', href: '/staff/overtime',   icon: Timer,           roles: ['staff'] },
-  { label: 'Holidays',    href: '/admin/holidays',   icon: CalendarDays,    roles: ['admin', 'hr'] },
+  { label: 'Holidays',    href: '/admin/holidays',   icon: CalendarDays,    roles: ['admin', 'hr', 'manager'] },
   { label: 'Payroll',     href: '/admin/payroll',    icon: Receipt,         roles: ['admin', 'hr'] },
   { label: 'My Payslip',  href: '/staff/payslip',    icon: Receipt,         roles: ['staff'] },
-  { label: 'Face Data',   href: '/admin/face',       icon: ScanFace,        roles: ['admin', 'hr'] },
-  { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,       roles: ['admin', 'hr'] },
-  { label: 'Projects',    href: '/admin/projects',   icon: FolderKanban,    roles: ['admin', 'hr'] },
+  { label: 'Face Data',   href: '/admin/face',       icon: ScanFace,        roles: ['admin', 'hr', 'manager'] },
+  { label: 'Reports',     href: '/admin/reports',    icon: BarChart3,       roles: ['admin', 'hr', 'manager'] },
+  { label: 'Projects',    href: '/admin/projects',   icon: FolderKanban,    roles: ['admin', 'hr', 'manager'] },
   { label: 'Settings',    href: '/admin/settings',   icon: Settings,        roles: ['admin'] },
-  { label: 'Announcements', href: '/admin/announcements', icon: Megaphone,  roles: ['admin', 'hr'] },
+  { label: 'Announcements', href: '/admin/announcements', icon: Megaphone,  roles: ['admin', 'hr', 'manager'] },
   { label: 'My Tasks',      href: '/staff/tasks',      icon: CheckSquare,     roles: ['staff'] },
   { label: 'Announcements', href: '/staff/announcements', icon: Megaphone,  roles: ['staff'] },
   { label: 'My Shift',     href: '/staff/shift',      icon: AlarmClock,      roles: ['staff'] },
   { label: 'Holidays',     href: '/staff/holidays',   icon: CalendarDays,    roles: ['staff'] },
-  { label: 'My Profile',   href: '/staff/profile',    icon: UserCircle,      roles: ['staff', 'hr', 'admin'] },
-  { label: 'Notifications', href: '/notifications',   icon: Bell,            roles: ['admin', 'hr', 'staff'] },
+  { label: 'My Profile',   href: '/staff/profile',    icon: UserCircle,      roles: ['staff', 'hr', 'admin', 'manager'] },
+  { label: 'Notifications', href: '/notifications',   icon: Bell,            roles: ['admin', 'hr', 'staff', 'manager'] },
 ]
 
 interface SidebarProps {
@@ -106,7 +107,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {filteredItems.map((item) => {
             // Dashboard items: exact match. Others: startsWith so sub-pages stay highlighted.
-          const isActive = item.href === '/admin' || item.href === '/hr' || item.href === '/staff'
+          const isActive = item.href === '/admin' || item.href === '/hr' || item.href === '/staff' || item.href === '/manager'
             ? pathname === item.href
             : pathname === item.href || pathname.startsWith(item.href + '/')
             return (

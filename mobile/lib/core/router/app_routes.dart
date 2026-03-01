@@ -4,9 +4,10 @@ class AppRoutes {
   static const String splash         = '/';
   static const String login          = '/login';
   static const String dashboard      = '/dashboard';
-  static const String adminDashboard = '/dashboard/admin';
-  static const String hrDashboard    = '/dashboard/hr';
-  static const String staffDashboard = '/dashboard/staff';
+  static const String adminDashboard   = '/dashboard/admin';
+  static const String hrDashboard      = '/dashboard/hr';
+  static const String staffDashboard   = '/dashboard/staff';
+  static const String managerDashboard = '/dashboard/manager';
   static const String unauthorized      = '/unauthorized';
   static const String permissionSetup   = '/permission-setup';
 

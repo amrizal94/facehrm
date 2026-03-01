@@ -112,8 +112,8 @@ Route::prefix('v1')->group(function () {
         // Shifts — any authenticated user can view their own shift
         Route::get('my-shift', [ShiftController::class, 'myShift']);
 
-        // Admin & HR
-        Route::middleware('role:admin|hr')->group(function () {
+        // Admin, HR & Manager (everything except payroll and settings)
+        Route::middleware('role:admin|hr|manager')->group(function () {
             // Labels
             Route::post('labels',           [LabelController::class, 'store']);
             Route::put('labels/{label}',    [LabelController::class, 'update']);
@@ -151,7 +151,7 @@ Route::prefix('v1')->group(function () {
             Route::put('leave-types/{leaveType}',       [LeaveTypeController::class, 'update']);
             Route::delete('leave-types/{leaveType}',    [LeaveTypeController::class, 'destroy']);
 
-            // Holiday management (admin/hr)
+            // Holiday management
             Route::post('holidays', [HolidayController::class, 'store']);
             Route::put('holidays/{holiday}', [HolidayController::class, 'update']);
             Route::delete('holidays/{holiday}', [HolidayController::class, 'destroy']);
@@ -164,11 +164,7 @@ Route::prefix('v1')->group(function () {
             Route::post('overtime/{overtime}/approve', [OvertimeController::class, 'approve']);
             Route::post('overtime/{overtime}/reject', [OvertimeController::class, 'reject']);
 
-            // Settings
-            Route::get('settings',  [SettingController::class, 'index']);
-            Route::put('settings',  [SettingController::class, 'update']);
-
-            // Reports (admin + hr)
+            // Reports
             Route::prefix('reports')->group(function () {
                 Route::get('overview',          [ReportController::class, 'overview']);
                 Route::get('attendance',        [ReportController::class, 'attendance']);
@@ -190,7 +186,7 @@ Route::prefix('v1')->group(function () {
             Route::put('announcements/{announcement}', [AnnouncementController::class, 'update']);
             Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy']);
 
-            // Meetings management (admin|hr)
+            // Meetings management
             Route::post('meetings',              [MeetingController::class, 'store']);
             Route::put('meetings/{meeting}',     [MeetingController::class, 'update']);
             Route::delete('meetings/{meeting}',  [MeetingController::class, 'destroy']);
@@ -199,11 +195,18 @@ Route::prefix('v1')->group(function () {
             // Audit logs
             Route::get('audit-logs', [AuditLogController::class, 'index']);
 
-            // Expenses — admin|hr
+            // Expenses
             Route::get('expenses', [ExpenseController::class, 'index']);
             Route::get('expenses/{expense}', [ExpenseController::class, 'show']);
             Route::post('expenses/{expense}/approve', [ExpenseController::class, 'approve']);
             Route::post('expenses/{expense}/reject', [ExpenseController::class, 'reject']);
+        });
+
+        // Admin & HR only (payroll + settings)
+        Route::middleware('role:admin|hr')->group(function () {
+            // Settings
+            Route::get('settings',  [SettingController::class, 'index']);
+            Route::put('settings',  [SettingController::class, 'update']);
 
             // Payroll management
             Route::get('payroll/summary',               [PayrollController::class, 'summary']);

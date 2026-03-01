@@ -5,6 +5,7 @@ export const ROUTES = {
   admin: '/admin',
   hr: '/hr',
   staff: '/staff',
+  manager: '/manager',
   unauthorized: '/unauthorized',
 } as const
 
@@ -12,6 +13,7 @@ export const ROLE_ROUTES: Record<string, string> = {
   admin: ROUTES.admin,
   hr: ROUTES.hr,
   staff: ROUTES.staff,
+  manager: ROUTES.manager,
 }
 
 export const TOKEN_KEY = 'facehrm_token'

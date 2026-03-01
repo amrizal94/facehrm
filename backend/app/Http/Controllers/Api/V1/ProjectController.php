@@ -18,7 +18,7 @@ class ProjectController extends Controller
         $user  = $request->user();
         $query = Project::query()->withCount('tasks')->with('creator');
 
-        if ($user->hasRole(['admin', 'hr'])) {
+        if ($user->hasRole(['admin', 'hr', 'manager'])) {
             // Admin/HR see all
         } else {
             // Staff: only projects where at least one task is assigned to them
@@ -68,7 +68,7 @@ class ProjectController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasRole(['admin', 'hr'])) {
+        if (!$user->hasRole(['admin', 'hr', 'manager'])) {
             $employee = Employee::where('user_id', $user->id)->first();
             $empId    = $employee?->id;
             $hasTask  = $project->tasks()->where('assigned_to', $empId)->exists();

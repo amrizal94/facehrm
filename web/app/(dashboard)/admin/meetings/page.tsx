@@ -386,7 +386,7 @@ export default function AdminMeetingsPage() {
   }
 
   return (
-    <DashboardLayout title="Meetings" allowedRoles={['admin', 'hr']}>
+    <DashboardLayout title="Meetings" allowedRoles={['admin', 'hr', 'manager']}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-muted-foreground">Schedule and manage team meetings</p>

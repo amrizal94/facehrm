@@ -70,7 +70,7 @@ class OvertimeController extends Controller
     public function store(StoreOvertimeRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $isAdmin   = $request->user()->hasRole(['admin', 'hr']);
+        $isAdmin   = $request->user()->hasRole(['admin', 'hr', 'manager']);
 
         if ($isAdmin && !empty($validated['employee_id'])) {
             $employee = Employee::find($validated['employee_id']);
@@ -139,7 +139,7 @@ class OvertimeController extends Controller
     public function destroy(Request $request, OvertimeRequest $overtime): JsonResponse
     {
         $employee = Employee::where('user_id', $request->user()->id)->first();
-        $isAdmin  = $request->user()->hasRole(['admin', 'hr']);
+        $isAdmin  = $request->user()->hasRole(['admin', 'hr', 'manager']);
 
         if (!$isAdmin && $overtime->employee_id !== $employee?->id) {
             return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);

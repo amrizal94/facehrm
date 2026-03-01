@@ -72,7 +72,7 @@ export default function AdminProjectsPage() {
   }
 
   return (
-    <DashboardLayout title="Projects" allowedRoles={['admin', 'hr']}>
+    <DashboardLayout title="Projects" allowedRoles={['admin', 'hr', 'manager']}>
       <div className="space-y-4">
         {/* Toolbar */}
         <div className="flex flex-wrap gap-3 items-center justify-between">

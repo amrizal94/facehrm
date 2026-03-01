@@ -12,6 +12,7 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/dashboard/presentation/screens/admin_dashboard.dart';
 import '../../features/dashboard/presentation/screens/hr_dashboard.dart';
+import '../../features/dashboard/presentation/screens/manager_dashboard.dart';
 import '../../features/dashboard/presentation/screens/staff_dashboard.dart';
 import '../../features/holiday/presentation/screens/holidays_screen.dart';
 import '../../features/leave/presentation/screens/apply_leave_screen.dart';
@@ -120,6 +121,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Manager
+      GoRoute(
+        path: AppRoutes.managerDashboard,
+        builder: (_, __) => const ManagerDashboardScreen(),
+        redirect: (context, state) {
+          final as = ProviderScope.containerOf(context).read(authNotifierProvider);
+          if (as is AuthAuthenticated) {
+            final r = as.user.role;
+            if (r != AppConstants.roleManager && r != AppConstants.roleAdmin) {
+              return AppRoutes.unauthorized;
+            }
+          }
+          return null;
+        },
+      ),
+
       // Staff
       GoRoute(path: AppRoutes.staffDashboard, builder: (_, __) => const StaffDashboardScreen()),
 
@@ -202,9 +219,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 });
 
 String _dashboardForRole(String role) => switch (role) {
-      AppConstants.roleAdmin => AppRoutes.adminDashboard,
-      AppConstants.roleHR    => AppRoutes.hrDashboard,
-      _                      => AppRoutes.staffDashboard,
+      AppConstants.roleAdmin   => AppRoutes.adminDashboard,
+      AppConstants.roleHR      => AppRoutes.hrDashboard,
+      AppConstants.roleManager => AppRoutes.managerDashboard,
+      _                        => AppRoutes.staffDashboard,
     };
 
 // ── Splash ────────────────────────────────────────────────────────────────────

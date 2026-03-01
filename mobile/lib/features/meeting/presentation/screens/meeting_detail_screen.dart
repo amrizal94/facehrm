@@ -26,7 +26,8 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
     final as = ref.read(authNotifierProvider);
     if (as is AuthAuthenticated) {
       return as.user.role == AppConstants.roleAdmin ||
-             as.user.role == AppConstants.roleHR;
+             as.user.role == AppConstants.roleHR ||
+             as.user.role == AppConstants.roleManager;
     }
     return false;
   }

@@ -79,7 +79,7 @@ export default function AdminExpensesPage() {
   }
 
   return (
-    <DashboardLayout title="Expense Approvals" allowedRoles={['admin', 'hr']}>
+    <DashboardLayout title="Expense Approvals" allowedRoles={['admin', 'hr', 'manager']}>
       <div className="space-y-4">
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-3">

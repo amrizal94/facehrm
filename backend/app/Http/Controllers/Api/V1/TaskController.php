@@ -21,7 +21,7 @@ class TaskController extends Controller
         $user  = $request->user();
         $query = Task::query()->with(['project', 'assignee.user', 'labels']);
 
-        if ($user->hasRole(['admin', 'hr'])) {
+        if ($user->hasRole(['admin', 'hr', 'manager'])) {
             // Admin/HR see all
             if ($request->filled('assigned_to')) {
                 $query->where('assigned_to', $request->integer('assigned_to'));
@@ -110,7 +110,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasRole(['admin', 'hr'])) {
+        if (!$user->hasRole(['admin', 'hr', 'manager'])) {
             $employee = Employee::where('user_id', $user->id)->first();
             if ($task->assigned_to !== $employee?->id) {
                 return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);
@@ -130,7 +130,7 @@ class TaskController extends Controller
         $user      = $request->user();
         $validated = $request->validated();
 
-        if (!$user->hasRole(['admin', 'hr'])) {
+        if (!$user->hasRole(['admin', 'hr', 'manager'])) {
             // Staff: only allowed to update status on own task
             $employee = Employee::where('user_id', $user->id)->first();
             if ($task->assigned_to !== $employee?->id) {
@@ -146,7 +146,7 @@ class TaskController extends Controller
 
         $task->update($data);
 
-        if ($user->hasRole(['admin', 'hr']) && $labelIds !== null) {
+        if ($user->hasRole(['admin', 'hr', 'manager']) && $labelIds !== null) {
             $task->labels()->sync($labelIds);
         }
 
@@ -210,7 +210,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->hasRole(['admin', 'hr'])) {
+        if (!$user->hasRole(['admin', 'hr', 'manager'])) {
             $employee = Employee::where('user_id', $user->id)->first();
             if ($task->assigned_to !== $employee?->id) {
                 return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);
