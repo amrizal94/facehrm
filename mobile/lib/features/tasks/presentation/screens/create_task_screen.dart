@@ -23,6 +23,11 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
   bool _isSubmitting = false;
   bool _success      = false;
 
+  // Data snapshot shown on success screen
+  String?   _submittedTitle;
+  String?   _submittedProject;
+  DateTime? _submittedAt;
+
   @override
   void dispose() {
     _titleCtrl.dispose();
@@ -75,7 +80,12 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
     if (err != null) {
       messenger.showSnackBar(SnackBar(content: Text(err), backgroundColor: Colors.red));
     } else {
-      setState(() => _success = true);
+      setState(() {
+        _submittedTitle   = _titleCtrl.text.trim();
+        _submittedProject = _selectedProject!.name;
+        _submittedAt      = DateTime.now();
+        _success          = true;
+      });
     }
   }
 
@@ -93,35 +103,85 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
   }
 
   Widget _buildSuccess(BuildContext context) {
+    final submittedAt = _submittedAt;
     return SafeArea(
       child: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.green.shade100,
-                  shape: BoxShape.circle,
+              // Animated check icon (scale-in bounce)
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.elasticOut,
+                builder: (_, value, child) =>
+                    Transform.scale(scale: value, child: child),
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.check_circle_rounded,
+                      size: 52, color: Colors.green.shade600),
                 ),
-                child: Icon(Icons.check_circle_rounded,
-                    size: 48, color: Colors.green.shade600),
               ),
+
               const SizedBox(height: 24),
               const Text(
                 'Tugas Berhasil Dilaporkan!',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
-                'Terima kasih telah melaporkan progres pekerjaanmu.',
+                'Terima kasih! Tim HR akan mereview laporan ini.',
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 textAlign: TextAlign.center,
               ),
+
+              // Summary card
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_submittedProject != null)
+                      _SummaryRow(
+                        icon: Icons.folder_outlined,
+                        color: Colors.blue.shade700,
+                        text: _submittedProject!,
+                      ),
+                    if (_submittedTitle != null) ...[
+                      const SizedBox(height: 8),
+                      _SummaryRow(
+                        icon: Icons.task_alt_outlined,
+                        color: Colors.green.shade700,
+                        text: _submittedTitle!,
+                      ),
+                    ],
+                    if (submittedAt != null) ...[
+                      const SizedBox(height: 8),
+                      _SummaryRow(
+                        icon: Icons.schedule_outlined,
+                        color: Colors.grey.shade600,
+                        text: _formatSubmitTime(submittedAt),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -143,11 +203,14 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => setState(() {
-                    _success = false;
+                    _success          = false;
+                    _submittedTitle   = null;
+                    _submittedProject = null;
+                    _submittedAt      = null;
                     _titleCtrl.clear();
                     _descCtrl.clear();
                     _notesCtrl.clear();
-                    _selectedProject = null;
+                    _selectedProject  = null;
                   }),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -163,6 +226,14 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
         ),
       ),
     );
+  }
+
+  String _formatSubmitTime(DateTime dt) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $hh:$mm';
   }
 
   Widget _buildForm(BuildContext context) {
@@ -351,6 +422,30 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+  const _SummaryRow({required this.icon, required this.color, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
     );
   }
 }
