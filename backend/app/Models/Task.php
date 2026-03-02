@@ -25,12 +25,26 @@ class Task extends Model
         'photo_path',
         'self_reported',
         'notes',
+        'created_latitude',
+        'created_longitude',
+        'created_face_confidence',
+        'completed_latitude',
+        'completed_longitude',
+        'completed_location_accuracy',
+        'completed_is_mock',
+        'completed_face_confidence',
     ];
 
     protected function casts(): array
     {
         return [
-            'deadline' => 'date',
+            'deadline'                  => 'date',
+            'created_latitude'          => 'float',
+            'created_longitude'         => 'float',
+            'completed_latitude'        => 'float',
+            'completed_longitude'       => 'float',
+            'completed_location_accuracy' => 'float',
+            'completed_is_mock'         => 'boolean',
         ];
     }
 

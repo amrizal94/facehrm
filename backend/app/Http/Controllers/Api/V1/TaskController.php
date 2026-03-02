@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Notifications\TaskAssigned;
 use App\Notifications\TaskSelfReported;
 use App\Notifications\TaskStatusChanged;
+use App\Services\FaceVerificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
@@ -93,14 +94,39 @@ class TaskController extends Controller
                 ], 422);
             }
 
+            // Face verification wajib untuk staff
+            $request->validate([
+                'face_image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+            ]);
+
+            // Reject mock GPS
+            if ($request->boolean('is_mock_location') ||
+                (float) $request->input('location_accuracy', 1) === 0.0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lokasi palsu terdeteksi. Nonaktifkan mock location dan coba lagi.',
+                ], 422);
+            }
+
+            // Verify face
+            try {
+                $faceConfidence = app(FaceVerificationService::class)
+                    ->verifyForUser($request->file('face_image'), $user);
+            } catch (\RuntimeException $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+
             $employee = Employee::where('user_id', $user->id)->first();
 
             // Force self-reported fields, ignore admin-only fields
             $validated = collect($validated)
                 ->only(['project_id', 'title', 'description', 'deadline', 'notes'])
                 ->toArray();
-            $validated['self_reported'] = true;
-            $validated['assigned_to']   = $employee?->id;
+            $validated['self_reported']           = true;
+            $validated['assigned_to']             = $employee?->id;
+            $validated['created_latitude']        = $request->input('latitude');
+            $validated['created_longitude']       = $request->input('longitude');
+            $validated['created_face_confidence'] = $faceConfidence;
         }
 
         $task = Task::create(array_merge(
@@ -234,9 +260,31 @@ class TaskController extends Controller
         }
 
         $request->validate([
-            'photo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
-            'notes' => ['nullable', 'string', 'max:1000'],
+            'photo'             => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'face_image'        => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'notes'             => ['nullable', 'string', 'max:1000'],
+            'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy' => ['nullable', 'numeric', 'min:0'],
+            'is_mock_location'  => ['nullable', 'boolean'],
         ]);
+
+        // Reject mock GPS
+        if ($request->boolean('is_mock_location') ||
+            (float) $request->input('location_accuracy', 1) === 0.0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lokasi palsu terdeteksi. Nonaktifkan mock location dan coba lagi.',
+            ], 422);
+        }
+
+        // Face verification
+        try {
+            $faceConfidence = app(FaceVerificationService::class)
+                ->verifyForUser($request->file('face_image'), $user);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         $path = $request->file('photo')->store(
             'task-photos/' . now()->format('Y/m'),
@@ -244,9 +292,14 @@ class TaskController extends Controller
         );
 
         $task->update([
-            'status'     => 'done',
-            'photo_path' => $path,
-            'notes'      => $request->input('notes'),
+            'status'                       => 'done',
+            'photo_path'                   => $path,
+            'notes'                        => $request->input('notes'),
+            'completed_latitude'           => $request->input('latitude'),
+            'completed_longitude'          => $request->input('longitude'),
+            'completed_location_accuracy'  => $request->input('location_accuracy'),
+            'completed_is_mock'            => $request->boolean('is_mock_location'),
+            'completed_face_confidence'    => $faceConfidence,
         ]);
 
         return response()->json([

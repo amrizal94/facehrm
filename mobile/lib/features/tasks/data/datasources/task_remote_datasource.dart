@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/services/location_service.dart';
 import '../models/checklist_item_model.dart';
 import '../models/project_model.dart';
 import '../models/task_model.dart';
@@ -83,15 +84,30 @@ class TaskRemoteDataSource {
     String? description,
     String? deadline,
     String? notes,
+    required List<int> faceBytes,
+    required String faceFilename,
+    LocationResult? location,
   }) async {
     try {
-      final res = await _dio.post(ApiConstants.tasks, data: {
-        'project_id':  projectId,
-        'title':       title,
+      final formData = FormData.fromMap({
+        'project_id': projectId,
+        'title':      title,
         if (description != null && description.isNotEmpty) 'description': description,
-        if (deadline != null)   'deadline':    deadline,
+        if (deadline != null && deadline.isNotEmpty) 'deadline': deadline,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        'face_image': MultipartFile.fromBytes(faceBytes, filename: faceFilename),
+        if (location != null) ...{
+          'latitude':          location.latitude.toString(),
+          'longitude':         location.longitude.toString(),
+          'location_accuracy': location.accuracy.toString(),
+          'is_mock_location':  location.isMocked ? '1' : '0',
+        },
       });
+      final res = await _dio.post(
+        ApiConstants.tasks,
+        data: formData,
+        options: Options(receiveTimeout: const Duration(seconds: 30)),
+      );
       return TaskModel.fromJson(res.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -102,14 +118,28 @@ class TaskRemoteDataSource {
     required int taskId,
     required List<int> photoBytes,
     required String filename,
+    required List<int> faceBytes,
+    required String faceFilename,
     String? notes,
+    LocationResult? location,
   }) async {
     try {
       final formData = FormData.fromMap({
-        'photo': MultipartFile.fromBytes(photoBytes, filename: filename),
+        'photo':      MultipartFile.fromBytes(photoBytes, filename: filename),
+        'face_image': MultipartFile.fromBytes(faceBytes,  filename: faceFilename),
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (location != null) ...{
+          'latitude':          location.latitude.toString(),
+          'longitude':         location.longitude.toString(),
+          'location_accuracy': location.accuracy.toString(),
+          'is_mock_location':  location.isMocked ? '1' : '0',
+        },
       });
-      final res = await _dio.post(ApiConstants.completeTask(taskId), data: formData);
+      final res = await _dio.post(
+        ApiConstants.completeTask(taskId),
+        data: formData,
+        options: Options(receiveTimeout: const Duration(seconds: 30)),
+      );
       return TaskModel.fromJson(res.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);

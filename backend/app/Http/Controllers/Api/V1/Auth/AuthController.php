@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
+use App\Notifications\SecurityLoginAlert;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,11 +36,24 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Revoke previous tokens
+        // Capture old FCM token before revoking (to warn old device)
+        $oldFcmToken = $user->fcm_token;
+
+        // Revoke previous tokens (single active session)
         $user->tokens()->delete();
 
         // Create new token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Notify old device — non-fatal; $user->fcm_token is still the old device's token
+        // because new device hasn't called PUT /auth/fcm-token yet
+        if ($oldFcmToken) {
+            try {
+                $user->notify(new SecurityLoginAlert());
+            } catch (\Throwable) {
+                // Non-fatal — proceed normally
+            }
+        }
 
         return response()->json([
             'success' => true,

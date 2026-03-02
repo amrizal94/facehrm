@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/services/location_service.dart';
 import '../../data/models/project_model.dart';
 import '../../data/models/task_model.dart';
 import '../../data/repositories/task_repository.dart';
@@ -48,14 +49,20 @@ class MyTasksNotifier extends AsyncNotifier<List<TaskModel>> {
     String? description,
     String? deadline,
     String? notes,
+    required List<int> faceBytes,
+    required String faceFilename,
+    LocationResult? location,
   }) async {
     try {
       await ref.read(taskRepositoryProvider).createSelfTask(
-        projectId: projectId,
-        title: title,
-        description: description,
-        deadline: deadline,
-        notes: notes,
+        projectId:    projectId,
+        title:        title,
+        description:  description,
+        deadline:     deadline,
+        notes:        notes,
+        faceBytes:    faceBytes,
+        faceFilename: faceFilename,
+        location:     location,
       );
       ref.invalidateSelf();
       ref.invalidate(myProjectsProvider);
@@ -69,14 +76,20 @@ class MyTasksNotifier extends AsyncNotifier<List<TaskModel>> {
     required int taskId,
     required List<int> photoBytes,
     required String filename,
+    required List<int> faceBytes,
+    required String faceFilename,
     String? notes,
+    LocationResult? location,
   }) async {
     try {
       await ref.read(taskRepositoryProvider).completeTask(
-        taskId: taskId,
-        photoBytes: photoBytes,
-        filename: filename,
-        notes: notes,
+        taskId:       taskId,
+        photoBytes:   photoBytes,
+        filename:     filename,
+        faceBytes:    faceBytes,
+        faceFilename: faceFilename,
+        notes:        notes,
+        location:     location,
       );
       ref.invalidateSelf();
       ref.invalidate(myProjectsProvider);

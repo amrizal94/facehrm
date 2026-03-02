@@ -68,6 +68,8 @@ class PushNotificationService {
 
     // App backgrounded, user taps notification → navigate.
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      // Security login alert is informational only — no navigation.
+      if (message.data['type'] == 'security_login') return;
       instance._navigateFromLink(message.data['link'] as String?);
     });
   }

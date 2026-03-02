@@ -53,6 +53,14 @@ export interface Task {
   self_reported?: boolean
   notes?: string | null
   created_at?: string
+  created_gps?: { lat: number; lng: number; face_confidence: number | null } | null
+  completed_gps?: {
+    lat: number
+    lng: number
+    accuracy: number | null
+    is_mock: boolean
+    face_confidence: number | null
+  } | null
 }
 
 export interface TaskFilters {

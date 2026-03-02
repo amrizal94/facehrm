@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, Calendar, User, FolderKanban, Camera, FileText } from 'lucide-react'
+import { Pencil, Trash2, Calendar, User, FolderKanban, Camera, FileText, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -182,6 +182,48 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isAdmin = false }:
                       className="rounded-md max-h-48 object-cover border hover:opacity-90 transition-opacity cursor-pointer"
                     />
                   </a>
+                </div>
+              )}
+
+              {/* GPS Audit */}
+              {(task.created_gps || task.completed_gps) && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> Audit Lokasi
+                  </p>
+                  <div className="text-xs bg-muted rounded-md p-2 space-y-2">
+                    {task.created_gps && (
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <span className="text-muted-foreground shrink-0">Dibuat:</span>
+                        <span className="font-mono">
+                          {task.created_gps.lat.toFixed(5)}, {task.created_gps.lng.toFixed(5)}
+                        </span>
+                        {task.created_gps.face_confidence != null && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-300 text-green-700 bg-green-50 font-medium">
+                            Wajah {task.created_gps.face_confidence.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {task.completed_gps && (
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <span className="text-muted-foreground shrink-0">Selesai:</span>
+                        <span className="font-mono">
+                          {task.completed_gps.lat.toFixed(5)}, {task.completed_gps.lng.toFixed(5)}
+                        </span>
+                        {task.completed_gps.is_mock && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-red-300 text-red-700 bg-red-50 font-medium">
+                            GPS Palsu!
+                          </span>
+                        )}
+                        {task.completed_gps.face_confidence != null && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-300 text-green-700 bg-green-50 font-medium">
+                            Wajah {task.completed_gps.face_confidence.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

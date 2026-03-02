@@ -18,6 +18,8 @@ class TaskModel {
   final bool selfReported;
   final String? photoUrl;
   final String? notes;
+  final Map<String, dynamic>? createdGps;    // {lat, lng, face_confidence}
+  final Map<String, dynamic>? completedGps;  // {lat, lng, accuracy, is_mock, face_confidence}
 
   const TaskModel({
     required this.id,
@@ -36,6 +38,8 @@ class TaskModel {
     this.selfReported = false,
     this.photoUrl,
     this.notes,
+    this.createdGps,
+    this.completedGps,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
@@ -71,9 +75,11 @@ class TaskModel {
       checklistTotal: json['checklist_total'] as int? ?? checklistItems.length,
       checklistDone: json['checklist_done'] as int? ??
           checklistItems.where((i) => i.isDone).length,
-      selfReported: json['self_reported'] as bool? ?? false,
-      photoUrl: json['photo_url'] as String?,
-      notes: json['notes'] as String?,
+      selfReported:  json['self_reported'] as bool? ?? false,
+      photoUrl:      json['photo_url'] as String?,
+      notes:         json['notes'] as String?,
+      createdGps:    json['created_gps'] as Map<String, dynamic>?,
+      completedGps:  json['completed_gps'] as Map<String, dynamic>?,
     );
   }
 
@@ -95,8 +101,10 @@ class TaskModel {
         checklistItems: checklistItems ?? this.checklistItems,
         checklistTotal: checklistTotal,
         checklistDone: checklistDone,
-        selfReported: selfReported,
-        photoUrl: photoUrl,
-        notes: notes,
+        selfReported:  selfReported,
+        photoUrl:      photoUrl,
+        notes:         notes,
+        createdGps:    createdGps,
+        completedGps:  completedGps,
       );
 }

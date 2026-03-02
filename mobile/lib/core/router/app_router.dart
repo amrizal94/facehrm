@@ -34,6 +34,7 @@ import '../../features/announcement/presentation/screens/announcements_list_scre
 import '../../features/tasks/presentation/screens/my_tasks_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../../features/tasks/presentation/screens/create_task_screen.dart';
+import '../../features/tasks/presentation/screens/task_face_verify_screen.dart';
 import '../../features/tasks/presentation/screens/task_photo_capture_screen.dart';
 import '../../features/attendance/presentation/screens/qr_generator_screen.dart';
 import '../../features/attendance/presentation/screens/qr_scan_screen.dart';
@@ -188,7 +189,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.myShift,       builder: (_, __) => const MyShiftScreen()),
       GoRoute(path: AppRoutes.myTasks,       builder: (_, __) => const MyTasksScreen()),
       GoRoute(path: AppRoutes.createTask,    builder: (_, __) => const CreateTaskScreen()),
-      GoRoute(path: AppRoutes.capturePhoto,  builder: (_, __) => const TaskPhotoCaptureScreen()),
+      GoRoute(path: AppRoutes.capturePhoto,   builder: (_, __) => const TaskPhotoCaptureScreen()),
+      GoRoute(path: AppRoutes.taskFaceVerify, builder: (_, __) => const TaskFaceVerifyScreen()),
       GoRoute(
         path: AppRoutes.taskDetail,
         builder: (_, state) => TaskDetailScreen(taskId: state.extra as int),

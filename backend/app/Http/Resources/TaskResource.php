@@ -48,6 +48,18 @@ class TaskResource extends JsonResource
             'photo_url'       => $this->photo_path ? asset('storage/' . $this->photo_path) : null,
             'self_reported'   => (bool) $this->self_reported,
             'notes'           => $this->notes,
+            'created_gps'     => $this->created_latitude ? [
+                'lat'             => $this->created_latitude,
+                'lng'             => $this->created_longitude,
+                'face_confidence' => $this->created_face_confidence,
+            ] : null,
+            'completed_gps'   => $this->completed_latitude ? [
+                'lat'             => $this->completed_latitude,
+                'lng'             => $this->completed_longitude,
+                'accuracy'        => $this->completed_location_accuracy,
+                'is_mock'         => (bool) $this->completed_is_mock,
+                'face_confidence' => $this->completed_face_confidence,
+            ] : null,
             'created_at'      => $this->created_at?->toISOString(),
         ];
     }

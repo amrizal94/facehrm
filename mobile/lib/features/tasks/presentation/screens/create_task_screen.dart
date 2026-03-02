@@ -1,7 +1,10 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
+import '../../../../core/services/location_service.dart';
 import '../../data/models/project_model.dart';
 import '../providers/task_provider.dart';
 
@@ -34,13 +37,28 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
   Future<void> _submit() async {
     if (!_canSubmit) return;
     final messenger = ScaffoldMessenger.of(context);
+
+    // Step 1: Face verification
+    final faceFile = await context.push<XFile?>(AppRoutes.taskFaceVerify);
+    if (faceFile == null || !mounted) return;
+
     setState(() => _isSubmitting = true);
 
+    // Step 2: GPS (non-blocking — null is ok)
+    final location = await LocationService.getCurrentLocation();
+
+    // Step 3: Submit with face + GPS
+    final faceBytes    = await faceFile.readAsBytes();
+    final faceFilename = faceFile.name.isNotEmpty ? faceFile.name : 'face_verify.jpg';
+
     final err = await ref.read(myTasksProvider.notifier).createTask(
-      projectId:   _selectedProject!.id,
-      title:       _titleCtrl.text.trim(),
-      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      notes:       _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+      projectId:    _selectedProject!.id,
+      title:        _titleCtrl.text.trim(),
+      description:  _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      notes:        _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+      faceBytes:    faceBytes.toList(),
+      faceFilename: faceFilename,
+      location:     location,
     );
 
     if (!mounted) return;

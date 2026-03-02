@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../data/models/checklist_item_model.dart';
 import '../../data/models/label_model.dart';
@@ -207,6 +208,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                     ),
                   ],
 
+                  // GPS + Face Audit
+                  if (task.createdGps != null || task.completedGps != null) ...[
+                    const SizedBox(height: 16),
+                    const _SectionHeader(title: 'Audit Lokasi'),
+                    const SizedBox(height: 8),
+                    _GpsAuditCard(
+                      createdGps:   task.createdGps,
+                      completedGps: task.completedGps,
+                    ),
+                  ],
+
                   // Labels
                   if (task.labels.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -332,23 +344,35 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   Future<void> _completeWithPhoto(
       BuildContext context, TaskModel task, ScaffoldMessengerState messenger) async {
-    // Open camera — get back XFile or null if cancelled
+    // Step 1: Face verification
+    final faceFile = await context.push<XFile?>(AppRoutes.taskFaceVerify);
+    if (faceFile == null || !mounted) return;
+
+    // Step 2: Task evidence photo
     final xFile = await context.push<XFile?>(AppRoutes.capturePhoto);
     if (xFile == null || !mounted) return;
 
-    // Optional notes dialog
+    // Step 3: Optional notes dialog
     final notes = await _showNotesDialog(context);
     if (!mounted) return;
 
-    final bytes    = await xFile.readAsBytes();
-    final filename = xFile.name.isNotEmpty ? xFile.name : 'task_photo.jpg';
+    // Step 4: GPS (non-blocking)
+    final location = await LocationService.getCurrentLocation();
+
+    final bytes      = await xFile.readAsBytes();
+    final filename   = xFile.name.isNotEmpty ? xFile.name : 'task_photo.jpg';
+    final faceBytes  = await faceFile.readAsBytes();
+    final faceName   = faceFile.name.isNotEmpty ? faceFile.name : 'face_verify.jpg';
 
     setState(() => _updatingStatus = true);
     final err = await ref.read(myTasksProvider.notifier).completeWithPhoto(
-      taskId:    task.id,
-      photoBytes: bytes.toList(),
-      filename:   filename,
-      notes:      notes,
+      taskId:       task.id,
+      photoBytes:   bytes.toList(),
+      filename:     filename,
+      faceBytes:    faceBytes.toList(),
+      faceFilename: faceName,
+      notes:        notes,
+      location:     location,
     );
     if (!mounted) return;
     setState(() => _updatingStatus = false);
@@ -620,6 +644,101 @@ class _ChecklistTile extends StatelessWidget {
         ),
       ),
       onTap: onToggle,
+    );
+  }
+}
+
+class _GpsAuditCard extends StatelessWidget {
+  final Map<String, dynamic>? createdGps;
+  final Map<String, dynamic>? completedGps;
+  const _GpsAuditCard({this.createdGps, this.completedGps});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (createdGps != null) _buildEntry('Dibuat', createdGps!, showMock: false),
+            if (createdGps != null && completedGps != null)
+              const Divider(height: 16),
+            if (completedGps != null) _buildEntry('Selesai', completedGps!, showMock: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEntry(String label, Map<String, dynamic> gps, {required bool showMock}) {
+    final lat    = (gps['lat'] as num?)?.toDouble();
+    final lng    = (gps['lng'] as num?)?.toDouble();
+    final conf   = (gps['face_confidence'] as num?)?.toDouble();
+    final isMock = showMock ? (gps['is_mock'] as bool? ?? false) : false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (isMock) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.red.shade300),
+                ),
+                child: Text(
+                  'GPS Palsu!',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 4),
+        if (lat != null && lng != null)
+          Text(
+            '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+          ),
+        if (conf != null) ...[
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Icon(Icons.face_outlined, size: 12, color: Colors.green.shade600),
+              const SizedBox(width: 4),
+              Text(
+                'Wajah ${conf.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.green.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
