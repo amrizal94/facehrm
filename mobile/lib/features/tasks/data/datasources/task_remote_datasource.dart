@@ -86,6 +86,8 @@ class TaskRemoteDataSource {
     String? notes,
     required List<int> faceBytes,
     required String faceFilename,
+    required List<int> photoBytes,
+    required String photoFilename,
     LocationResult? location,
   }) async {
     try {
@@ -96,6 +98,7 @@ class TaskRemoteDataSource {
         if (deadline != null && deadline.isNotEmpty) 'deadline': deadline,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
         'face_image': MultipartFile.fromBytes(faceBytes, filename: faceFilename),
+        'task_photo': MultipartFile.fromBytes(photoBytes, filename: photoFilename),
         if (location != null) ...{
           'latitude':          location.latitude.toString(),
           'longitude':         location.longitude.toString(),

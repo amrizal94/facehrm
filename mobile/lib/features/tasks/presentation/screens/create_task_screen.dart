@@ -42,23 +42,31 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
     final faceFile = await context.push<XFile?>(AppRoutes.taskFaceVerify);
     if (faceFile == null || !mounted) return;
 
+    // Step 2: Task evidence photo (camera-only)
+    final photoFile = await context.push<XFile?>(AppRoutes.capturePhoto);
+    if (photoFile == null || !mounted) return;
+
     setState(() => _isSubmitting = true);
 
-    // Step 2: GPS (non-blocking — null is ok)
+    // Step 3: GPS (non-blocking — null is ok)
     final location = await LocationService.getCurrentLocation();
 
-    // Step 3: Submit with face + GPS
+    // Step 4: Submit with face + photo + GPS
     final faceBytes    = await faceFile.readAsBytes();
     final faceFilename = faceFile.name.isNotEmpty ? faceFile.name : 'face_verify.jpg';
+    final photoBytes    = await photoFile.readAsBytes();
+    final photoFilename = photoFile.name.isNotEmpty ? photoFile.name : 'task_photo.jpg';
 
     final err = await ref.read(myTasksProvider.notifier).createTask(
-      projectId:    _selectedProject!.id,
-      title:        _titleCtrl.text.trim(),
-      description:  _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      notes:        _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-      faceBytes:    faceBytes.toList(),
-      faceFilename: faceFilename,
-      location:     location,
+      projectId:     _selectedProject!.id,
+      title:         _titleCtrl.text.trim(),
+      description:   _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      notes:         _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+      faceBytes:     faceBytes.toList(),
+      faceFilename:  faceFilename,
+      photoBytes:    photoBytes.toList(),
+      photoFilename: photoFilename,
+      location:      location,
     );
 
     if (!mounted) return;
@@ -269,10 +277,35 @@ class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
             ),
           ),
 
+          // Info banner — what happens on submit
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Saat submit: verifikasi wajah → foto bukti pekerjaan (kamera) → kirim.',
+                      style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // Submit button (pinned)
           Padding(
             padding: EdgeInsets.fromLTRB(
-              16, 8, 16, 16 + MediaQuery.of(context).padding.bottom,
+              16, 4, 16, 16 + MediaQuery.of(context).padding.bottom,
             ),
             child: SizedBox(
               width: double.infinity,

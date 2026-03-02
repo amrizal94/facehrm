@@ -94,9 +94,10 @@ class TaskController extends Controller
                 ], 422);
             }
 
-            // Face verification wajib untuk staff
+            // Validasi face + foto bukti wajib untuk staff
             $request->validate([
                 'face_image' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+                'task_photo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
             ]);
 
             // Reject mock GPS
@@ -116,6 +117,12 @@ class TaskController extends Controller
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
             }
 
+            // Save task evidence photo
+            $photoPath = $request->file('task_photo')->store(
+                'task-photos/' . now()->format('Y/m'),
+                'public'
+            );
+
             $employee = Employee::where('user_id', $user->id)->first();
 
             // Force self-reported fields, ignore admin-only fields
@@ -124,6 +131,7 @@ class TaskController extends Controller
                 ->toArray();
             $validated['self_reported']           = true;
             $validated['assigned_to']             = $employee?->id;
+            $validated['photo_path']              = $photoPath;
             $validated['created_latitude']        = $request->input('latitude');
             $validated['created_longitude']       = $request->input('longitude');
             $validated['created_face_confidence'] = $faceConfidence;

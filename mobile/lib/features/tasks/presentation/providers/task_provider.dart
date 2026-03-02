@@ -51,18 +51,22 @@ class MyTasksNotifier extends AsyncNotifier<List<TaskModel>> {
     String? notes,
     required List<int> faceBytes,
     required String faceFilename,
+    required List<int> photoBytes,
+    required String photoFilename,
     LocationResult? location,
   }) async {
     try {
       await ref.read(taskRepositoryProvider).createSelfTask(
-        projectId:    projectId,
-        title:        title,
-        description:  description,
-        deadline:     deadline,
-        notes:        notes,
-        faceBytes:    faceBytes,
-        faceFilename: faceFilename,
-        location:     location,
+        projectId:     projectId,
+        title:         title,
+        description:   description,
+        deadline:      deadline,
+        notes:         notes,
+        faceBytes:     faceBytes,
+        faceFilename:  faceFilename,
+        photoBytes:    photoBytes,
+        photoFilename: photoFilename,
+        location:      location,
       );
       ref.invalidateSelf();
       ref.invalidate(myProjectsProvider);
