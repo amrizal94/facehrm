@@ -14,11 +14,36 @@ class TaskRepository {
   TaskRepository(this._ds);
 
   Future<List<ProjectModel>> getMyProjects() => _ds.getMyProjects();
+  Future<List<ProjectModel>> getActiveProjectsForTask() => _ds.getActiveProjectsForTask();
   Future<List<TaskModel>> getMyTasks({String? status, String? priority}) =>
       _ds.getMyTasks(status: status, priority: priority);
   Future<TaskModel> getTask(int id) => _ds.getTask(id);
   Future<TaskModel> updateTaskStatus(int id, String status) =>
       _ds.updateTaskStatus(id, status);
+  Future<TaskModel> createSelfTask({
+    required int projectId,
+    required String title,
+    String? description,
+    String? deadline,
+    String? notes,
+  }) => _ds.createSelfTask(
+    projectId: projectId,
+    title: title,
+    description: description,
+    deadline: deadline,
+    notes: notes,
+  );
+  Future<TaskModel> completeTask({
+    required int taskId,
+    required List<int> photoBytes,
+    required String filename,
+    String? notes,
+  }) => _ds.completeTask(
+    taskId: taskId,
+    photoBytes: photoBytes,
+    filename: filename,
+    notes: notes,
+  );
   Future<ChecklistItemModel> toggleChecklistItem(int taskId, int itemId) =>
       _ds.toggleChecklistItem(taskId, itemId);
 }

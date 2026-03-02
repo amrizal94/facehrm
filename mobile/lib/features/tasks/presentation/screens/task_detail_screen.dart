@@ -1,6 +1,10 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../data/models/checklist_item_model.dart';
 import '../../data/models/label_model.dart';
 import '../../data/models/task_model.dart';
@@ -66,6 +70,27 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               ),
             ],
           ),
+          bottomNavigationBar: task.self_reported
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  color: const Color(0xFFFEF3C7),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.camera_alt_outlined,
+                          size: 14, color: Color(0xFFD97706)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Tugas dilaporkan sendiri oleh staff',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : null,
           body: RefreshIndicator(
             onRefresh: () async {
               _localItems = null;
@@ -135,6 +160,48 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         child: Text(
                           task.description!,
                           style: const TextStyle(fontSize: 14, height: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Notes (completion notes)
+                  if (task.notes != null && task.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const _SectionHeader(title: 'Catatan'),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          task.notes!,
+                          style: const TextStyle(fontSize: 14, height: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Photo proof
+                  if (task.photoUrl != null) ...[
+                    const SizedBox(height: 16),
+                    const _SectionHeader(title: 'Foto Bukti'),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        task.photoUrl!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 120,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(Icons.broken_image_outlined,
+                                color: Colors.grey),
+                          ),
                         ),
                       ),
                     ),
@@ -236,6 +303,15 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   Future<void> _updateStatus(BuildContext context, TaskModel task, String newStatus) async {
     if (_updatingStatus) return;
     final messenger = ScaffoldMessenger.of(context);
+
+    // Staff marking task as done → require photo proof
+    final authState = ref.read(authNotifierProvider);
+    final isStaff   = authState is AuthAuthenticated && authState.user.isStaff;
+    if (newStatus == 'done' && isStaff) {
+      await _completeWithPhoto(context, task, messenger);
+      return;
+    }
+
     setState(() => _updatingStatus = true);
     final err = await ref.read(myTasksProvider.notifier).updateStatus(task.id, newStatus);
     if (!mounted) return;
@@ -252,6 +328,75 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _completeWithPhoto(
+      BuildContext context, TaskModel task, ScaffoldMessengerState messenger) async {
+    // Open camera — get back XFile or null if cancelled
+    final xFile = await context.push<XFile?>(AppRoutes.capturePhoto);
+    if (xFile == null || !mounted) return;
+
+    // Optional notes dialog
+    final notes = await _showNotesDialog(context);
+    if (!mounted) return;
+
+    final bytes    = await xFile.readAsBytes();
+    final filename = xFile.name.isNotEmpty ? xFile.name : 'task_photo.jpg';
+
+    setState(() => _updatingStatus = true);
+    final err = await ref.read(myTasksProvider.notifier).completeWithPhoto(
+      taskId:    task.id,
+      photoBytes: bytes.toList(),
+      filename:   filename,
+      notes:      notes,
+    );
+    if (!mounted) return;
+    setState(() => _updatingStatus = false);
+
+    if (err != null) {
+      messenger.showSnackBar(SnackBar(content: Text(err), backgroundColor: Colors.red));
+    } else {
+      _localItems = null;
+      ref.invalidate(taskDetailProvider(widget.taskId));
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Tugas selesai!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<String?> _showNotesDialog(BuildContext context) async {
+    final ctrl = TextEditingController();
+    final result = await showDialog<String?>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Catatan (opsional)'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 3,
+          maxLength: 500,
+          decoration: const InputDecoration(
+            hintText: 'Tambahkan catatan penyelesaian...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Lewati'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return result?.isEmpty == true ? null : result;
   }
 
   bool _isOverdue(TaskModel task) {

@@ -96,7 +96,14 @@ export default function StaffTasksPage() {
                     <div className={`w-1 rounded-l-xl shrink-0 ${PRIORITY_BAR[task.priority] ?? 'bg-slate-400'}`} />
                     <div className="flex-1 p-4 space-y-2">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="font-medium text-sm leading-snug">{task.title}</p>
+                        <div className="flex-1 min-w-0 flex items-start gap-1.5 flex-wrap">
+                          <p className="font-medium text-sm leading-snug">{task.title}</p>
+                          {task.self_reported && (
+                            <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium border border-amber-400 text-amber-600 bg-amber-50">
+                              Saya buat
+                            </span>
+                          )}
+                        </div>
                         <StatusBadge status={task.status} className="shrink-0" />
                       </div>
 

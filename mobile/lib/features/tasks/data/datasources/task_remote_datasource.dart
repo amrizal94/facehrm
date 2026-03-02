@@ -63,6 +63,59 @@ class TaskRemoteDataSource {
     }
   }
 
+  Future<List<ProjectModel>> getActiveProjectsForTask() async {
+    try {
+      final res = await _dio.get(
+        ApiConstants.projects,
+        queryParameters: {'for_task_creation': 1, 'status': 'active', 'per_page': 100},
+      );
+      return (res.data['data'] as List)
+          .map((e) => ProjectModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<TaskModel> createSelfTask({
+    required int projectId,
+    required String title,
+    String? description,
+    String? deadline,
+    String? notes,
+  }) async {
+    try {
+      final res = await _dio.post(ApiConstants.tasks, data: {
+        'project_id':  projectId,
+        'title':       title,
+        if (description != null && description.isNotEmpty) 'description': description,
+        if (deadline != null)   'deadline':    deadline,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      });
+      return TaskModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<TaskModel> completeTask({
+    required int taskId,
+    required List<int> photoBytes,
+    required String filename,
+    String? notes,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'photo': MultipartFile.fromBytes(photoBytes, filename: filename),
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      });
+      final res = await _dio.post(ApiConstants.completeTask(taskId), data: formData);
+      return TaskModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<ChecklistItemModel> toggleChecklistItem(int taskId, int itemId) async {
     try {
       final res = await _dio.patch(

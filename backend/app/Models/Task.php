@@ -22,6 +22,9 @@ class Task extends Model
         'assigned_to',
         'created_by',
         'sort_order',
+        'photo_path',
+        'self_reported',
+        'notes',
     ];
 
     protected function casts(): array

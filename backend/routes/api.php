@@ -84,13 +84,15 @@ Route::prefix('v1')->group(function () {
         Route::post('expenses', [ExpenseController::class, 'store']);
         Route::delete('expenses/{expense}', [ExpenseController::class, 'destroy']);
 
-        // Tasks & Projects — all authenticated (read + staff update)
+        // Tasks & Projects — all authenticated (read + staff create + complete)
         Route::get('labels',              [LabelController::class, 'index']);
         Route::get('projects',            [ProjectController::class, 'index']);
         Route::get('projects/{project}',  [ProjectController::class, 'show']);
         Route::get('tasks',               [TaskController::class, 'index']);
         Route::get('tasks/{task}',        [TaskController::class, 'show']);
+        Route::post('tasks',              [TaskController::class, 'store']);
         Route::put('tasks/{task}',        [TaskController::class, 'update']);
+        Route::post('tasks/{task}/complete', [TaskController::class, 'complete']);
         Route::patch('tasks/{task}/checklist/{item}/toggle', [TaskController::class, 'toggleChecklistItem']);
 
         // Face — all authenticated (check-in/out via face), rate-limited
@@ -130,7 +132,6 @@ Route::prefix('v1')->group(function () {
             Route::delete('projects/{project}', [ProjectController::class, 'destroy']);
 
             // Tasks
-            Route::post('tasks',                                        [TaskController::class, 'store']);
             Route::delete('tasks/{task}',                               [TaskController::class, 'destroy']);
             Route::post('tasks/{task}/checklist',                       [TaskController::class, 'addChecklistItem']);
             Route::delete('tasks/{task}/checklist/{item}',              [TaskController::class, 'deleteChecklistItem']);

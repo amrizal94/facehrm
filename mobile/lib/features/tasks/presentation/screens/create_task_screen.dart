@@ -1,0 +1,305 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../data/models/project_model.dart';
+import '../providers/task_provider.dart';
+
+class CreateTaskScreen extends ConsumerStatefulWidget {
+  const CreateTaskScreen({super.key});
+
+  @override
+  ConsumerState<CreateTaskScreen> createState() => _CreateTaskScreenState();
+}
+
+class _CreateTaskScreenState extends ConsumerState<CreateTaskScreen> {
+  final _titleCtrl       = TextEditingController();
+  final _descCtrl        = TextEditingController();
+  final _notesCtrl       = TextEditingController();
+  ProjectModel? _selectedProject;
+  bool _isSubmitting = false;
+  bool _success      = false;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_isSubmitting && _selectedProject != null && _titleCtrl.text.trim().isNotEmpty;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isSubmitting = true);
+
+    final err = await ref.read(myTasksProvider.notifier).createTask(
+      projectId:   _selectedProject!.id,
+      title:       _titleCtrl.text.trim(),
+      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+      notes:       _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (err != null) {
+      messenger.showSnackBar(SnackBar(content: Text(err), backgroundColor: Colors.red));
+    } else {
+      setState(() => _success = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: const Text('Laporkan Tugas'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+      ),
+      body: _success ? _buildSuccess(context) : _buildForm(context),
+    );
+  }
+
+  Widget _buildSuccess(BuildContext context) {
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.check_circle_rounded,
+                    size: 48, color: Colors.green.shade600),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Tugas Berhasil Dilaporkan!',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Terima kasih telah melaporkan progres pekerjaanmu.',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => context.pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Lihat Semua Tugas'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => setState(() {
+                    _success = false;
+                    _titleCtrl.clear();
+                    _descCtrl.clear();
+                    _notesCtrl.clear();
+                    _selectedProject = null;
+                  }),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Tambah Tugas Lain'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    final projectsAsync = ref.watch(activeProjectsProvider);
+
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Project dropdown
+                  _SectionLabel(text: 'Project *'),
+                  const SizedBox(height: 8),
+                  projectsAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (e, _) => Text('Gagal memuat project: $e',
+                        style: const TextStyle(color: Colors.red)),
+                    data: (projects) => projects.isEmpty
+                        ? Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey.shade100,
+                            ),
+                            child: Text(
+                              'Tidak ada project aktif.',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          )
+                        : DropdownButtonFormField<ProjectModel>(
+                            value: _selectedProject,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                              hintText: 'Pilih project',
+                            ),
+                            items: projects
+                                .map((p) => DropdownMenuItem(
+                                      value: p,
+                                      child: Text(p.name,
+                                          overflow: TextOverflow.ellipsis),
+                                    ))
+                                .toList(),
+                            onChanged: (p) =>
+                                setState(() => _selectedProject = p),
+                          ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Title
+                  _SectionLabel(text: 'Judul Tugas *'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _titleCtrl,
+                    maxLength: 200,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      hintText: 'Contoh: Review dokumentasi API',
+                      counterText: '',
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Description
+                  _SectionLabel(text: 'Deskripsi (opsional)'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _descCtrl,
+                    maxLines: 3,
+                    maxLength: 2000,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      hintText: 'Jelaskan apa yang kamu kerjakan...',
+                      counterText: '',
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Notes
+                  _SectionLabel(text: 'Catatan (opsional)'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _notesCtrl,
+                    maxLines: 2,
+                    maxLength: 500,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      hintText: 'Catatan tambahan...',
+                      counterText: '',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Submit button (pinned)
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              16, 8, 16, 16 + MediaQuery.of(context).padding.bottom,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _canSubmit ? _submit : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  disabledBackgroundColor: Colors.grey.shade300,
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Laporkan Tugas',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+    );
+  }
+}

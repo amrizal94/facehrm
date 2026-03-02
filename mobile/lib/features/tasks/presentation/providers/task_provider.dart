@@ -10,6 +10,10 @@ final myProjectsProvider = FutureProvider<List<ProjectModel>>(
   (ref) => ref.watch(taskRepositoryProvider).getMyProjects(),
 );
 
+final activeProjectsProvider = FutureProvider<List<ProjectModel>>(
+  (ref) => ref.watch(taskRepositoryProvider).getActiveProjectsForTask(),
+);
+
 // ── Tasks (filterable + mutable) ─────────────────────────────────────────────
 
 class MyTasksNotifier extends AsyncNotifier<List<TaskModel>> {
@@ -32,6 +36,51 @@ class MyTasksNotifier extends AsyncNotifier<List<TaskModel>> {
       await ref.read(taskRepositoryProvider).updateTaskStatus(taskId, status);
       ref.invalidateSelf();
       ref.invalidate(myProjectsProvider);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+
+  Future<String?> createTask({
+    required int projectId,
+    required String title,
+    String? description,
+    String? deadline,
+    String? notes,
+  }) async {
+    try {
+      await ref.read(taskRepositoryProvider).createSelfTask(
+        projectId: projectId,
+        title: title,
+        description: description,
+        deadline: deadline,
+        notes: notes,
+      );
+      ref.invalidateSelf();
+      ref.invalidate(myProjectsProvider);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('ApiException: ', '');
+    }
+  }
+
+  Future<String?> completeWithPhoto({
+    required int taskId,
+    required List<int> photoBytes,
+    required String filename,
+    String? notes,
+  }) async {
+    try {
+      await ref.read(taskRepositoryProvider).completeTask(
+        taskId: taskId,
+        photoBytes: photoBytes,
+        filename: filename,
+        notes: notes,
+      );
+      ref.invalidateSelf();
+      ref.invalidate(myProjectsProvider);
+      ref.invalidate(taskDetailProvider(taskId));
       return null;
     } catch (e) {
       return e.toString().replaceFirst('ApiException: ', '');

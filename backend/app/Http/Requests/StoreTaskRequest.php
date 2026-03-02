@@ -25,6 +25,7 @@ class StoreTaskRequest extends FormRequest
             'label_ids.*'                 => ['exists:labels,id'],
             'checklist_items'             => ['nullable', 'array'],
             'checklist_items.*.title'     => ['required', 'string', 'max:500'],
+            'notes'                       => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

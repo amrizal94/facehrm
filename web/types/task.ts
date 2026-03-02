@@ -49,6 +49,9 @@ export interface Task {
   checklist_items?: ChecklistItem[]
   checklist_total?: number
   checklist_done?: number
+  photo_url?: string | null
+  self_reported?: boolean
+  notes?: string | null
   created_at?: string
 }
 

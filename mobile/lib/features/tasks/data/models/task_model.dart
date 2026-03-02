@@ -15,6 +15,9 @@ class TaskModel {
   final List<ChecklistItemModel> checklistItems;
   final int checklistTotal;
   final int checklistDone;
+  final bool selfReported;
+  final String? photoUrl;
+  final String? notes;
 
   const TaskModel({
     required this.id,
@@ -30,6 +33,9 @@ class TaskModel {
     required this.checklistItems,
     required this.checklistTotal,
     required this.checklistDone,
+    this.selfReported = false,
+    this.photoUrl,
+    this.notes,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
@@ -65,6 +71,9 @@ class TaskModel {
       checklistTotal: json['checklist_total'] as int? ?? checklistItems.length,
       checklistDone: json['checklist_done'] as int? ??
           checklistItems.where((i) => i.isDone).length,
+      selfReported: json['self_reported'] as bool? ?? false,
+      photoUrl: json['photo_url'] as String?,
+      notes: json['notes'] as String?,
     );
   }
 
@@ -86,5 +95,8 @@ class TaskModel {
         checklistItems: checklistItems ?? this.checklistItems,
         checklistTotal: checklistTotal,
         checklistDone: checklistDone,
+        selfReported: selfReported,
+        photoUrl: photoUrl,
+        notes: notes,
       );
 }

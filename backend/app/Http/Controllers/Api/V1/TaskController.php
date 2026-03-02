@@ -9,10 +9,13 @@ use App\Http\Resources\TaskResource;
 use App\Models\Employee;
 use App\Models\Task;
 use App\Models\TaskChecklistItem;
+use App\Models\User;
 use App\Notifications\TaskAssigned;
+use App\Notifications\TaskSelfReported;
 use App\Notifications\TaskStatusChanged;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 
 class TaskController extends Controller
 {
@@ -27,9 +30,14 @@ class TaskController extends Controller
                 $query->where('assigned_to', $request->integer('assigned_to'));
             }
         } else {
-            // Staff: only own assigned tasks
+            // Staff: own assigned tasks + self-reported tasks created by them
             $employee = Employee::where('user_id', $user->id)->first();
-            $query->where('assigned_to', $employee?->id);
+            $query->where(function ($q) use ($employee, $user) {
+                $q->where('assigned_to', $employee?->id)
+                  ->orWhere(function ($q2) use ($user) {
+                      $q2->where('self_reported', true)->where('created_by', $user->id);
+                  });
+            });
         }
 
         if ($request->filled('project_id')) {
@@ -68,18 +76,43 @@ class TaskController extends Controller
 
     public function store(StoreTaskRequest $request): JsonResponse
     {
+        $user      = $request->user();
         $validated = $request->validated();
+
+        if ($user->hasRole('staff')) {
+            // Max 10 self-reported tasks per day
+            $todayCount = Task::where('created_by', $user->id)
+                ->where('self_reported', true)
+                ->whereDate('created_at', today())
+                ->count();
+
+            if ($todayCount >= 10) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Batas maksimal 10 laporan tugas per hari.',
+                ], 422);
+            }
+
+            $employee = Employee::where('user_id', $user->id)->first();
+
+            // Force self-reported fields, ignore admin-only fields
+            $validated = collect($validated)
+                ->only(['project_id', 'title', 'description', 'deadline', 'notes'])
+                ->toArray();
+            $validated['self_reported'] = true;
+            $validated['assigned_to']   = $employee?->id;
+        }
 
         $task = Task::create(array_merge(
             collect($validated)->except(['label_ids', 'checklist_items'])->toArray(),
-            ['created_by' => $request->user()->id]
+            ['created_by' => $user->id]
         ));
 
-        if (!empty($validated['label_ids'])) {
+        if (!$user->hasRole('staff') && !empty($validated['label_ids'])) {
             $task->labels()->sync($validated['label_ids']);
         }
 
-        if (!empty($validated['checklist_items'])) {
+        if (!$user->hasRole('staff') && !empty($validated['checklist_items'])) {
             $items = array_map(fn($item, $i) => [
                 'task_id'    => $task->id,
                 'title'      => $item['title'],
@@ -94,9 +127,15 @@ class TaskController extends Controller
 
         $task->load(['project', 'assignee.user', 'creator', 'labels', 'checklistItems']);
 
-        // Notify assignee about new task
-        if ($task->assigned_to) {
+        // Notify assignee about new task (only for admin-assigned tasks)
+        if ($task->assigned_to && !$task->self_reported) {
             optional($task->assignee?->user)->notify(new TaskAssigned($task));
+        }
+
+        // Notify HR/Manager when staff self-reports a task
+        if ($task->self_reported) {
+            $recipients = User::role(['hr', 'manager', 'director', 'admin'])->get();
+            Notification::send($recipients, new TaskSelfReported($task));
         }
 
         return response()->json([
@@ -112,7 +151,9 @@ class TaskController extends Controller
 
         if (!$user->hasRole(['admin', 'hr', 'manager', 'director'])) {
             $employee = Employee::where('user_id', $user->id)->first();
-            if ($task->assigned_to !== $employee?->id) {
+            $ownTask  = $task->assigned_to === $employee?->id
+                || ($task->self_reported && $task->created_by === $user->id);
+            if (!$ownTask) {
                 return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);
             }
         }
@@ -133,7 +174,9 @@ class TaskController extends Controller
         if (!$user->hasRole(['admin', 'hr', 'manager', 'director'])) {
             // Staff: only allowed to update status on own task
             $employee = Employee::where('user_id', $user->id)->first();
-            if ($task->assigned_to !== $employee?->id) {
+            $ownTask  = $task->assigned_to === $employee?->id
+                || ($task->self_reported && $task->created_by === $user->id);
+            if (!$ownTask) {
                 return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);
             }
             $validated = collect($validated)->only(['status'])->toArray();
@@ -173,6 +216,45 @@ class TaskController extends Controller
             'success' => true,
             'message' => 'Task updated.',
             'data'    => new TaskResource($task),
+        ]);
+    }
+
+    public function complete(Request $request, Task $task): JsonResponse
+    {
+        $user = $request->user();
+
+        // Staff can only complete their own tasks
+        if (!$user->hasRole(['admin', 'hr', 'manager', 'director'])) {
+            $employee = Employee::where('user_id', $user->id)->first();
+            $ownTask  = $task->assigned_to === $employee?->id
+                || ($task->self_reported && $task->created_by === $user->id);
+            if (!$ownTask) {
+                return response()->json(['success' => false, 'message' => 'Forbidden.'], 403);
+            }
+        }
+
+        $request->validate([
+            'photo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $path = $request->file('photo')->store(
+            'task-photos/' . now()->format('Y/m'),
+            'public'
+        );
+
+        $task->update([
+            'status'     => 'done',
+            'photo_path' => $path,
+            'notes'      => $request->input('notes'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tugas selesai.',
+            'data'    => new TaskResource(
+                $task->load(['project', 'assignee.user', 'creator', 'labels', 'checklistItems'])
+            ),
         ]);
     }
 

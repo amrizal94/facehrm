@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, Calendar, User, FolderKanban } from 'lucide-react'
+import { Pencil, Trash2, Calendar, User, FolderKanban, Camera, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -65,9 +65,17 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isAdmin = false }:
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-start justify-between gap-2 pr-6">
-              <DialogTitle className="text-base leading-snug">
-                {isLoading ? 'Loading…' : task?.title}
-              </DialogTitle>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-base leading-snug">
+                  {isLoading ? 'Loading…' : task?.title}
+                </DialogTitle>
+                {task?.self_reported && (
+                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-xs font-medium border border-amber-400 text-amber-600 bg-amber-50">
+                    <Camera className="h-3 w-3" />
+                    Self-reported
+                  </span>
+                )}
+              </div>
               {isAdmin && task && (
                 <div className="flex gap-1 shrink-0">
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditOpen(true)}>
@@ -147,6 +155,33 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isAdmin = false }:
                       <LabelBadge key={label.id} label={label} />
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {task.notes && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <FileText className="h-3 w-3" /> Catatan
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">{task.notes}</p>
+                </div>
+              )}
+
+              {/* Photo proof */}
+              {task.photo_url && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <Camera className="h-3 w-3" /> Foto Bukti
+                  </p>
+                  <a href={task.photo_url} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={task.photo_url}
+                      alt="Foto bukti"
+                      className="rounded-md max-h-48 object-cover border hover:opacity-90 transition-opacity cursor-pointer"
+                    />
+                  </a>
                 </div>
               )}
 

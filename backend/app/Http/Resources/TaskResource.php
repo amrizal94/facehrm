@@ -45,6 +45,9 @@ class TaskResource extends JsonResource
             // List-view only counters — omitted when checklist relation is already loaded
             'checklist_total' => $this->when(!$checklistLoaded, fn() => $this->checklistItems()->count()),
             'checklist_done'  => $this->when(!$checklistLoaded, fn() => $this->checklistItems()->where('is_done', true)->count()),
+            'photo_url'       => $this->photo_path ? asset('storage/' . $this->photo_path) : null,
+            'self_reported'   => (bool) $this->self_reported,
+            'notes'           => $this->notes,
             'created_at'      => $this->created_at?->toISOString(),
         ];
     }

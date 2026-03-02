@@ -28,7 +28,14 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
       onClick={onClick}
       className="bg-white border rounded-lg p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow space-y-2"
     >
-      <p className="text-sm font-medium leading-snug line-clamp-2">{task.title}</p>
+      <div className="flex items-start gap-1.5 flex-wrap">
+        <p className="text-sm font-medium leading-snug line-clamp-2 flex-1">{task.title}</p>
+        {task.self_reported && (
+          <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium border border-amber-400 text-amber-600 bg-amber-50">
+            Self-reported
+          </span>
+        )}
+      </div>
 
       {task.labels && task.labels.length > 0 && (
         <div className="flex flex-wrap gap-1">

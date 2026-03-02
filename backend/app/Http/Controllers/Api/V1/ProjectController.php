@@ -20,6 +20,9 @@ class ProjectController extends Controller
 
         if ($user->hasRole(['admin', 'hr', 'manager', 'director'])) {
             // Admin/HR see all
+        } elseif ($request->boolean('for_task_creation')) {
+            // Staff requesting projects for self-task creation: all active projects
+            $query->where('status', 'active');
         } else {
             // Staff: only projects where at least one task is assigned to them
             $employee = Employee::where('user_id', $user->id)->first();

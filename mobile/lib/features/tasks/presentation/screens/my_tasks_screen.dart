@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../data/models/label_model.dart';
 import '../../data/models/project_model.dart';
 import '../../data/models/task_model.dart';
@@ -25,6 +26,8 @@ class MyTasksScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(myProjectsProvider);
     final tasksAsync    = ref.watch(myTasksProvider);
+    final authState     = ref.watch(authNotifierProvider);
+    final isStaff       = authState is AuthAuthenticated && authState.user.isStaff;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -39,6 +42,15 @@ class MyTasksScreen extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButton: isStaff
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push(AppRoutes.createTask),
+              icon: const Icon(Icons.add_task),
+              label: const Text('Laporkan Tugas'),
+              backgroundColor: Colors.blue.shade700,
+              foregroundColor: Colors.white,
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myTasksProvider);
@@ -247,12 +259,40 @@ class _TaskCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        task.title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 14),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (task.selfReported) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                    color: const Color(0xFFFBBF24)),
+                              ),
+                              child: const Text(
+                                'Saya buat',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFD97706),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       if (task.projectName != null) ...[
                         const SizedBox(height: 2),

@@ -30,6 +30,8 @@ class AppRoutes {
   // Task management (staff)
   static const String myTasks    = '/staff/tasks';
   static const String taskDetail = '/staff/tasks/:id';
+  static const String createTask = '/staff/tasks/create';
+  static const String capturePhoto = '/staff/tasks/capture-photo';
 
   // Profile (all roles)
   static const String profile = '/profile';
