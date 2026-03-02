@@ -70,7 +70,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: task.self_reported
+          bottomNavigationBar: task.selfReported
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   color: const Color(0xFFFEF3C7),
