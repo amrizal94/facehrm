@@ -225,6 +225,15 @@ class TaskController extends Controller
         $oldAssignee   = $task->assigned_to;
         $oldStatus     = $task->status;
 
+        // Auto-set completed_at when status transitions to/from 'done'
+        if (array_key_exists('status', $data)) {
+            if ($data['status'] === 'done' && $oldStatus !== 'done') {
+                $data['completed_at'] = now();
+            } elseif ($data['status'] !== 'done' && $oldStatus === 'done') {
+                $data['completed_at'] = null;
+            }
+        }
+
         $task->update($data);
 
         if ($user->hasRole(['admin', 'hr', 'manager', 'director']) && $labelIds !== null) {
@@ -312,6 +321,7 @@ class TaskController extends Controller
             'completed_location_accuracy'  => $request->input('location_accuracy'),
             'completed_is_mock'            => $request->boolean('is_mock_location'),
             'completed_face_confidence'    => $faceConfidence,
+            'completed_at'                 => now(),
         ]);
 
         return response()->json([

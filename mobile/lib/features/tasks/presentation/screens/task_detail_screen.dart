@@ -143,6 +143,19 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                               label: 'Assignee',
                               value: task.assigneeName!,
                             ),
+                          if (task.createdAt != null)
+                            _MetaRow(
+                              icon: Icons.schedule_outlined,
+                              label: 'Dilaporkan',
+                              value: _formatDateTime(task.createdAt!),
+                            ),
+                          if (task.completedAt != null)
+                            _MetaRow(
+                              icon: Icons.check_circle_outline,
+                              label: 'Diselesaikan',
+                              value: _formatDateTime(task.completedAt!),
+                              valueColor: Colors.green.shade700,
+                            ),
                         ],
                       ),
                     ),
@@ -438,6 +451,15 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     } catch (_) {
       return date;
     }
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final local = dt.toLocal();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '${local.day} ${months[local.month - 1]} ${local.year}, $hh:$mm';
   }
 }
 

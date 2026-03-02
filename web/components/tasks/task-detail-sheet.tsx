@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, Calendar, User, FolderKanban, Camera, FileText, MapPin } from 'lucide-react'
+import { Pencil, Trash2, Calendar, User, FolderKanban, Camera, FileText, MapPin, Clock, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -134,6 +134,30 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isAdmin = false }:
                     <User className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">Assignee</span>
                     <span className="ml-auto">{task.assignee.user.name}</span>
+                  </div>
+                )}
+                {task.created_at && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground">Dilaporkan</span>
+                    <span className="ml-auto">
+                      {new Date(task.created_at).toLocaleString('id-ID', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                )}
+                {task.completed_at && (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                    <span className="text-muted-foreground">Diselesaikan</span>
+                    <span className="ml-auto text-green-700 font-medium">
+                      {new Date(task.completed_at).toLocaleString('id-ID', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </span>
                   </div>
                 )}
               </div>

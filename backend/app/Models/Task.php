@@ -33,6 +33,7 @@ class Task extends Model
         'completed_location_accuracy',
         'completed_is_mock',
         'completed_face_confidence',
+        'completed_at',
     ];
 
     protected function casts(): array
@@ -51,6 +52,7 @@ class Task extends Model
             'completed_location_accuracy' => 'float',
             'completed_is_mock'           => 'boolean',
             'completed_face_confidence'   => 'float',
+            'completed_at'                => 'datetime',
         ];
     }
 

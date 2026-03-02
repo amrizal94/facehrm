@@ -61,6 +61,7 @@ class TaskResource extends JsonResource
                 'face_confidence' => $this->completed_face_confidence,
             ] : null,
             'created_at'      => $this->created_at?->toISOString(),
+            'completed_at'    => $this->completed_at?->toISOString(),
         ];
     }
 }

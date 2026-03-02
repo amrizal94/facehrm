@@ -20,6 +20,8 @@ class TaskModel {
   final String? notes;
   final Map<String, dynamic>? createdGps;    // {lat, lng, face_confidence}
   final Map<String, dynamic>? completedGps;  // {lat, lng, accuracy, is_mock, face_confidence}
+  final DateTime? createdAt;
+  final DateTime? completedAt;
 
   const TaskModel({
     required this.id,
@@ -40,6 +42,8 @@ class TaskModel {
     this.notes,
     this.createdGps,
     this.completedGps,
+    this.createdAt,
+    this.completedAt,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
@@ -80,6 +84,12 @@ class TaskModel {
       notes:         json['notes'] as String?,
       createdGps:    json['created_gps'] as Map<String, dynamic>?,
       completedGps:  json['completed_gps'] as Map<String, dynamic>?,
+      createdAt:     json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+      completedAt:   json['completed_at'] != null
+          ? DateTime.tryParse(json['completed_at'] as String)
+          : null,
     );
   }
 
@@ -106,5 +116,7 @@ class TaskModel {
         notes:         notes,
         createdGps:    createdGps,
         completedGps:  completedGps,
+        createdAt:     createdAt,
+        completedAt:   completedAt,
       );
 }

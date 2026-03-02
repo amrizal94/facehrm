@@ -52,7 +52,8 @@ export interface Task {
   photo_url?: string | null
   self_reported?: boolean
   notes?: string | null
-  created_at?: string
+  created_at?: string | null
+  completed_at?: string | null
   created_gps?: { lat: number; lng: number; face_confidence: number | null } | null
   completed_gps?: {
     lat: number
