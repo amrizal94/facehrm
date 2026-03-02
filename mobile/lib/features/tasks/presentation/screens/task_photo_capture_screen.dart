@@ -43,6 +43,9 @@ class _TaskPhotoCaptureScreenState extends State<TaskPhotoCaptureScreen>
   }
 
   Future<void> _initCamera() async {
+    // Brief delay so any preceding camera (e.g. face verify) fully releases
+    // its hardware resource before we open the back camera.
+    await Future.delayed(const Duration(milliseconds: 400));
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {

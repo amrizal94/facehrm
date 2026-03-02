@@ -211,6 +211,12 @@ class _TaskFaceVerifyScreenState extends State<TaskFaceVerifyScreen>
       await File(xFile.path).writeAsBytes(compressed);
 
       HapticFeedback.mediumImpact();
+
+      // Explicitly dispose camera BEFORE popping so the next camera screen
+      // doesn't race for the hardware resource (black screen bug).
+      await _controller!.dispose();
+      _controller = null;
+
       if (!mounted) return;
       context.pop<XFile?>(XFile(xFile.path));
     } catch (e) {
