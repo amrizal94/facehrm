@@ -38,13 +38,19 @@ class Task extends Model
     protected function casts(): array
     {
         return [
-            'deadline'                  => 'date',
-            'created_latitude'          => 'float',
-            'created_longitude'         => 'float',
-            'completed_latitude'        => 'float',
-            'completed_longitude'       => 'float',
+            'deadline'                    => 'date',
+            'project_id'                  => 'integer',
+            'assigned_to'                 => 'integer',
+            'created_by'                  => 'integer',
+            'sort_order'                  => 'integer',
+            'created_latitude'            => 'float',
+            'created_longitude'           => 'float',
+            'created_face_confidence'     => 'float',
+            'completed_latitude'          => 'float',
+            'completed_longitude'         => 'float',
             'completed_location_accuracy' => 'float',
-            'completed_is_mock'         => 'boolean',
+            'completed_is_mock'           => 'boolean',
+            'completed_face_confidence'   => 'float',
         ];
     }
 
