@@ -45,10 +45,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (\Illuminate\Validation\ValidationException $e, Request $request) {
             if ($request->is('api/*')) {
+                $firstError = collect($e->errors())->flatten()->first() ?? 'Validation failed.';
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $e->errors(),
+                    'message' => $firstError,
+                    'errors'  => $e->errors(),
                 ], 422);
             }
         });
