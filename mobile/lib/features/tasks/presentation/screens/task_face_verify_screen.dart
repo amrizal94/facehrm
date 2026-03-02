@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as img;
 
 /// Liveness blink-detection state machine — waiting → eyesOpen → blinking → passed
 enum _LivenessState { waiting, eyesOpen, blinking, passed }
@@ -194,10 +196,23 @@ class _TaskFaceVerifyScreenState extends State<TaskFaceVerifyScreen>
     try {
       await _controller!.stopImageStream();
       await Future.delayed(const Duration(milliseconds: 200));
-      final xFile = await _controller!.takePicture();
+      final xFile   = await _controller!.takePicture();
+      final rawBytes = await xFile.readAsBytes();
+
+      // Decode with EXIF orientation correction (same as FaceCameraScreen)
+      final original = img.decodeImage(rawBytes);
+      if (original == null) throw Exception('Gagal memproses gambar.');
+      final toEncode = original.width > 800
+          ? img.copyResize(original, width: 800)
+          : original;
+      final compressed = img.encodeJpg(toEncode, quality: 85);
+
+      // Write corrected bytes back so the XFile reflects the processed image
+      await File(xFile.path).writeAsBytes(compressed);
+
       HapticFeedback.mediumImpact();
       if (!mounted) return;
-      context.pop<XFile?>(xFile);
+      context.pop<XFile?>(XFile(xFile.path));
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCapturing = false);
