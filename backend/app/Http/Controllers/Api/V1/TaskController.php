@@ -131,7 +131,11 @@ class TaskController extends Controller
 
         $task = Task::create(array_merge(
             collect($validated)->except(['label_ids', 'checklist_items'])->toArray(),
-            ['created_by' => $user->id]
+            [
+                'created_by' => $user->id,
+                'status'     => $validated['status']   ?? 'todo',
+                'priority'   => $validated['priority'] ?? 'medium',
+            ]
         ));
 
         if (!$user->hasRole('staff') && !empty($validated['label_ids'])) {
