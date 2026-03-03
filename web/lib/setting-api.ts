@@ -13,11 +13,17 @@ export async function updateSettings(data: Record<string, Record<string, string 
 
 export async function updateProfile(data: {
   name?: string
+  email?: string
   phone?: string
   current_password?: string
   password?: string
   password_confirmation?: string
 }): Promise<{ success: boolean; message: string; data?: { user: { id: number; name: string; email: string; role: string } } }> {
   const res = await api.put('/auth/profile', data)
+  return res.data
+}
+
+export async function deleteAccount(): Promise<{ success: boolean; message: string }> {
+  const res = await api.delete('/auth/profile')
   return res.data
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchSettings, updateProfile, updateSettings } from '@/lib/setting-api'
+import { fetchSettings, updateProfile, updateSettings, deleteAccount } from '@/lib/setting-api'
 import { useAuthStore } from '@/store/auth-store'
 import type { User } from '@/types/auth'
 
@@ -29,6 +29,20 @@ export function useUpdateProfile() {
       qc.invalidateQueries({ queryKey: ['me'] })
       if (res.data?.user && currentUser) {
         setUser({ ...currentUser, ...(res.data.user as Partial<User>) })
+      }
+    },
+  })
+}
+
+export function useDeleteAccount() {
+  const setUser = useAuthStore((s) => s.setUser)
+  return useMutation({
+    mutationFn: deleteAccount,
+    onSuccess: () => {
+      setUser(null)
+      // Clear all stored tokens
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token')
       }
     },
   })

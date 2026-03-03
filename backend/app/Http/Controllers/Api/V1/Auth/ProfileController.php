@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
@@ -16,14 +18,15 @@ class ProfileController extends Controller
      */
     public function update(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'current_password' => ['required_with:password', 'string'],
-            'password' => ['sometimes', 'confirmed', Password::min(8)],
-        ]);
-
         $user = $request->user();
+
+        $validated = $request->validate([
+            'name'             => ['sometimes', 'string', 'max:255'],
+            'email'            => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)->whereNull('deleted_at')],
+            'phone'            => ['sometimes', 'nullable', 'string', 'max:20'],
+            'current_password' => ['required_with:password', 'string'],
+            'password'         => ['sometimes', 'confirmed', Password::min(8)],
+        ]);
 
         // Verify current password if changing password
         if (isset($validated['current_password'])) {
@@ -31,18 +34,17 @@ class ProfileController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Current password is incorrect.',
-                    'errors' => [
-                        'current_password' => ['The current password is incorrect.'],
-                    ],
+                    'errors'  => ['current_password' => ['The current password is incorrect.']],
                 ], 422);
             }
         }
 
         // Update user data
         $updateData = array_filter([
-            'name' => $validated['name'] ?? null,
+            'name'  => $validated['name']  ?? null,
+            'email' => $validated['email'] ?? null,
             'phone' => $validated['phone'] ?? null,
-        ]);
+        ], fn($v) => $v !== null);
 
         if (isset($validated['password'])) {
             $updateData['password'] = $validated['password'];
@@ -81,6 +83,42 @@ class ProfileController extends Controller
             'message' => 'Password changed successfully.',
             'data'    => ['user' => new UserResource($user->fresh())],
         ]);
+    }
+
+    /**
+     * Delete (soft) the authenticated user's own account.
+     * Safeguard: cannot delete if sole active admin or director.
+     */
+    public function destroy(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Safeguard — prevent deleting the last active admin or director
+        foreach ($user->getRoleNames() as $role) {
+            if (in_array($role, ['admin', 'director'])) {
+                $remaining = User::whereHas('roles', fn($q) => $q->where('name', $role))
+                    ->where('id', '!=', $user->id)
+                    ->whereNull('deleted_at')
+                    ->count();
+                if ($remaining === 0) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Cannot delete — you are the only active {$role} account.",
+                    ], 422);
+                }
+            }
+        }
+
+        // Revoke all tokens
+        $user->tokens()->delete();
+
+        // Soft-delete linked employee record if exists
+        $user->employee?->delete();
+
+        // Soft-delete user
+        $user->delete();
+
+        return response()->json(['success' => true, 'message' => 'Account deleted successfully.']);
     }
 
     public function updateFcmToken(Request $request): JsonResponse

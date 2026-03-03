@@ -38,6 +38,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout',          [AuthController::class, 'logout']);
             Route::get('/me',               [AuthController::class, 'me']);
             Route::put('/profile',          [ProfileController::class, 'update']);
+            Route::delete('/profile',       [ProfileController::class, 'destroy']);
             Route::post('/change-password', [ProfileController::class, 'changePassword']);
             Route::put('/fcm-token',        [ProfileController::class, 'updateFcmToken']);
         });
