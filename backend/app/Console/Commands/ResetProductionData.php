@@ -112,13 +112,8 @@ class ResetProductionData extends Command
         $this->line('  Resetting data...');
         $this->line('');
 
-        DB::statement('SET session_replication_role = replica;'); // Disable FK checks (PostgreSQL)
-
-        try {
-            $this->deleteTransactionalData($keepUserIds, $keepEmployeeIds, $keepMeetingIds);
-        } finally {
-            DB::statement('SET session_replication_role = DEFAULT;');
-        }
+        // Deletion order respects FK constraints (children before parents)
+        $this->deleteTransactionalData($keepUserIds, $keepEmployeeIds, $keepMeetingIds);
 
         $this->line('');
         $this->info('  ✅ Reset complete!');
