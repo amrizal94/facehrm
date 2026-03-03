@@ -78,7 +78,9 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
             child: TextField(
               controller: _searchCtrl,
               decoration: InputDecoration(
-                hintText: 'Cari nama, email, atau nomor karyawan...',
+                hintText: canWrite
+                  ? 'Cari nama, email, atau nomor karyawan...'
+                  : 'Cari nama atau nomor karyawan...',
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(

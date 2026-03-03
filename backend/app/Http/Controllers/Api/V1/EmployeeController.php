@@ -20,12 +20,17 @@ class EmployeeController extends Controller
         $query = Employee::query()->with(['user', 'department', 'shift']);
 
         if ($request->filled('search')) {
-            $search = $request->string('search');
-            $query->where(function ($q) use ($search) {
+            $search      = $request->string('search');
+            $canSeeEmail = $request->user()?->hasRole(['admin', 'hr', 'director']) ?? false;
+            $query->where(function ($q) use ($search, $canSeeEmail) {
                 $q->where('employee_number', 'ilike', "%{$search}%")
                   ->orWhere('position', 'ilike', "%{$search}%")
-                  ->orWhereHas('user', fn($u) => $u->where('name', 'ilike', "%{$search}%")
-                      ->orWhere('email', 'ilike', "%{$search}%"));
+                  ->orWhereHas('user', function ($u) use ($search, $canSeeEmail) {
+                      $u->where('name', 'ilike', "%{$search}%");
+                      if ($canSeeEmail) {
+                          $u->orWhere('email', 'ilike', "%{$search}%");
+                      }
+                  });
             });
         }
 
