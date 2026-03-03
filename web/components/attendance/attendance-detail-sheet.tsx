@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Clock, Calendar, User, Building2, Briefcase, AlertTriangle } from 'lucide-react'
 import type { AttendanceRecord } from '@/types/attendance'
@@ -45,14 +45,14 @@ export function AttendanceDetailSheet({ record, open, onOpenChange }: Attendance
   const status = STATUS_STYLES[record.status]
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader className="mb-4">
-          <SheetTitle className="flex items-center gap-2">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             Detail Absensi
-          </SheetTitle>
-        </SheetHeader>
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="space-y-5">
           {/* Employee Info */}
@@ -173,7 +173,7 @@ export function AttendanceDetailSheet({ record, open, onOpenChange }: Attendance
             </p>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }
