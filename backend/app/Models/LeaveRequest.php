@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LeaveRequest extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'employee_id',
         'leave_type_id',
@@ -31,7 +33,7 @@ class LeaveRequest extends Model
 
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Employee::class)->withTrashed();
     }
 
     public function leaveType(): BelongsTo
@@ -41,7 +43,7 @@ class LeaveRequest extends Model
 
     public function approvedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(User::class, 'approved_by')->withTrashed();
     }
 
     /**

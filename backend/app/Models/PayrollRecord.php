@@ -7,9 +7,11 @@ use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PayrollRecord extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'employee_id',
         'period_year',
@@ -42,7 +44,7 @@ class PayrollRecord extends Model
 
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Employee::class)->withTrashed();
     }
 
     // -----------------------------------------------------------

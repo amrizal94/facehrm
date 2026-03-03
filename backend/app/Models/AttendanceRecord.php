@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Models\Setting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AttendanceRecord extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'employee_id',
         'date',
@@ -42,7 +44,7 @@ class AttendanceRecord extends Model
 
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Employee::class)->withTrashed();
     }
 
     /**

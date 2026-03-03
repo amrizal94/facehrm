@@ -228,7 +228,8 @@ class EmployeeController extends Controller
             'target_label' => "{$employee->user->name} ({$employee->employee_number})",
         ], 'employee', $employee->id);
 
-        $employee->delete(); // soft delete
+        $employee->user?->delete(); // soft-delete linked user (prevents login)
+        $employee->delete();        // soft-delete employee
 
         return response()->json([
             'success' => true,
