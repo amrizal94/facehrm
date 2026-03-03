@@ -21,12 +21,32 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'name'             => ['sometimes', 'string', 'max:255'],
-            'email'            => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)->whereNull('deleted_at')],
-            'phone'            => ['sometimes', 'nullable', 'string', 'max:20'],
-            'current_password' => ['required_with:password', 'string'],
-            'password'         => ['sometimes', 'confirmed', Password::min(8)],
+            'name'                      => ['sometimes', 'string', 'max:255'],
+            'email'                     => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)->whereNull('deleted_at')],
+            'phone'                     => ['sometimes', 'nullable', 'string', 'max:20'],
+            'current_password_for_email'=> ['sometimes', 'nullable', 'string'],
+            'current_password'          => ['required_with:password', 'string'],
+            'password'                  => ['sometimes', 'confirmed', Password::min(8)],
         ]);
+
+        // Require password verification when email is being changed
+        if (isset($validated['email']) && $validated['email'] !== $user->email) {
+            $pw = $request->input('current_password_for_email');
+            if (!$pw) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password required to change email address.',
+                    'errors'  => ['current_password_for_email' => ['Your current password is required to change email.']],
+                ], 422);
+            }
+            if (!Hash::check($pw, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Incorrect password.',
+                    'errors'  => ['current_password_for_email' => ['The password you entered is incorrect.']],
+                ], 422);
+            }
+        }
 
         // Verify current password if changing password
         if (isset($validated['current_password'])) {

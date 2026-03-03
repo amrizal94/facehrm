@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Trash2, AlertTriangle } from 'lucide-react'
+import { Loader2, Trash2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,9 +18,10 @@ import { useAuthStore } from '@/store/auth-store'
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const profileSchema = z.object({
-  name:  z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
+  name:                       z.string().min(1, 'Name is required'),
+  email:                      z.string().email('Invalid email address'),
+  phone:                      z.string().optional(),
+  current_password_for_email: z.string().optional(),
 })
 
 const passwordSchema = z.object({
@@ -48,7 +49,7 @@ export default function StaffProfilePage() {
 
   const profileForm = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: '', email: '', phone: '' },
+    defaultValues: { name: '', email: '', phone: '', current_password_for_email: '' },
   })
 
   const pwForm = useForm<PasswordForm>({ resolver: zodResolver(passwordSchema) })
@@ -56,17 +57,33 @@ export default function StaffProfilePage() {
   // Sync form values when user data loads / changes
   useEffect(() => {
     if (user) {
-      profileForm.reset({ name: user.name, email: user.email, phone: user.phone ?? '' })
+      profileForm.reset({ name: user.name, email: user.email, phone: user.phone ?? '', current_password_for_email: '' })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
+  const watchedEmail = profileForm.watch('email')
+  const emailChanged = user ? watchedEmail !== user.email : false
+
   function onProfileSubmit(data: ProfileForm) {
+    // Frontend guard: require password when email is being changed
+    if (emailChanged && !data.current_password_for_email?.trim()) {
+      profileForm.setError('current_password_for_email', { message: 'Password required to change email' })
+      return
+    }
     updateProfile(data, {
-      onSuccess: () => toast.success('Profile updated.'),
+      onSuccess: () => {
+        toast.success('Profile updated.')
+        profileForm.setValue('current_password_for_email', '')
+      },
       onError: (err: unknown) => {
-        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        toast.error(msg ?? 'Failed to update profile.')
+        const errors = (err as { response?: { data?: { errors?: Record<string, string[]> } } })?.response?.data?.errors
+        if (errors?.current_password_for_email) {
+          profileForm.setError('current_password_for_email', { message: errors.current_password_for_email[0] })
+        } else {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+          toast.error(msg ?? 'Failed to update profile.')
+        }
       },
     })
   }
@@ -134,6 +151,26 @@ export default function StaffProfilePage() {
                   <p className="text-xs text-red-500">{profileForm.formState.errors.email.message}</p>
                 )}
               </div>
+
+              {/* Password confirmation — only shown when email is being changed */}
+              {emailChanged && (
+                <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3">
+                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 text-xs font-medium mb-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Email change requires password verification
+                  </div>
+                  <Label htmlFor="current_password_for_email">Current Password</Label>
+                  <Input
+                    id="current_password_for_email"
+                    type="password"
+                    placeholder="Enter your current password"
+                    {...profileForm.register('current_password_for_email')}
+                  />
+                  {profileForm.formState.errors.current_password_for_email && (
+                    <p className="text-xs text-red-500">{profileForm.formState.errors.current_password_for_email.message}</p>
+                  )}
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="name">Full Name</Label>
                 <Input id="name" {...profileForm.register('name')} />
