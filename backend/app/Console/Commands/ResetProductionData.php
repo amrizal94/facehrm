@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class ResetProductionData extends Command
 {
     protected $signature   = 'app:reset-production {--dry-run : Preview what will be deleted without actually deleting}';
-    protected $description = 'Reset all transactional data, keeping HR and Director accounts + master data.';
+    protected $description = 'Reset transactional data, keeping HR/Director accounts, master data, announcements, labels, projects, and future meetings.';
 
     // Accounts to preserve (by email)
     private const KEEP_EMAILS = [
@@ -43,29 +43,39 @@ class ResetProductionData extends Command
             return self::FAILURE;
         }
 
-        $keepUserIds    = $keepUsers->pluck('id')->toArray();
+        $keepUserIds     = $keepUsers->pluck('id')->toArray();
         $keepEmployeeIds = DB::table('employees')
             ->whereIn('user_id', $keepUserIds)
             ->pluck('id')
             ->toArray();
 
-        // ── Summary of what will be kept ──────────────────────────────────
+        // Future meeting IDs (start_time > now) — keep these
+        $keepMeetingIds = DB::table('meetings')
+            ->where('start_time', '>', now())
+            ->pluck('id')
+            ->toArray();
+
+        // ── Summary of what will be KEPT ──────────────────────────────────
         $this->info('  Accounts that will be KEPT:');
         foreach ($keepUsers as $u) {
             $this->line("    ✓  {$u->name} <{$u->email}>");
         }
         $this->line('');
-        $this->info('  Master data that will be KEPT:');
+        $this->info('  Data that will be KEPT (master + config):');
         $this->line('    ✓  Departments, Shifts, Leave Types, Expense Types');
         $this->line('    ✓  Settings, Roles & Permissions, Holidays');
+        $this->line('    ✓  Announcements');
+        $this->line('    ✓  Labels (task tags)');
+        $this->line('    ✓  Projects (tasks inside will be deleted)');
+        $this->line('    ✓  Future meetings (' . count($keepMeetingIds) . ' upcoming)');
         $this->line('');
 
-        // ── Count what will be deleted ─────────────────────────────────────
-        $counts = $this->buildDeleteCounts($keepUserIds, $keepEmployeeIds);
+        // ── Count what will be DELETED ────────────────────────────────────
+        $counts = $this->buildDeleteCounts($keepUserIds, $keepEmployeeIds, $keepMeetingIds);
 
         $this->warn('  Data that will be DELETED:');
-        foreach ($counts as $table => $count) {
-            $this->line(sprintf('    ✗  %-30s %d rows', $table, $count));
+        foreach ($counts as $label => $count) {
+            $this->line(sprintf('    ✗  %-35s %d rows', $label, $count));
         }
         $this->line('');
 
@@ -98,177 +108,218 @@ class ResetProductionData extends Command
         // ── Execute ───────────────────────────────────────────────────────
         $this->line('');
         $this->line('  Resetting data...');
+        $this->line('');
 
         DB::statement('SET session_replication_role = replica;'); // Disable FK checks (PostgreSQL)
 
         try {
-            $this->deleteTransactionalData($keepUserIds, $keepEmployeeIds);
+            $this->deleteTransactionalData($keepUserIds, $keepEmployeeIds, $keepMeetingIds);
         } finally {
-            DB::statement('SET session_replication_role = DEFAULT;'); // Re-enable FK checks
+            DB::statement('SET session_replication_role = DEFAULT;');
         }
 
         $this->line('');
         $this->info('  ✅ Reset complete!');
-        $this->line('  Accounts preserved: ' . $keepUsers->pluck('email')->join(', '));
+        $this->line('  Accounts preserved : ' . $keepUsers->pluck('email')->join(', '));
+        $this->line('  Future meetings kept: ' . count($keepMeetingIds));
+        $this->warn('  ⚠  Reminder: restart face-service to clear any in-memory face cache.');
+        $this->line('     pm2 restart face-service');
         $this->line('');
 
         return self::SUCCESS;
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    private function buildDeleteCounts(array $keepUserIds, array $keepEmployeeIds): array
+    private function buildDeleteCounts(array $keepUserIds, array $keepEmployeeIds, array $keepMeetingIds): array
     {
+        $pastMeetingCount = DB::table('meetings')
+            ->whereNotIn('id', $keepMeetingIds)
+            ->count();
+
+        $meetingRsvpCount = DB::table('meeting_rsvps')
+            ->whereNotIn('meeting_id', $keepMeetingIds)
+            ->count();
+
         return [
-            'task_label (pivot)'       => DB::table('task_label')->count(),
-            'task_checklist_items'     => DB::table('task_checklist_items')->count(),
-            'tasks'                    => DB::table('tasks')->count(),
-            'labels'                   => DB::table('labels')->count(),
-            'projects'                 => DB::table('projects')->count(),
-            'payroll_records'          => DB::table('payroll_records')->count(),
-            'leave_requests'           => DB::table('leave_requests')->count(),
-            'overtime_requests'        => DB::table('overtime_requests')->count(),
-            'attendance_records'       => DB::table('attendance_records')->count(),
-            'qr_sessions'              => DB::table('qr_sessions')->count(),
-            'expenses'                 => DB::table('expenses')->count(),
-            'face_data'                => DB::table('face_data')->count(),
-            'notifications'            => DB::table('notifications')->count(),
-            'audit_logs'               => DB::table('audit_logs')->count(),
-            'meeting_rsvps'            => DB::table('meeting_rsvps')->count(),
-            'meetings'                 => DB::table('meetings')->count(),
-            'announcements'            => DB::table('announcements')->count(),
-            'personal_access_tokens'   => DB::table('personal_access_tokens')
+            'task_label (pivot)'            => DB::table('task_label')->count(),
+            'task_checklist_items'          => DB::table('task_checklist_items')->count(),
+            'tasks'                         => DB::table('tasks')->count(),
+            'payroll_records'               => DB::table('payroll_records')->count(),
+            'leave_requests'                => DB::table('leave_requests')->count(),
+            'overtime_requests'             => DB::table('overtime_requests')->count(),
+            'attendance_records'            => DB::table('attendance_records')->count(),
+            'qr_sessions'                   => DB::table('qr_sessions')->count(),
+            'expenses'                      => DB::table('expenses')->count(),
+            'face_data'                     => DB::table('face_data')->count(),
+            'notifications'                 => DB::table('notifications')->count(),
+            'audit_logs'                    => DB::table('audit_logs')->count(),
+            'meeting_rsvps (past)'          => $meetingRsvpCount,
+            'meetings (past)'               => $pastMeetingCount,
+            'personal_access_tokens'        => DB::table('personal_access_tokens')
                 ->whereNotIn('tokenable_id', $keepUserIds)->count(),
-            'employees (non-admin/hr)' => DB::table('employees')
+            'employees (non-admin/hr)'      => DB::table('employees')
                 ->whereNotIn('id', $keepEmployeeIds)->count(),
-            'users (non-admin/hr)'     => DB::table('users')
+            'users (non-admin/hr)'          => DB::table('users')
                 ->whereNotIn('id', $keepUserIds)->count(),
         ];
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    private function deleteTransactionalData(array $keepUserIds, array $keepEmployeeIds): void
+    private function deleteTransactionalData(array $keepUserIds, array $keepEmployeeIds, array $keepMeetingIds): void
     {
-        // 1. Task-related (deepest first)
-        $this->deleteTruncate('task_label');
-        $this->deleteTruncate('task_checklist_items');
-        $this->deleteTruncate('tasks');
-        $this->deleteTruncate('labels');
-        $this->deleteTruncate('projects');
+        // 1. Tasks + checklist (labels & projects are KEPT)
+        $this->deleteWhere('task_label', []);          // pivot — all task labels
+        $this->deleteWhere('task_checklist_items', []);
+        $this->deleteWhere('tasks', []);
 
         // 2. HR / Payroll
-        $this->deleteTruncate('payroll_records');
-        $this->deleteTruncate('leave_requests');
-        $this->deleteTruncate('overtime_requests');
+        $this->deleteWhere('payroll_records', []);
+        $this->deleteWhere('leave_requests', []);
+        $this->deleteWhere('overtime_requests', []);
 
         // 3. Attendance
-        $this->deleteTruncate('attendance_records');
-        $this->deleteTruncate('qr_sessions');
+        $this->deleteWhere('attendance_records', []);
+        $this->deleteWhere('qr_sessions', []);
 
-        // 4. Expenses
-        $this->deleteTruncate('expenses');
+        // 4. Expenses + storage files
+        $this->cleanExpenseFiles();
+        $this->deleteWhere('expenses', []);
 
-        // 5. Face data — also delete stored files from disk
-        $this->deleteFaceFiles();
-        $this->deleteTruncate('face_data');
+        // 5. Face data + storage files
+        $this->cleanFaceFiles();
+        $this->deleteWhere('face_data', []);
 
-        // 6. Misc
-        $this->deleteTruncate('notifications');
-        $this->deleteTruncate('audit_logs');
-        $this->deleteTruncate('meeting_rsvps');
-        $this->deleteTruncate('meetings');
-        $this->deleteTruncate('announcements');
+        // 6. Notifications & audit trail
+        $this->deleteWhere('notifications', []);
+        $this->deleteWhere('audit_logs', []);
 
-        // 7. Sanctum tokens for deleted users
-        DB::table('personal_access_tokens')
+        // 7. Meetings — delete PAST only, keep future + their RSVPs
+        if (! empty($keepMeetingIds)) {
+            $count = DB::table('meeting_rsvps')->whereNotIn('meeting_id', $keepMeetingIds)->delete();
+            $this->line("    ✗  meeting_rsvps past ({$count} rows)");
+            $count = DB::table('meetings')->whereNotIn('id', $keepMeetingIds)->delete();
+            $this->line("    ✗  meetings past ({$count} rows)");
+        } else {
+            $this->deleteWhere('meeting_rsvps', []);
+            $this->deleteWhere('meetings', []);
+        }
+
+        // 8. Sanctum tokens for deleted users
+        $count = DB::table('personal_access_tokens')
             ->whereNotIn('tokenable_id', $keepUserIds)
             ->delete();
-        $this->line('    ✗  personal_access_tokens (non-admin/hr)');
+        $this->line("    ✗  personal_access_tokens ({$count} rows)");
 
-        // 8. Spatie role assignments for deleted users
+        // 9. Spatie: role + permission assignments for deleted users
         DB::table('model_has_roles')
             ->where('model_type', 'App\\Models\\User')
             ->whereNotIn('model_id', $keepUserIds)
             ->delete();
+        DB::table('model_has_permissions')
+            ->where('model_type', 'App\\Models\\User')
+            ->whereNotIn('model_id', $keepUserIds)
+            ->delete();
 
-        // 9. Employees (keep those linked to preserved users)
-        $deleted = DB::table('employees')
+        // 10. Employees (keep those linked to preserved users)
+        //     Also force-delete soft-deleted employees not in keeplist
+        $count = DB::table('employees')
             ->whereNotIn('id', $keepEmployeeIds)
             ->delete();
-        $this->line("    ✗  employees ({$deleted} rows)");
+        $this->line("    ✗  employees ({$count} rows)");
 
-        // 10. Users (keep HR and director)
-        $deleted = DB::table('users')
+        // 11. Users (keep HR and director) + their soft-deleted rows
+        $count = DB::table('users')
             ->whereNotIn('id', $keepUserIds)
             ->delete();
-        $this->line("    ✗  users ({$deleted} rows)");
+        $this->line("    ✗  users ({$count} rows)");
 
-        // 11. Reset auto-increment sequences
+        // 12. Clean task photo storage directories
+        $this->cleanStorageDirectory('task-photos');
+
+        // 13. Reset PostgreSQL sequences
         $this->resetSequences();
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    private function deleteTruncate(string $table): void
+    private function deleteWhere(string $table, array $where): void
     {
-        $count = DB::table($table)->count();
-        DB::table($table)->delete();
+        $query = DB::table($table);
+        foreach ($where as $col => $val) {
+            $query->where($col, $val);
+        }
+        $count = $query->count();
+        $query->delete();
         $this->line("    ✗  {$table} ({$count} rows)");
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    private function deleteFaceFiles(): void
+    private function cleanFaceFiles(): void
     {
         try {
+            // Delete individual face image files recorded in DB
             $paths = DB::table('face_data')->pluck('image_path')->filter()->toArray();
-            foreach ($paths as $path) {
-                Storage::disk('public')->delete($path);
-            }
-            // Also clean up face-photos directory
-            $files = Storage::disk('public')->files('face-photos');
-            Storage::disk('public')->delete($files);
+            Storage::disk('public')->delete($paths);
+
+            // Wipe the entire face-photos directory recursively
+            $this->cleanStorageDirectory('face-photos');
             $this->line('    ✗  face photo files from storage');
-        } catch (\Throwable) {
-            $this->warn('    ⚠  Could not clean face photo files (non-fatal)');
+        } catch (\Throwable $e) {
+            $this->warn("    ⚠  Could not clean face files: {$e->getMessage()} (non-fatal)");
         }
+    }
 
-        // Also clean task-photos
+    // ─────────────────────────────────────────────────────────────────────
+    private function cleanExpenseFiles(): void
+    {
         try {
-            $taskPaths = DB::table('tasks')->whereNotNull('photo_path')->pluck('photo_path')->toArray();
-            foreach ($taskPaths as $path) {
-                Storage::disk('public')->delete($path);
-            }
-            $this->line('    ✗  task photo files from storage');
-        } catch (\Throwable) {
-            $this->warn('    ⚠  Could not clean task photo files (non-fatal)');
-        }
-
-        // Also clean expense receipts
-        try {
-            $receiptPaths = DB::table('expenses')->whereNotNull('receipt_path')->pluck('receipt_path')->toArray();
-            foreach ($receiptPaths as $path) {
-                Storage::disk('public')->delete($path);
-            }
+            $paths = DB::table('expenses')->whereNotNull('receipt_path')->pluck('receipt_path')->toArray();
+            Storage::disk('public')->delete($paths);
+            $this->cleanStorageDirectory('receipts');
             $this->line('    ✗  expense receipt files from storage');
+        } catch (\Throwable $e) {
+            $this->warn("    ⚠  Could not clean expense files: {$e->getMessage()} (non-fatal)");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    private function cleanStorageDirectory(string $dir): void
+    {
+        try {
+            $disk = Storage::disk('public');
+            // Delete files then subdirectory folders
+            foreach ($disk->allFiles($dir) as $file) {
+                $disk->delete($file);
+            }
+            foreach (array_reverse($disk->allDirectories($dir)) as $subdir) {
+                $disk->deleteDirectory($subdir);
+            }
         } catch (\Throwable) {
-            $this->warn('    ⚠  Could not clean expense receipt files (non-fatal)');
+            // Non-fatal — directory may not exist
         }
     }
 
     // ─────────────────────────────────────────────────────────────────────
     private function resetSequences(): void
     {
-        // Reset PostgreSQL sequences so new IDs start from 1
         $tables = [
-            'tasks', 'projects', 'labels', 'payroll_records', 'leave_requests',
-            'overtime_requests', 'attendance_records', 'qr_sessions', 'expenses',
-            'face_data', 'meetings', 'meeting_rsvps', 'announcements', 'audit_logs',
+            'tasks', 'task_checklist_items',
+            'payroll_records', 'leave_requests', 'overtime_requests',
+            'attendance_records', 'qr_sessions',
+            'expenses', 'face_data',
+            'notifications', 'audit_logs',
+            'meetings', 'meeting_rsvps',
+            'employees', 'users',
         ];
+
+        $reset = 0;
         foreach ($tables as $table) {
             try {
-                DB::statement("SELECT setval(pg_get_serial_sequence('{$table}', 'id'), 1, false)");
+                DB::statement("SELECT setval(pg_get_serial_sequence('{$table}', 'id'), coalesce((SELECT MAX(id) FROM \"{$table}\"), 0) + 1, false)");
+                $reset++;
             } catch (\Throwable) {
-                // Non-fatal — sequence may not exist
+                // Non-fatal
             }
         }
-        $this->line('    ✓  PostgreSQL sequences reset');
+        $this->line("    ✓  PostgreSQL sequences reset ({$reset} tables)");
     }
 }
