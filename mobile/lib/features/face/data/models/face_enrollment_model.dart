@@ -32,7 +32,7 @@ class FaceEnrollmentModel {
     final enrolledBy = faceData?['enrolled_by'] as Map<String, dynamic>?;
 
     return FaceEnrollmentModel(
-      employeeId:    j['id'] as int,
+      employeeId:    (j['employee_id'] ?? j['id']) as int,
       employeeNumber: j['employee_number'] as String? ?? '',
       position:       j['position'] as String?,
       userName:       user?['name'] as String? ?? '',
