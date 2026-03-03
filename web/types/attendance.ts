@@ -9,6 +9,10 @@ export interface AttendanceRecord {
   work_hours: string | null
   notes: string | null
   check_in_method?: 'face' | 'manual' | 'admin' | 'qr' | null
+  latitude?: number | null
+  longitude?: number | null
+  location_accuracy?: number | null
+  is_mock_location?: boolean | null
   employee?: {
     id: number
     employee_number: string

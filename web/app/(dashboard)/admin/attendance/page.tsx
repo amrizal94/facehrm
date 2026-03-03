@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, Clock, UserX, AlertCircle, Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, QrCode } from 'lucide-react'
+import { Users, Clock, UserX, AlertCircle, Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, QrCode, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -36,6 +36,7 @@ import { useDepartments } from '@/hooks/use-employees'
 import { EditAttendanceDialog } from './edit-attendance-dialog'
 import { AddAttendanceDialog } from './add-attendance-dialog'
 import { QrSessionDialog } from './qr-session-dialog'
+import { AttendanceDetailSheet } from '@/components/attendance/attendance-detail-sheet'
 import type { AttendanceFilters, AttendanceRecord } from '@/types/attendance'
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
@@ -91,6 +92,7 @@ export default function AdminAttendancePage() {
   const [qrOpen, setQrOpen]             = useState(false)
   const [editRecord, setEditRecord]     = useState<AttendanceRecord | null>(null)
   const [deleteRecord, setDeleteRecord] = useState<AttendanceRecord | null>(null)
+  const [detailRecord, setDetailRecord] = useState<AttendanceRecord | null>(null)
 
   const { data: summaryData } = useAttendanceSummary(filters.date)
   const { data, isLoading }   = useAttendance(filters)
@@ -243,6 +245,11 @@ export default function AdminAttendancePage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"
+                          title="Lihat detail & lokasi"
+                          onClick={() => setDetailRecord(rec)}>
+                          <Eye className="w-3.5 h-3.5" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8"
                           onClick={() => setEditRecord(rec)}>
                           <Pencil className="w-3.5 h-3.5" />
@@ -283,6 +290,13 @@ export default function AdminAttendancePage() {
           </div>
         )}
       </div>
+
+      {/* Attendance Detail Sheet */}
+      <AttendanceDetailSheet
+        record={detailRecord}
+        open={!!detailRecord}
+        onOpenChange={(open) => !open && setDetailRecord(null)}
+      />
 
       {/* QR Session Dialog */}
       <QrSessionDialog open={qrOpen} onOpenChange={setQrOpen} />

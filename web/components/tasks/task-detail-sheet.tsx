@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Pencil, Trash2, Calendar, User, FolderKanban, Camera, FileText, MapPin, Clock, CheckCircle2 } from 'lucide-react'
+
+const LocationMap = dynamic(() => import('@/components/ui/location-map'), { ssr: false })
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -211,43 +214,61 @@ export function TaskDetailSheet({ taskId, open, onOpenChange, isAdmin = false }:
 
               {/* GPS Audit */}
               {(task.created_gps || task.completed_gps) && (
-                <div className="space-y-1">
+                <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                     <MapPin className="h-3 w-3" /> Audit Lokasi
                   </p>
-                  <div className="text-xs bg-muted rounded-md p-2 space-y-2">
-                    {task.created_gps && (
-                      <div className="flex items-start gap-2 flex-wrap">
-                        <span className="text-muted-foreground shrink-0">Dibuat:</span>
-                        <span className="font-mono">
-                          {task.created_gps.lat.toFixed(5)}, {task.created_gps.lng.toFixed(5)}
+
+                  {task.created_gps && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-medium">📍 Dibuat</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {task.created_gps.lat.toFixed(6)}, {task.created_gps.lng.toFixed(6)}
                         </span>
                         {task.created_gps.face_confidence != null && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-300 text-green-700 bg-green-50 font-medium">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-300 text-green-700 bg-green-50 text-xs font-medium">
                             Wajah {task.created_gps.face_confidence.toFixed(1)}%
                           </span>
                         )}
                       </div>
-                    )}
-                    {task.completed_gps && (
-                      <div className="flex items-start gap-2 flex-wrap">
-                        <span className="text-muted-foreground shrink-0">Selesai:</span>
-                        <span className="font-mono">
-                          {task.completed_gps.lat.toFixed(5)}, {task.completed_gps.lng.toFixed(5)}
+                      <LocationMap
+                        lat={task.created_gps.lat}
+                        lng={task.created_gps.lng}
+                        label="Lokasi submit tugas"
+                        height={180}
+                      />
+                    </div>
+                  )}
+
+                  {task.completed_gps && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-medium">✅ Diselesaikan</span>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {task.completed_gps.lat.toFixed(6)}, {task.completed_gps.lng.toFixed(6)}
                         </span>
                         {task.completed_gps.is_mock && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-red-300 text-red-700 bg-red-50 font-medium">
-                            GPS Palsu!
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-red-300 text-red-700 bg-red-50 text-xs font-medium">
+                            ⚠️ GPS Palsu!
                           </span>
                         )}
                         {task.completed_gps.face_confidence != null && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-300 text-green-700 bg-green-50 font-medium">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-300 text-green-700 bg-green-50 text-xs font-medium">
                             Wajah {task.completed_gps.face_confidence.toFixed(1)}%
                           </span>
                         )}
                       </div>
-                    )}
-                  </div>
+                      <LocationMap
+                        lat={task.completed_gps.lat}
+                        lng={task.completed_gps.lng}
+                        accuracy={task.completed_gps.accuracy}
+                        isMock={task.completed_gps.is_mock}
+                        label="Lokasi selesai tugas"
+                        height={180}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
