@@ -93,10 +93,16 @@ class AttendanceController extends Controller
             ]
         );
 
+        $record->load(['employee.user', 'employee.department']);
+        AuditLog::record('attendance.create', $request, [
+            'target_label' => $record->employee?->user?->name ?? '—',
+            'date'         => $validated['date'],
+        ], 'attendance', $record->id);
+
         return response()->json([
             'success' => true,
             'message' => 'Attendance record saved.',
-            'data'    => new AttendanceResource($record->load(['employee.user', 'employee.department'])),
+            'data'    => new AttendanceResource($record),
         ], 201);
     }
 
@@ -131,18 +137,33 @@ class AttendanceController extends Controller
             'notes'      => $validated['notes'] ?? $attendance->notes,
         ]);
 
+        $attendance->load(['employee.user', 'employee.department']);
+
+        AuditLog::record('attendance.update', $request, [
+            'target_label'  => $attendance->employee?->user?->name ?? '—',
+            'date'          => $attendance->date,
+            'changed_fields' => array_keys($validated),
+        ], 'attendance', $attendance->id);
+
         return response()->json([
             'success' => true,
             'message' => 'Attendance updated.',
-            'data'    => new AttendanceResource($attendance->load(['employee.user', 'employee.department'])),
+            'data'    => new AttendanceResource($attendance),
         ]);
     }
 
     // ---------------------------------------------------------------
     // Admin: delete attendance record
     // ---------------------------------------------------------------
-    public function destroy(AttendanceRecord $attendance): JsonResponse
+    public function destroy(Request $request, AttendanceRecord $attendance): JsonResponse
     {
+        $attendance->load(['employee.user']);
+
+        AuditLog::record('attendance.delete', $request, [
+            'target_label' => $attendance->employee?->user?->name ?? '—',
+            'date'         => $attendance->date,
+        ], 'attendance', $attendance->id);
+
         $attendance->delete();
 
         return response()->json([

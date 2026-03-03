@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
 use App\Http\Resources\EmployeeResource;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -113,6 +114,11 @@ class EmployeeController extends Controller
 
             DB::commit();
 
+            AuditLog::record('employee.create', $request, [
+                'target_label' => "{$validated['name']} ({$validated['employee_number']})",
+                'role'         => $requestedRole,
+            ], 'employee', $employee->id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Employee created successfully.',
@@ -182,6 +188,11 @@ class EmployeeController extends Controller
 
             DB::commit();
 
+            AuditLog::record('employee.update', $request, [
+                'target_label'  => "{$validated['name']} ({$validated['employee_number']})",
+                'changed_fields' => array_keys($validated),
+            ], 'employee', $employee->id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Employee updated successfully.',
@@ -193,11 +204,16 @@ class EmployeeController extends Controller
         }
     }
 
-    public function toggleActive(Employee $employee): JsonResponse
+    public function toggleActive(Request $request, Employee $employee): JsonResponse
     {
         $employee->user->update(['is_active' => ! $employee->user->is_active]);
 
         $status = $employee->user->is_active ? 'activated' : 'deactivated';
+        $action = $employee->user->is_active ? 'employee.activate' : 'employee.deactivate';
+
+        AuditLog::record($action, $request, [
+            'target_label' => "{$employee->user->name} ({$employee->employee_number})",
+        ], 'employee', $employee->id);
 
         return response()->json([
             'success' => true,
@@ -206,8 +222,12 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function destroy(Employee $employee): JsonResponse
+    public function destroy(Request $request, Employee $employee): JsonResponse
     {
+        AuditLog::record('employee.delete', $request, [
+            'target_label' => "{$employee->user->name} ({$employee->employee_number})",
+        ], 'employee', $employee->id);
+
         $employee->delete(); // soft delete
 
         return response()->json([

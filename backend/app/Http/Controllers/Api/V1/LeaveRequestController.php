@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectLeaveRequest;
 use App\Http\Requests\StoreLeaveRequestRequest;
 use App\Http\Resources\LeaveRequestResource;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Notifications\LeaveStatusChanged;
@@ -193,6 +194,13 @@ class LeaveRequestController extends Controller
         $leaveRequest->load(['employee.user', 'leaveType']);
         optional($leaveRequest->employee?->user)->notify(new LeaveStatusChanged($leaveRequest));
 
+        AuditLog::record('leave.approve', $request, [
+            'target_label' => $leaveRequest->employee?->user?->name ?? '—',
+            'leave_type'   => $leaveRequest->leaveType?->name,
+            'dates'        => $leaveRequest->start_date . ' – ' . $leaveRequest->end_date,
+            'total_days'   => $leaveRequest->total_days,
+        ], 'leave_request', $leaveRequest->id);
+
         return response()->json([
             'success' => true,
             'message' => 'Leave request approved.',
@@ -223,6 +231,12 @@ class LeaveRequestController extends Controller
 
         $leaveRequest->load(['employee.user', 'leaveType']);
         optional($leaveRequest->employee?->user)->notify(new LeaveStatusChanged($leaveRequest));
+
+        AuditLog::record('leave.reject', $request, [
+            'target_label'     => $leaveRequest->employee?->user?->name ?? '—',
+            'leave_type'       => $leaveRequest->leaveType?->name,
+            'rejection_reason' => $request->validated()['rejection_reason'],
+        ], 'leave_request', $leaveRequest->id);
 
         return response()->json([
             'success' => true,

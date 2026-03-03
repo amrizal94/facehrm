@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PayrollResource;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\PayrollRecord;
 use App\Notifications\PayrollPaid;
@@ -100,6 +101,12 @@ class PayrollController extends Controller
 
             $created++;
         }
+
+        AuditLog::record('payroll.generate', $request, [
+            'period'  => "{$year}-" . str_pad($month, 2, '0', STR_PAD_LEFT),
+            'created' => $created,
+            'skipped' => $skipped,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -212,6 +219,12 @@ class PayrollController extends Controller
         $payroll->load('employee.user');
         optional($payroll->employee?->user)->notify(new PayrollPaid($payroll));
 
+        AuditLog::record('payroll.paid', $request, [
+            'target_label' => $payroll->employee?->user?->name ?? '—',
+            'period'       => "{$payroll->period_year}-" . str_pad($payroll->period_month, 2, '0', STR_PAD_LEFT),
+            'net_salary'   => (float) $payroll->net_salary,
+        ], 'payroll', $payroll->id);
+
         return response()->json([
             'success' => true,
             'message' => 'Payroll marked as paid.',
@@ -241,6 +254,12 @@ class PayrollController extends Controller
             optional($record->employee?->user)->notify(new PayrollPaid($record));
             $count++;
         }
+
+        AuditLog::record('payroll.paid', $request, [
+            'target_label' => 'Bulk',
+            'period'       => "{$validated['year']}-" . str_pad($validated['month'], 2, '0', STR_PAD_LEFT),
+            'count'        => $count,
+        ]);
 
         return response()->json([
             'success' => true,

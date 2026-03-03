@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\Task;
 use App\Models\TaskChecklistItem;
@@ -176,6 +177,12 @@ class TaskController extends Controller
             Notification::send($recipients, new TaskSelfReported($task));
         }
 
+        AuditLog::record('task.create', $request, [
+            'target_label' => $task->title,
+            'self_reported' => $task->self_reported,
+            'project'      => $task->project?->name,
+        ], 'task', $task->id);
+
         return response()->json([
             'success' => true,
             'message' => 'Task created.',
@@ -333,8 +340,13 @@ class TaskController extends Controller
         ]);
     }
 
-    public function destroy(Task $task): JsonResponse
+    public function destroy(Request $request, Task $task): JsonResponse
     {
+        AuditLog::record('task.delete', $request, [
+            'target_label' => $task->title,
+            'project'      => $task->project?->name,
+        ], 'task', $task->id);
+
         $task->delete();
 
         return response()->json(['success' => true, 'message' => 'Task deleted.']);

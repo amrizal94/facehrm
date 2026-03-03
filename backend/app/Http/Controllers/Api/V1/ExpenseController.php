@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\ExpenseType;
@@ -189,8 +190,14 @@ class ExpenseController extends Controller
             'approved_at' => now(),
         ]);
 
-        $expense->load(['employee.user']);
+        $expense->load(['employee.user', 'expenseType']);
         optional($expense->employee?->user)->notify(new ExpenseStatusChanged($expense));
+
+        AuditLog::record('expense.approve', $request, [
+            'target_label' => $expense->employee?->user?->name ?? '—',
+            'amount'       => (float) $expense->amount,
+            'category'     => $expense->expenseType?->name ?? $expense->category,
+        ], 'expense', $expense->id);
 
         return response()->json([
             'success' => true,
@@ -222,8 +229,13 @@ class ExpenseController extends Controller
             'rejection_reason' => $request->string('rejection_reason'),
         ]);
 
-        $expense->load(['employee.user']);
+        $expense->load(['employee.user', 'expenseType']);
         optional($expense->employee?->user)->notify(new ExpenseStatusChanged($expense));
+
+        AuditLog::record('expense.reject', $request, [
+            'target_label'     => $expense->employee?->user?->name ?? '—',
+            'rejection_reason' => $request->string('rejection_reason'),
+        ], 'expense', $expense->id);
 
         return response()->json([
             'success' => true,
