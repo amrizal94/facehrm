@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ResetProductionData extends Command
 {
-    protected $signature   = 'app:reset-production {--dry-run : Preview what will be deleted without actually deleting}';
+    protected $signature   = 'app:reset-production {--dry-run : Preview what will be deleted without actually deleting} {--force : Skip confirmation prompts (use with caution)}';
     protected $description = 'Reset transactional data, keeping HR/Director accounts, master data, announcements, labels, projects, and future meetings.';
 
     // Accounts to preserve (by email)
@@ -94,15 +94,17 @@ class ResetProductionData extends Command
         $this->error('  ⚠️  Make sure you have a database backup before proceeding.');
         $this->line('');
 
-        if (! $this->confirm('  Are you sure you want to delete all transactional data?')) {
-            $this->line('  Aborted.');
-            return self::SUCCESS;
-        }
+        if (! $this->option('force')) {
+            if (! $this->confirm('  Are you sure you want to delete all transactional data?')) {
+                $this->line('  Aborted.');
+                return self::SUCCESS;
+            }
 
-        $confirmed = $this->ask('  Type "RESET" to confirm');
-        if ($confirmed !== 'RESET') {
-            $this->line('  Confirmation failed. Aborted.');
-            return self::SUCCESS;
+            $confirmed = $this->ask('  Type "RESET" to confirm');
+            if ($confirmed !== 'RESET') {
+                $this->line('  Confirmation failed. Aborted.');
+                return self::SUCCESS;
+            }
         }
 
         // ── Execute ───────────────────────────────────────────────────────
