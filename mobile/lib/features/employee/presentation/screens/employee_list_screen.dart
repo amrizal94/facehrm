@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/employee_model.dart';
 import '../providers/employee_provider.dart';
 
@@ -38,7 +40,14 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(employeeListProvider);
+    final state     = ref.watch(employeeListProvider);
+    final authState = ref.watch(authNotifierProvider);
+    final user      = authState is AuthAuthenticated ? authState.user : null;
+    final canWrite  = user != null && [
+      AppConstants.roleAdmin,
+      AppConstants.roleHR,
+      AppConstants.roleDirector,
+    ].contains(user.role);
 
     return Scaffold(
       appBar: AppBar(
@@ -52,12 +61,14 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        onPressed: () => _navigateToForm(),
-        child: const Icon(Icons.person_add_outlined),
-      ),
+      floatingActionButton: canWrite
+          ? FloatingActionButton(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              onPressed: () => _navigateToForm(),
+              child: const Icon(Icons.person_add_outlined),
+            )
+          : null,
       body: Column(
         children: [
           // ── Search bar ────────────────────────────────────────────────
@@ -169,6 +180,7 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
                             final emp = state.items[i];
                             return _EmployeeTile(
                               employee: emp,
+                              canWrite: canWrite,
                               isToggling: state.toggling.contains(emp.id),
                               onToggle: () => _confirmToggle(context, emp),
                               onEdit: () => _navigateToForm(employeeId: emp.id),
@@ -261,12 +273,14 @@ class _StatChip extends StatelessWidget {
 
 class _EmployeeTile extends StatelessWidget {
   final EmployeeModel employee;
+  final bool canWrite;
   final bool isToggling;
   final VoidCallback onToggle;
   final VoidCallback onEdit;
 
   const _EmployeeTile({
     required this.employee,
+    required this.canWrite,
     required this.isToggling,
     required this.onToggle,
     required this.onEdit,
@@ -323,14 +337,15 @@ class _EmployeeTile extends StatelessWidget {
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Edit button
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    onPressed: onEdit,
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    tooltip: 'Edit',
-                  ),
+                  // Edit button — admin/hr/director only
+                  if (canWrite)
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      onPressed: onEdit,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Edit',
+                    ),
                   // Status badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -347,14 +362,16 @@ class _EmployeeTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  // Toggle switch
-                  Switch(
-                    value: employee.isActive,
-                    onChanged: (_) => onToggle(),
-                    activeColor: Colors.green,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+                  // Toggle switch — admin/hr/director only
+                  if (canWrite) ...[
+                    const SizedBox(width: 4),
+                    Switch(
+                      value: employee.isActive,
+                      onChanged: (_) => onToggle(),
+                      activeColor: Colors.green,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
                 ],
               ),
       ),
