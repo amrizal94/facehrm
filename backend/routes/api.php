@@ -137,9 +137,11 @@ Route::prefix('v1')->group(function () {
             Route::delete('tasks/{task}/checklist/{item}',              [TaskController::class, 'deleteChecklistItem']);
 
             Route::apiResource('departments', DepartmentController::class);
-            Route::apiResource('employees',   EmployeeController::class);
             Route::apiResource('shifts',      ShiftController::class);
-            Route::patch('employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive']);
+
+            // Employees — read-only for manager (sensitive fields scoped in EmployeeResource)
+            Route::get('employees',            [EmployeeController::class, 'index']);
+            Route::get('employees/{employee}', [EmployeeController::class, 'show']);
 
             // Attendance management — specific routes BEFORE apiResource to avoid param conflicts
             Route::get('attendance/summary',                                   [AttendanceController::class, 'summary']);
@@ -213,8 +215,13 @@ Route::prefix('v1')->group(function () {
             Route::delete('expense-types/{expenseType}', [ExpenseTypeController::class, 'destroy']);
         });
 
-        // Admin & HR only (payroll + settings)
+        // Admin, HR & Director only (employee write + payroll + settings)
         Route::middleware('role:admin|hr|director')->group(function () {
+            // Employees — write operations (create/update/delete/toggle)
+            Route::post('employees',                           [EmployeeController::class, 'store']);
+            Route::put('employees/{employee}',                 [EmployeeController::class, 'update']);
+            Route::delete('employees/{employee}',              [EmployeeController::class, 'destroy']);
+            Route::patch('employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive']);
             // Settings
             Route::get('settings',  [SettingController::class, 'index']);
             Route::put('settings',  [SettingController::class, 'update']);
