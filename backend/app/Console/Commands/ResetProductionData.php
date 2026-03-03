@@ -217,23 +217,37 @@ class ResetProductionData extends Command
             ->whereNotIn('model_id', $keepUserIds)
             ->delete();
 
-        // 10. Employees (keep those linked to preserved users)
-        //     Also force-delete soft-deleted employees not in keeplist
+        // 10. Reassign created_by in KEPT tables to avoid FK violations / cascade deletes
+        //     (announcements + meetings cascade-delete when creator is removed;
+        //      projects FK-restrict and would block user deletion)
+        $keeperId = $keepUserIds[0]; // reassign to first kept user (HR or Director)
+        DB::table('projects')->whereNotIn('created_by', $keepUserIds)
+            ->update(['created_by' => $keeperId]);
+        DB::table('announcements')->whereNotIn('created_by', $keepUserIds)
+            ->update(['created_by' => $keeperId]);
+        if (! empty($keepMeetingIds)) {
+            DB::table('meetings')->whereIn('id', $keepMeetingIds)
+                ->whereNotIn('created_by', $keepUserIds)
+                ->update(['created_by' => $keeperId]);
+        }
+        $this->line('    ✓  created_by reassigned in projects/announcements/meetings');
+
+        // 11. Employees (keep those linked to preserved users)
         $count = DB::table('employees')
             ->whereNotIn('id', $keepEmployeeIds)
             ->delete();
         $this->line("    ✗  employees ({$count} rows)");
 
-        // 11. Users (keep HR and director) + their soft-deleted rows
+        // 12. Users (keep HR and director)
         $count = DB::table('users')
             ->whereNotIn('id', $keepUserIds)
             ->delete();
         $this->line("    ✗  users ({$count} rows)");
 
-        // 12. Clean task photo storage directories
+        // 13. Clean task photo storage directories
         $this->cleanStorageDirectory('task-photos');
 
-        // 13. Reset PostgreSQL sequences
+        // 14. Reset PostgreSQL sequences
         $this->resetSequences();
     }
 
