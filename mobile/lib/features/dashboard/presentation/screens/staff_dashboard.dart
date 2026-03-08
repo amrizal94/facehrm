@@ -337,6 +337,13 @@ class _StaffDashboardScreenState extends ConsumerState<StaffDashboardScreen> {
                 onTap: () => context.push(AppRoutes.meetings),
               ),
               _MenuTile(
+                icon: Icons.inventory_2,
+                title: 'Aset Saya',
+                subtitle: 'Lihat aset yang dipinjamkan kepada Anda',
+                color: Colors.brown.shade600,
+                onTap: () => context.push(AppRoutes.myAssets),
+              ),
+              _MenuTile(
                 icon: Icons.notifications_outlined,
                 title: 'Notifications',
                 subtitle: 'View your notifications',

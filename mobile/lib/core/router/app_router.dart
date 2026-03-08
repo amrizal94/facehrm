@@ -49,6 +49,7 @@ import '../../features/meeting/data/models/meeting_model.dart';
 import '../../features/meeting/presentation/screens/meeting_detail_screen.dart';
 import '../../features/meeting/presentation/screens/meetings_screen.dart';
 import '../../features/auth/presentation/screens/change_password_screen.dart';
+import '../../features/asset/presentation/screens/my_assets_screen.dart';
 import '../constants/app_constants.dart';
 import '../../features/onboarding/presentation/screens/permission_setup_screen.dart';
 import 'app_routes.dart';
@@ -210,6 +211,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.meetingDetail,
         builder: (_, state) => MeetingDetailScreen(meeting: state.extra as MeetingModel),
       ),
+
+      // Asset routes
+      GoRoute(path: AppRoutes.myAssets, builder: (_, __) => const MyAssetsScreen()),
 
       // Expense routes
       GoRoute(path: AppRoutes.myExpenses,       builder: (_, __) => const MyExpensesScreen()),

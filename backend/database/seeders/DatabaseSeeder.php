@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             EmployeeSeeder::class,
             LeaveTypeSeeder::class,
             SettingSeeder::class,
+            AssetCategorySeeder::class,
         ]);
     }
 }

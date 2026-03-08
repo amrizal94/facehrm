@@ -80,6 +80,12 @@ class ApiConstants {
   static const String projectsForTask   = '/projects?for_task_creation=1&status=active';
   static String completeTask(int id)    => '/tasks/$id/complete';
 
+  // Assets
+  static const String myAssets       = '/assets/my';
+  static const String assets         = '/assets';
+  static const String assetStats     = '/assets/stats';
+  static const String assetCategories = '/asset-categories';
+
   // Reports
   static const String reportsOverview    = '/reports/overview';
   static const String reportsAttendance  = '/reports/attendance';

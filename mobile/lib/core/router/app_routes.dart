@@ -51,6 +51,9 @@ class AppRoutes {
   static const String employeeForm         = '/hr/employees/form';
   static const String faceAuditLog         = '/hr/face-audit-log';
 
+  // Assets
+  static const String myAssets = '/staff/assets';
+
   // Expenses
   static const String myExpenses      = '/staff/expenses';
   static const String submitExpense   = '/staff/expenses/submit';

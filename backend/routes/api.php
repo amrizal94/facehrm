@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\QrAttendanceController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\ExpenseTypeController;
+use App\Http\Controllers\Api\V1\AssetController;
+use App\Http\Controllers\Api\V1\AssetCategoryController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\DepartmentController;
@@ -79,6 +81,11 @@ Route::prefix('v1')->group(function () {
 
         // Expense types — all authenticated (read-only)
         Route::get('expense-types', [ExpenseTypeController::class, 'index']);
+
+        // Asset Management — staff read (my assets + categories list)
+        // IMPORTANT: these specific routes must come BEFORE apiResource('assets') to avoid param conflict
+        Route::get('assets/my', [AssetController::class, 'myAssets']);
+        Route::get('asset-categories', [AssetCategoryController::class, 'index']);
 
         // Expenses — staff
         Route::get('expenses/my', [ExpenseController::class, 'myExpenses']);
@@ -214,6 +221,14 @@ Route::prefix('v1')->group(function () {
             Route::post('expense-types', [ExpenseTypeController::class, 'store']);
             Route::put('expense-types/{expenseType}', [ExpenseTypeController::class, 'update']);
             Route::delete('expense-types/{expenseType}', [ExpenseTypeController::class, 'destroy']);
+
+            // Asset Management (admin/hr/manager/director)
+            Route::get('assets/stats', [AssetController::class, 'stats']);
+            Route::apiResource('assets', AssetController::class);
+            Route::post('assets/{asset}/assign', [AssetController::class, 'assign']);
+            Route::post('assets/{asset}/return', [AssetController::class, 'returnAsset']);
+
+            Route::apiResource('asset-categories', AssetCategoryController::class)->except(['index']);
         });
 
         // Admin, HR & Director only (employee write + payroll + settings)

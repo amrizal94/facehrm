@@ -23,6 +23,7 @@ import {
   UserCircle,
   Megaphone,
   History,
+  Package,
 } from 'lucide-react'
 
 interface NavItem {
@@ -52,6 +53,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Projects',    href: '/admin/projects',   icon: FolderKanban,    roles: ['admin', 'hr', 'manager', 'director'] },
   { label: 'Settings',    href: '/admin/settings',   icon: Settings,        roles: ['admin', 'director'] },
   { label: 'Activity Log', href: '/admin/activity-log', icon: History,       roles: ['admin', 'hr', 'director'] },
+  { label: 'Assets',        href: '/admin/assets',       icon: Package,     roles: ['admin', 'hr', 'director'] },
   { label: 'Announcements', href: '/admin/announcements', icon: Megaphone,  roles: ['admin', 'hr', 'manager', 'director'] },
   { label: 'My Tasks',      href: '/staff/tasks',      icon: CheckSquare,     roles: ['staff'] },
   { label: 'Announcements', href: '/staff/announcements', icon: Megaphone,  roles: ['staff'] },
